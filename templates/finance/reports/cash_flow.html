@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Cash Flow Analysis | MAC Tech{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+    <!-- Header & Date Filter -->
+    <div class="row mb-5 align-items-center">
+        <div class="col-md-6">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small fw-medium">
+                    <li class="breadcrumb-item"><a href="#" class="text-muted text-decoration-none">Intelligence</a></li>
+                    <li class="breadcrumb-item active text-primary">Cash Flow</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold text-slate-900">Cash Flow Statement</h2>
+            <p class="text-muted small mb-0">Analysis based on real-time Chart of Accounts movement.</p>
+        </div>
+        <div class="col-md-6">
+            <form method="GET" class="d-flex gap-2 justify-content-md-end">
+                <div class="d-flex align-items-center bg-white shadow-sm rounded-pill px-3 border">
+                    <i class="bi bi-calendar3 text-muted me-2"></i>
+                    <input type="date" name="start_date" class="form-control border-0 bg-transparent small" value="{{ start_date }}">
+                    <span class="text-muted mx-2">to</span>
+                    <input type="date" name="end_date" class="form-control border-0 bg-transparent small" value="{{ end_date }}">
+                </div>
+                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">Generate</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-center bg-white h-100">
+                <small class="text-muted fw-bold text-uppercase extra-small d-block mb-1">Total Inflows</small>
+                <h2 class="fw-bold text-success">UGX {{ total_inflows|floatformat:0 }}</h2>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-center bg-white h-100">
+                <small class="text-muted fw-bold text-uppercase extra-small d-block mb-1">Total Outflows</small>
+                <h2 class="fw-bold text-danger">UGX {{ total_outflows|floatformat:0 }}</h2>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 {% if net_cash_flow >= 0 %}bg-dark text-white{% else %}bg-danger text-white{% endif %}">
+                <small class="opacity-75 fw-bold text-uppercase extra-small d-block mb-1">Net Position</small>
+                <h2 class="fw-bold">UGX {{ net_cash_flow|floatformat:0 }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Inflows Table -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white py-3 border-0">
+                    <h6 class="fw-bold mb-0 text-success">Real-Time Inflow Accounts</h6>
+                </div>
+                <table class="table align-middle mb-0">
+                    <thead class="extra-small text-muted text-uppercase bg-light">
+                        <tr>
+                            <th class="ps-4">Account Details</th>
+                            <th class="text-end pe-4">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        {% for account in inflow_accounts %}
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <span class="d-block fw-bold text-dark">{{ account.generalledger__account__name }}</span>
+                                <span class="extra-small text-muted text-uppercase">GL Code: {{ account.generalledger__account__code }}</span>
+                            </td>
+                            <td class="text-end pe-4 fw-bold">UGX {{ account.total_amount|floatformat:0 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="2" class="text-center py-5 text-muted">No inflow records found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="bg-light border-top">
+                        <tr>
+                            <td class="ps-4 py-3 fw-bold">Total Inflows</td>
+                            <td class="text-end pe-4 fw-bold text-success">UGX {{ total_inflows|floatformat:0 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Outflows Table -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white py-3 border-0">
+                    <h6 class="fw-bold mb-0 text-danger">Real-Time Outflow Accounts</h6>
+                </div>
+                <table class="table align-middle mb-0">
+                    <thead class="extra-small text-muted text-uppercase bg-light">
+                        <tr>
+                            <th class="ps-4">Account Details</th>
+                            <th class="text-end pe-4">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        {% for account in outflow_accounts %}
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <span class="d-block fw-bold text-dark">{{ account.generalledger__account__name }}</span>
+                                <span class="extra-small text-muted text-uppercase">GL Code: {{ account.generalledger__account__code }}</span>
+                            </td>
+                            <td class="text-end pe-4 fw-bold">UGX {{ account.total_amount|floatformat:0 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="2" class="text-center py-5 text-muted">No outflow records found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="bg-light border-top">
+                        <tr>
+                            <td class="ps-4 py-3 fw-bold">Total Outflows</td>
+                            <td class="text-end pe-4 fw-bold text-danger">UGX {{ total_outflows|floatformat:0 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .extra-small { font-size: 0.72rem; letter-spacing: 0.5px; }
+    .table thead th { border-bottom: 1px solid #edf2f7; }
+</style>
+{% endblock %}

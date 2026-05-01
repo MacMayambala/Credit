@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+
+<style>
+    :root {
+        --brand-blue: #1632af;
+        --brand-blue-soft: rgba(22, 50, 175, 0.08);
+        --slate-900: #0f172a;
+        --slate-600: #475569;
+        --bg-soft: #f8fafc;
+    }
+
+    body {
+        background-color: var(--bg-soft);
+    }
+
+    /* KPI Enhancements */
+    .kpi-card {
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .icon-box {
+        width: 54px;
+        height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+    }
+
+    /* Button Styling */
+    .btn-brand {
+        background: var(--brand-blue);
+        color: white;
+        border: none;
+        transition: opacity 0.2s;
+    }
+    .btn-brand:hover {
+        background: #11268a;
+        color: white;
+    }
+
+    /* List Group Refinement */
+    .loan-item {
+        transition: background 0.2s;
+    }
+    .loan-item:hover {
+        background-color: var(--bg-soft);
+    }
+
+    .avatar-circle {
+        background: var(--brand-blue-soft);
+        color: var(--brand-blue);
+        font-weight: 700;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 400px;
+        width: 100%;
+    }
+</style>
+
+<div class="container-fluid py-4">
+
+    <!-- Header Section -->
+    <div class="row align-items-center mb-4 g-3">
+        <div class="col-md-7">
+            <h2 class="fw-bold text-dark mb-1">Portfolio Dashboard</h2>
+            <p class="text-muted mb-0">Analytics & Asset Distribution for {{ today|date:"F Y" }}</p>
+        </div>
+        <div class="col-md-5 text-md-end">
+            <div class="d-inline-flex gap-2 p-1 bg-white border rounded-3 shadow-sm">
+                <button onclick="window.print()" class="btn btn-link text-dark text-decoration-none btn-sm px-3">
+                    <i class="bi bi-printer me-2"></i>Print
+                </button>
+                <a href="{% url 'deposit_savings' 1 %}" class="btn btn-brand btn-sm px-4 rounded-2 shadow-sm">
+                    <i class="bi bi-plus-lg me-1"></i> New Transaction
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Metrics -->
+    <div class="row g-4 mb-5">
+        <!-- Savings -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card kpi-card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="icon-box" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                            <i class="bi bi-wallet2 fs-4"></i>
+                        </div>
+                        <div class="text-success small fw-bold mt-1">
+                            <i class="bi bi-graph-up me-1"></i>+2.4%
+                        </div>
+                    </div>
+                    <span class="text-muted small fw-bold text-uppercase letter-spacing-1">Total Savings</span>
+                    <h3 class="fw-bold mb-0 mt-1">UGX {{ total_savings|default:"0"|floatformat:0|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loans -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card kpi-card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="icon-box" style="background: var(--brand-blue-soft); color: var(--brand-blue);">
+                            <i class="bi bi-bank fs-4"></i>
+                        </div>
+                    </div>
+                    <span class="text-muted small fw-bold text-uppercase letter-spacing-1">Loan Book</span>
+                    <h3 class="fw-bold mb-0 mt-1">UGX {{ total_loans|default:"0"|floatformat:0|intcomma }}</h3>
+                    <div class="text-muted extra-small mt-1">{{ active_loans_count|default:"0" }} Active Accounts</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interest -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card kpi-card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="icon-box" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                            <i class="bi bi-lightning-charge fs-4"></i>
+                        </div>
+                    </div>
+                    <span class="text-muted small fw-bold text-uppercase letter-spacing-1">Interest Yield</span>
+                    <h3 class="fw-bold mb-0 mt-1">UGX {{ total_interest|default:"0"|floatformat:0|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Members -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card kpi-card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="icon-box" style="background: var(--slate-900); color: white;">
+                            <i class="bi bi-people fs-4"></i>
+                        </div>
+                    </div>
+                    <span class="text-muted small fw-bold text-uppercase letter-spacing-1">Membership</span>
+                    <h3 class="fw-bold mb-0 mt-1">{{ total_members|default:"0"|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Growth Chart -->
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-0 p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">Financial Performance</h5>
+                        <select class="form-select form-select-sm w-auto border-0 bg-light fw-bold">
+                            <option>Last 12 Months</option>
+                            <option>Year to Date</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body p-4 pt-0">
+                    <div class="chart-container">
+                        <canvas id="growthChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-xl-4">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-0 p-4">
+                    <h5 class="fw-bold mb-0">Recent Disbursements</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for loan in loans|slice:":5" %}
+                        <div class="list-group-item px-4 py-3 border-0 loan-item">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-3">
+                                        {{ loan.member.first_name|slice:":1" }}{{ loan.member.last_name|slice:":1" }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark mb-0" style="font-size: 0.9rem;">
+                                            {{ loan.member.first_name }} {{ loan.member.last_name }}
+                                        </div>
+                                        <div class="text-muted extra-small">#LN-{{ loan.id }}</div>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold text-dark small">UGX {{ loan.principal_balance|add:loan.interest_balance|floatformat:0|intcomma }}</div>
+                                    <span class="badge {% if loan.status == 'approved' %}bg-success-subtle text-success{% else %}bg-warning-subtle text-dark{% endif %} extra-small rounded-1">
+                                        {{ loan.status|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-5">
+                            <p class="text-muted small">No active disbursements found</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0 p-4">
+                    <a href="{% url 'customer_list' %}" class="btn btn-light btn-sm w-100 fw-bold py-2">
+                        View All Members <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        
+        // Custom Gradient for Blue (Loans)
+        const gradientBlue = ctx.createLinearGradient(0, 0, 0, 400);
+        gradientBlue.addColorStop(0, 'rgba(22, 50, 175, 0.15)');
+        gradientBlue.addColorStop(1, 'rgba(22, 50, 175, 0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ chart_labels|safe|default:"[]" }},
+                datasets: [{
+                    label: 'Savings Deposits',
+                    data: {{ chart_savings|safe|default:"[]" }},
+                    borderColor: '#10b981',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    fill: false
+                }, {
+                    label: 'Loan Disbursements',
+                    data: {{ chart_loans|safe|default:"[]" }},
+                    borderColor: '#1632af',
+                    backgroundColor: gradientBlue,
+                    borderWidth: 4,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#1632af'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'end',
+                        labels: { boxWidth: 8, usePointStyle: true, font: { size: 12, weight: '600' } }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        padding: 12,
+                        boxPadding: 5
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { borderDash: [5, 5], color: '#e2e8f0' },
+                        ticks: { font: { size: 11 }, callback: (v) => 'UGX ' + v.toLocaleString() }
+                    },
+                    x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                }
+            }
+        });
+    });
+</script>
+
+{% endblock %}

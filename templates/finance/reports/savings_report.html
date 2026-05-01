@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block title %}Savings Analytics | MAC Tech{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+    <!-- Header & Filter Bar -->
+    <div class="row mb-5 align-items-center">
+        <div class="col-md-7">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small fw-medium">
+                    <li class="breadcrumb-item"><a href="{% url 'reports_dashboard' %}" class="text-muted text-decoration-none">Intelligence</a></li>
+                    <li class="breadcrumb-item active text-primary">Savings Ledger</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold text-slate-900 mb-0">Savings & Deposits Analytics</h2>
+            <p class="text-muted small">Real-time monitoring of capital accumulation and withdrawals.</p>
+        </div>
+        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+             <form method="GET" class="d-inline-flex gap-2">
+                <input type="date" name="start" class="form-control form-control-sm border-0 shadow-sm rounded-pill px-3" value="{{ request.GET.start }}">
+                <input type="date" name="end" class="form-control form-control-sm border-0 shadow-sm rounded-pill px-3" value="{{ request.GET.end }}">
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">Filter</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Analytics Snapshots -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <small class="text-muted fw-bold text-uppercase extra-small">Total Deposits</small>
+                    <div class="p-2 bg-success-subtle rounded-3 text-success">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-dark mb-0">UGX {{ total_deposits|floatformat:0 }}</h3>
+                <div class="mt-2 small text-success">
+                    <i class="bi bi-caret-up-fill"></i> 12% increase this month
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <small class="text-muted fw-bold text-uppercase extra-small">Total Withdrawals</small>
+                    <div class="p-2 bg-warning-subtle rounded-3 text-warning">
+                        <i class="bi bi-graph-down-arrow"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold text-dark mb-0">UGX {{ total_withdrawals|floatformat:0 }}</h3>
+                <div class="mt-2 small text-muted">Active withdrawal rate: 4.2%</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-dark text-white">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <small class="opacity-75 fw-bold text-uppercase extra-small">Net Savings Portfolio</small>
+                    <div class="p-2 bg-white bg-opacity-25 rounded-3">
+                        <i class="bi bi-piggy-bank"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold mb-0">UGX {{ current_total_savings|floatformat:0 }}</h3>
+                <div class="mt-2 small opacity-75">Verified ledger balance</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Ledger -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0">Activity Log</h6>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-outline-light text-dark border rounded-pill px-3 me-2" onclick="$('.buttons-excel').click()">Excel</button>
+                <button class="btn btn-sm btn-outline-light text-dark border rounded-pill px-3" onclick="$('.buttons-pdf').click()">PDF</button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table id="savingsTable" class="table table-hover align-middle mb-0">
+                <thead class="bg-slate-50 text-uppercase fw-bold extra-small text-muted">
+                    <tr>
+                        <th class="ps-4">Timestamp</th>
+                        <th>Member Name</th>
+                        <th class="text-center">Type</th>
+                        <th class="text-end">Amount</th>
+                        <th class="pe-4">Reference</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for tx in transactions %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-medium text-dark">{{ tx.timestamp|date:"d M Y" }}</div>
+                            <div class="extra-small text-muted">{{ tx.timestamp|date:"H:i" }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ tx.member.first_name }} {{ tx.member.last_name }}</div>
+                            <div class="extra-small text-muted">ID: {{ tx.member.member_number }}</div>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge {% if tx.type == 'deposit' %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} rounded-pill px-3">
+                                {{ tx.get_type_display|upper }}
+                            </span>
+                        </td>
+                        <td class="text-end fw-bold {% if tx.type == 'deposit' %}text-dark{% else %}text-danger{% endif %}">
+                            {% if tx.type == 'deposit' %}+{% else %}-{% endif %} UGX {{ tx.amount|floatformat:0 }}
+                        </td>
+                        <td class="pe-4">
+                            <span class="text-muted">{{ tx.reference|default:"--" }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-slate-50 { background-color: #f8fafc; }
+    .extra-small { font-size: 0.7rem; letter-spacing: 0.5px; }
+    .table thead th { padding-top: 15px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0; }
+    .table tbody td { padding-top: 15px; padding-bottom: 15px; }
+    
+    /* DataTable Style Tweaks */
+    .dataTables_wrapper .dataTables_filter input { 
+        border: none; background: #f1f5f9; border-radius: 20px; padding: 5px 15px; font-size: 0.85rem; margin-right: 15px;
+    }
+</style>
+
+<script>
+$(document).ready(function() {
+    $('#savingsTable').DataTable({
+        dom: '<"d-flex justify-content-between align-items-center mb-3"fB>rtip',
+        buttons: [
+            { extend: 'excel', className: 'd-none buttons-excel' },
+            { extend: 'pdf', className: 'd-none buttons-pdf' }
+        ],
+        order: [[0, 'desc']],
+        pageLength: 20,
+        responsive: true,
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search transactions..."
+        }
+    });
+});
+</script>
+{% endblock %}

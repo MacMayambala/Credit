@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+
+<style>
+    :root {
+        --slate-900: #0f172a;
+        --slate-800: #1e293b;
+        --slate-600: #475569;
+        --border: #e2e8f0;
+        --bg-soft: #f8fafc;
+    }
+
+    body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background: var(--bg-soft);
+        letter-spacing: -0.012em;
+    }
+
+    .portfolio-wrapper {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+    }
+
+    .table-compact {
+        font-size: 0.86rem;
+        margin-bottom: 0;
+    }
+
+    .table-compact thead th {
+        background: var(--slate-900);
+        color: white;
+        font-size: 0.71rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 14px 10px;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        white-space: nowrap;
+    }
+
+    .table-compact td {
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+
+    .table-compact tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    /* Sticky Columns */
+    .sticky-left {
+        position: sticky;
+        left: 0;
+        background: white;
+        z-index: 40;
+        border-right: 1px solid var(--border);
+    }
+
+    .sticky-left-2 {
+        position: sticky;
+        left: 52px;
+        background: white;
+        z-index: 40;
+        border-right: 2px solid #cbd5e1;
+        font-weight: 600;
+    }
+
+    /* Numbers */
+    .money {
+        font-weight: 500;
+        letter-spacing: -0.35px;
+    }
+
+    .money-strong {
+        font-weight: 700;
+        letter-spacing: -0.45px;
+    }
+
+    /* Scroll Container */
+    .scroll-container {
+        max-height: 68vh;           /* Adjusted for better viewport usage */
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #94a3b8 #f1f5f9;
+    }
+
+    .scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .scroll-container::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 20px;
+    }
+
+    .badge-status {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 5px 11px;
+        border-radius: 9999px;
+    }
+
+    .summary-card {
+        padding: 1.25rem;
+        border-radius: 12px;
+        background: white;
+        border: 1px solid var(--border);
+    }
+
+    .summary-title {
+        font-size: 0.73rem;
+        font-weight: 600;
+        letter-spacing: 0.6px;
+        color: var(--slate-600);
+    }
+
+    .summary-value {
+        font-size: 1.48rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+    }
+
+    .exposure {
+        background: var(--slate-900);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 7px;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .total-row {
+        background: #f1f5f9;
+        font-weight: 700;
+        border-top: 3px solid #0f172a;
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+    }
+
+    @media print {
+        .no-print { display: none !important; }
+        .sticky-left, .sticky-left-2 { position: static !important; }
+        .scroll-container { max-height: none; overflow: visible; }
+    }
+</style>
+
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <div>
+            <h4 class="fw-bold mb-1">Loan Portfolio</h4>
+            <span class="text-muted small">As at {{ today|date:"d M Y" }}</span>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-dark btn-sm px-4">
+                <i class="bi bi-file-earmark-excel me-1"></i> Export
+            </button>
+            <button onclick="window.print()" class="btn btn-dark btn-sm px-4">
+                <i class="bi bi-printer me-1"></i> Print
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4 no-print">
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-title">Principal Outstanding</div>
+                <div class="summary-value text-dark">UGX {{ total_principal_bal|default:0|intcomma }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card border-start border-4 border-danger">
+                <div class="summary-title">Total Arrears</div>
+                <div class="summary-value text-danger">UGX {{ total_arrears|default:0|intcomma }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card border-start border-4 border-success">
+                <div class="summary-title">Portfolio Quality</div>
+                <div class="summary-value text-success">94.2%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Table with Scroll -->
+    <div class="portfolio-wrapper">
+        <div class="scroll-container">
+            <table class="table table-compact mb-0">
+                <thead>
+                    <tr>
+                        <th class="sticky-left text-center">#</th>
+                        <th class="sticky-left-2">Member</th>
+                        <th>Loan Ref</th>
+                        <th class="text-end">Disbursed</th>
+                        <th class="text-center">Date</th>
+                        <th class="text-end text-success">Prin Paid</th>
+                        <th class="text-end text-success">Int Paid</th>
+                        <th class="text-end text-danger">Prin Due</th>
+                        <th class="text-end text-danger">Int Due</th>
+                        <th class="text-end text-danger">Penalty</th>
+                        <th class="text-end">Total Due</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-end">Prin Bal</th>
+                        <th class="text-end">Int Bal</th>
+                        <th class="text-end">Exposure</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in report_data %}
+                    <tr>
+                        <td class="sticky-left text-center text-muted">{{ forloop.counter }}</td>
+                        <td class="sticky-left-2 fw-medium">{{ item.name }}</td>
+                        <td class="text-muted money">{{ item.loan_no }}</td>
+
+                        <td class="text-end money">UGX {{ item.disbursed_amount|floatformat:0|intcomma }}</td>
+                        <td class="text-center small text-muted">{{ item.disbursed_date|date:"d-m-Y" }}</td>
+
+                        <td class="text-end text-success money">{{ item.principal_paid|floatformat:0|intcomma|default:"0" }}</td>
+                        <td class="text-end text-success money">{{ item.interest_paid|floatformat:0|intcomma|default:"0" }}</td>
+
+                        <td class="text-end text-danger money">{{ item.principal_due|floatformat:0|intcomma|default:"0" }}</td>
+                        <td class="text-end text-danger money">{{ item.interest_due|floatformat:0|intcomma|default:"0" }}</td>
+                        <td class="text-end text-danger money">{{ item.penalty_due|floatformat:0|intcomma|default:"0" }}</td>
+
+                        <td class="text-end money-strong">{{ item.total_due|floatformat:0|intcomma|default:"0" }}</td>
+
+                        <td class="text-center">
+                            {% if item.classification == 'Performing' %}
+                                <span class="badge bg-success badge-status">Performing</span>
+                            {% elif item.classification == 'Arrears' %}
+                                <span class="badge bg-warning text-dark badge-status">Arrears</span>
+                            {% else %}
+                                <span class="badge bg-danger badge-status">NPF</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-end money">{{ item.principal_balance|floatformat:0|intcomma|default:"0" }}</td>
+                        <td class="text-end money">{{ item.interest_balance|floatformat:0|intcomma|default:"0" }}</td>
+
+                        <td class="text-end">
+                            <span class="exposure money-strong">
+                                {{ item.principal_balance|add:item.interest_balance|floatformat:0|intcomma|default:"0" }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="15" class="text-center py-5 text-muted">No portfolio records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+                <!-- Fixed Total Row at bottom -->
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="3" class="text-end fw-bold">GRAND TOTAL</td>
+                        <td class="text-end money-strong">UGX {{ grand_total_disbursed|default:0|intcomma }}</td>
+                        <td></td>
+                        <td class="text-end text-success money-strong">{{ grand_total_prin_paid|default:0|intcomma }}</td>
+                        <td class="text-end text-success money-strong">{{ grand_total_int_paid|default:0|intcomma }}</td>
+                        <td class="text-end text-danger money-strong">{{ grand_total_prin_due|default:0|intcomma }}</td>
+                        <td class="text-end text-danger money-strong">{{ grand_total_int_due|default:0|intcomma }}</td>
+                        <td class="text-end text-danger money-strong">{{ grand_total_penalty|default:0|intcomma }}</td>
+                        <td class="text-end money-strong">{{ grand_total_due|default:0|intcomma }}</td>
+                        <td></td>
+                        <td class="text-end money-strong">{{ grand_total_prin_bal|default:0|intcomma }}</td>
+                        <td class="text-end money-strong">{{ grand_total_int_bal|default:0|intcomma }}</td>
+                        <td class="text-end money-strong">{{ grand_total_exposure|default:0|intcomma }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

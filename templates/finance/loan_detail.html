@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --ms-primary: #1e40af;
+        --ms-border: #e2e8f0;
+        --ms-bg: #f8fafc;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--ms-bg);
+        color: #1e293b;
+    }
+
+    .card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .uppercase-tracking {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    .member-header {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+    }
+
+    .balance-card {
+        background: white;
+        border: 1px solid var(--ms-border);
+        border-radius: 14px;
+        padding: 1.75rem;
+        text-align: center;
+        height: 100%;
+    }
+
+    .balance-card.total {
+        border-color: var(--ms-primary);
+        border-width: 2px;
+    }
+
+    .btn-primary {
+        background-color: var(--ms-primary);
+        border: none;
+        font-weight: 600;
+        padding: 0.85rem 2.25rem;
+        border-radius: 9999px;
+        box-shadow: 0 4px 12px rgba(30, 64, 175, 0.25);
+        font-size: 1.05rem;
+    }
+
+    .btn-primary:hover {
+        background-color: #1e3a8a;
+        transform: translateY(-2px);
+    }
+
+    .btn-outline-danger {
+        border: 2px solid #dc3545;
+        color: #dc3545;
+        font-weight: 600;
+        padding: 0.85rem 2.25rem;
+        border-radius: 9999px;
+    }
+    
+    .btn-outline-danger:hover {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .form-control {
+        border-radius: 12px;
+        padding: 0.85rem 1.25rem;
+    }
+</style>
+
+<div class="container-fluid py-4 px-lg-5">
+
+    <!-- Back Button -->
+    <a href="{% url 'dashboard' %}" class="text-decoration-none text-muted fw-medium mb-4 d-inline-flex align-items-center gap-2">
+        ← Back to Loans
+    </a>
+
+    <!-- Member Header -->
+    <div class="member-header card mb-4">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                {% if loan.member.photo %}
+                    <img src="{{ loan.member.photo.url }}" class="rounded-circle border shadow-sm" width="92" height="92" style="object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border shadow-sm" style="width: 92px; height: 92px;">
+                        <i class="bi bi-person-fill fs-1 text-secondary"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col">
+                <h3 class="fw-bold mb-1">{{ loan.member.get_full_name }}</h3>
+                <div class="d-flex gap-4 text-muted">
+                    <span><i class="bi bi-telephone me-1"></i> {{ loan.member.phone_number }}</span>
+                    <span><i class="bi bi-geo-alt me-1"></i> {{ loan.member.village }}, {{ loan.member.parish }}, {{ loan.member.district }}</span>
+                </div>
+            </div>
+            <div class="col-lg-auto text-lg-end">
+                <div class="small text-muted mb-1">LOAN REFERENCE</div>
+                <h5 class="fw-bold text-primary mb-0">{{ loan.loan_reference }}</h5>
+                {% if officer %}
+                <div class="small text-muted mt-1">
+                    Officer: <strong>{{ officer.get_full_name|default:officer.username }}</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTION BAR -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <span class="badge {% if loan.status == 'approved' %}bg-success{% elif loan.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %} px-4 py-2 rounded-pill fs-6">
+                {{ loan.get_status_display|upper }}
+            </span>
+        </div>
+
+        <div class="d-flex gap-2">
+            {% if loan.status == 'pending' %}
+                <!-- APPROVAL ACTIONS -->
+                <a href="{% url 'approve_loan' loan.id %}" class="btn btn-success rounded-pill px-5 py-3 fw-semibold shadow-sm">
+                    <i class="bi bi-check-circle me-2"></i> APPROVE LOAN
+                </a>
+                <a href="{% url 'reject_loan' loan.id %}" class="btn btn-outline-danger rounded-pill px-5 py-3 fw-semibold" 
+                   onclick="return confirm('Are you sure you want to reject this application?')">
+                    REJECT
+                </a>
+            {% elif loan.status == 'approved' %}
+                <!-- PAYMENT ACTIONS -->
+                <button class="btn btn-primary rounded-pill px-5 py-3 fw-semibold" 
+                        data-bs-toggle="collapse" 
+                        data-bs-target="#repaymentFormArea">
+                    <i class="bi bi-plus-circle me-2"></i> RECORD PAYMENT
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Loan Details Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="uppercase-tracking mb-1">Disbursed On</div>
+                <h5 class="fw-bold">
+                    {{ disbursement_date|date:"d M, Y" | default:"Not disbursed" }}
+                </h5>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="uppercase-tracking mb-1">Duration</div>
+                <h5 class="fw-bold">{{ period_months }} Months</h5>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="uppercase-tracking mb-1">Ends On</div>
+                <h5 class="fw-bold">
+                    {{ end_date|date:"d M, Y" | default:"—" }}
+                </h5>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="balance-card">
+                <div class="uppercase-tracking mb-2">Principal Balance</div>
+                <h4 class="fw-bold mb-0">UGX {{ principal_balance|floatformat:0|intcomma }}</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="balance-card">
+                <div class="uppercase-tracking mb-2 text-primary">Interest Due</div>
+                <h4 class="fw-bold text-primary mb-0">UGX {{ interest_balance|floatformat:0|intcomma }}</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="balance-card">
+                <div class="uppercase-tracking mb-2 text-danger">Penalty</div>
+                <h4 class="fw-bold text-danger mb-0">UGX {{ total_penalty|floatformat:0|intcomma }}</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="balance-card total">
+                <div class="uppercase-tracking mb-2 text-success">Total Outstanding</div>
+                <h3 class="fw-bold text-success mb-0">UGX {{ total_payable|floatformat:0|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Payment Form -->
+    {% if loan.status == 'approved' %}
+    <div id="repaymentFormArea" class="collapse mb-5">
+        <div class="card">
+            <div class="card-header bg-white py-4 px-5 border-bottom">
+                <h5 class="fw-bold mb-0">Record New Payment</h5>
+            </div>
+            <div class="card-body p-5">
+                <form action="{% url 'receive_payment' loan.id %}" method="POST">
+                    {% csrf_token %}
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Principal</label>
+                            <div class="input-group">
+                                <span class="input-group-text">UGX</span>
+                                <input type="number" step="0.01" name="principal" class="form-control" placeholder="0.00" value="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Interest</label>
+                            <div class="input-group">
+                                <span class="input-group-text">UGX</span>
+                                <input type="number" step="0.01" name="interest" class="form-control" placeholder="0.00" value="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Penalty</label>
+                            <div class="input-group">
+                                <span class="input-group-text">UGX</span>
+                                <input type="number" step="0.01" name="penalty" class="form-control" placeholder="0.00" value="0.00">
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill py-3 fw-bold">
+                                <i class="bi bi-check2-circle me-2"></i> POST PAYMENT
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Repayment Schedule -->
+    <div class="card">
+        <div class="card-header bg-white py-4 px-5 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">Repayment Schedule</h5>
+            <button onclick="window.print()" class="btn btn-outline-secondary">
+                <i class="bi bi-printer me-2"></i> Print Schedule
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">No.</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Principal</th>
+                        <th class="text-end">Interest</th>
+                        <th class="text-end">Total Due</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inst in schedule %}
+                    <tr>
+                        <td class="ps-4 fw-medium text-muted">{{ forloop.counter }}</td>
+                        <td class="fw-medium">{{ inst.due_date|date:"d M, Y" }}</td>
+                        <td class="text-end">UGX {{ inst.principal_portion|intcomma }}</td>
+                        <td class="text-end">UGX {{ inst.interest_portion|intcomma }}</td>
+                        <td class="text-end fw-bold">UGX {{ inst.total_due|intcomma }}</td>
+                        <td class="text-center">
+                            {% if inst.paid %}
+                                <span class="badge bg-success rounded-pill px-4 py-1">PAID</span>
+                            {% else %}
+                                <span class="badge bg-warning rounded-pill px-4 py-1">PENDING</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">No repayment schedule available yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

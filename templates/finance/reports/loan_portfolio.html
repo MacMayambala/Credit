@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Loan Portfolio Report | MAC Tech{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --slate-900: #0f172a;
+        --slate-700: #334155;
+        --border: #e2e8f0;
+        --bg: #f8fafc;
+    }
+
+    .portfolio-report-container {
+        font-family: 'Inter', system-ui, sans-serif;
+        background: var(--bg);
+    }
+
+    .report-table {
+        font-size: 0.86rem;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .report-table thead th {
+        background: var(--slate-900);
+        color: white;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.73rem;
+        letter-spacing: 0.07em;
+        padding: 16px 12px;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+
+    .report-table td {
+        padding: 12px 12px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+
+    .report-table tbody tr:hover {
+        background-color: #f1f5f9;
+    }
+
+    .sticky-col {
+        position: sticky;
+        left: 0;
+        background: white;
+        z-index: 40;
+        border-right: 2px solid #cbd5e1;
+        font-weight: 600;
+    }
+
+    .money {
+        font-weight: 500;
+        letter-spacing: -0.35px;
+    }
+
+    .money-strong {
+        font-weight: 700;
+        letter-spacing: -0.45px;
+    }
+
+    .summary-card {
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: white;
+        padding: 1.4rem 1.6rem;
+    }
+
+    .summary-title {
+        font-size: 0.73rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.65px;
+        color: #64748b;
+    }
+
+    .summary-value {
+        font-size: 1.55rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+    }
+
+    /* Dynamic Filter Styling */
+    .dynamic-filters {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+    }
+</style>
+
+<div class="container-fluid py-4 portfolio-report-container">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-end mb-4 no-print">
+        <div>
+            <h4 class="fw-bold mb-1">Loan Portfolio</h4>
+            <span class="text-muted small">As at {{ today|date:"d M Y" }}</span>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-dark btn-sm px-4">
+                <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+            </button>
+            <button class="btn btn-dark btn-sm px-4">
+                <i class="bi bi-file-earmark-excel me-1"></i> Excel
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-5 no-print">
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-title">Cumulative Disbursed</div>
+                <div class="summary-value">UGX {{ total_disbursed|default:0|intcomma }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-title">Current Portfolio Balance</div>
+                <div class="summary-value">UGX {{ total_outstanding|default:0|intcomma }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-title">Portfolio At Risk (PAR)</div>
+                <div class="summary-value text-danger">UGX {{ total_par|default:0|intcomma }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-title">Repayment Rate</div>
+                <div class="summary-value text-success">94.2%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Filters (Always Visible) -->
+    <div class="dynamic-filters mb-4 no-print">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold">Loan Officer</label>
+                <select name="officer" class="form-select">
+                    <option value="">-- All Officers --</option>
+                    {% for user in officers %}
+                    <option value="{{ user.id }}" {% if request.GET.officer|add:'0' == user.id|stringformat:'s' %}selected{% endif %}>
+                        {{ user.get_full_name|default:user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Refresh Report</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Main Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+            <table class="table table-hover report-table mb-0">
+                <thead>
+                    <tr>
+                        <th class="sticky-col">Borrower</th>
+                        <th>Account Info</th>
+                        <th class="text-end">Disbursed</th>
+                        <th class="text-end">Prin. Bal</th>
+                        <th class="text-end">Int. Bal</th>
+                        <th class="text-end text-danger">Arrears</th>
+                        <th class="text-end">Total Due</th>
+                        <th class="text-center">PAR Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in report_data %}
+                    <tr>
+                        <td class="sticky-col fw-medium">
+                            {{ item.borrower }}
+                            <div class="small text-muted">Officer: {{ item.officer }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-medium">{{ item.account_number }}</div>
+                            <div class="small text-muted">{{ item.contact }}</div>
+                        </td>
+                        <td class="text-end money">
+                            UGX {{ item.loan_disbursed|floatformat:0|intcomma }}
+                        </td>
+                        <td class="text-end money">{{ item.principal_balance|floatformat:0|intcomma }}</td>
+                        <td class="text-end money text-muted">{{ item.interest_balance|floatformat:0|intcomma }}</td>
+                        <td class="text-end money text-danger fw-medium">
+                            {{ item.principal_in_arrears|floatformat:0|intcomma }}
+                        </td>
+                        <td class="text-end money fw-semibold">
+                            {{ item.total_dues|floatformat:0|intcomma }}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge {% if item.par > 0 %}bg-danger{% else %}bg-success{% endif %} text-white px-3 py-1">
+                                {{ item.par|floatformat:1 }}% PAR
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            No loan records found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

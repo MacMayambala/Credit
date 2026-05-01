@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+
+<style>
+    :root {
+        --brand-blue: #1632af;
+        --brand-blue-hover: #11268a;
+        --brand-blue-soft: rgba(22, 50, 175, 0.08);
+        --slate-50: #f8fafc;
+        --slate-200: #e2e8f0;
+        --slate-600: #475569;
+        --slate-900: #0f172a;
+        
+        /* Status Colors */
+        --status-green-bg: #dcfce7;
+        --status-green-text: #15803d;
+        --status-red-bg: #fee2e2;
+        --status-red-text: #b91c1c;
+        --status-amber-bg: #fef3c7;
+        --status-amber-text: #b45309;
+    }
+
+    body { background-color: var(--slate-50); }
+
+    /* Scrollable Table Logic */
+    .table-scroll-container {
+        max-height: 600px;
+        overflow-y: auto;
+        border-radius: 0 0 16px 16px;
+        border: 1px solid var(--slate-200);
+        border-top: none;
+    }
+
+    .table thead th {
+        position: sticky;
+        top: 0;
+        background-color: #ffffff !important;
+        z-index: 10;
+        border-bottom: 2px solid var(--slate-200) !important;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--slate-600);
+        padding: 1rem;
+    }
+
+    /* Status Pill Refinement */
+    .badge-pill-custom {
+        padding: 6px 14px;
+        font-weight: 700;
+        font-size: 0.7rem;
+        border-radius: 8px;
+        display: inline-block;
+    }
+
+    .status-approved { background-color: var(--status-green-bg); color: var(--status-green-text); }
+    .status-closed { background-color: var(--status-red-bg); color: var(--status-red-text); }
+    .status-pending { background-color: var(--status-amber-bg); color: var(--status-amber-text); }
+
+    /* Brand Button Styling */
+    .btn-brand {
+        background: var(--brand-blue);
+        color: white;
+        font-weight: 700;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    .btn-brand:hover {
+        background: var(--brand-blue-hover);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(22, 50, 175, 0.2);
+    }
+
+    .btn-outline-ledger {
+        color: var(--brand-blue);
+        border: 1.5px solid var(--brand-blue);
+        background-color: transparent;
+        font-weight: 700;
+        font-size: 0.75rem;
+        transition: all 0.2s;
+    }
+
+    .btn-outline-ledger:hover {
+        background-color: var(--brand-blue);
+        color: #ffffff;
+    }
+
+    /* Custom Scrollbar */
+    .table-scroll-container::-webkit-scrollbar { width: 8px; }
+    .table-scroll-container::-webkit-scrollbar-track { background: var(--slate-50); }
+    .table-scroll-container::-webkit-scrollbar-thumb { 
+        background: #cbd5e1; 
+        border-radius: 10px; 
+    }
+</style>
+
+<div class="container-fluid py-4 px-lg-4">
+
+    <!-- Page Header -->
+    <div class="row align-items-center mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small fw-bold text-uppercase mb-2">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none text-muted">Home</a></li>
+                    <li class="breadcrumb-item active text-primary">Credit Registry</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold text-dark mb-1">Master Loan Portfolio</h2>
+            <p class="text-muted mb-0 small">Comprehensive registry of all approved and closed loan contracts.</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{% url 'customer_list' %}" class="btn btn-brand px-4 py-2 shadow-sm rounded-3">
+                <i class="bi bi-plus-lg me-2"></i>New Loan Application
+            </a>
+        </div>
+    </div>
+
+    <!-- Loan Registry Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-4 px-4 border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <h5 class="fw-bold mb-0">Registry Entries</h5>
+                    <span class="badge bg-light text-dark border fw-bold">{{ loans|length }} Total Records</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control bg-light border-start-0" placeholder="Search reference or name...">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-scroll-container">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Reference</th>
+                        <th>Member Details</th>
+                        <th class="text-end">Principal (UGX)</th>
+                        <th class="text-end">Balance (UGX)</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-end pe-4">Operations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in loans %}
+                    <tr class="border-bottom">
+                        <td class="ps-4">
+                            <div class="fw-bold text-dark">#LN-{{ loan.id }}</div>
+                            <div class="text-muted" style="font-size: 0.65rem;">Applied: {{ loan.application_date|date:"d M Y" }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ loan.member.first_name }} {{ loan.member.last_name }}</div>
+                            <div class="text-muted extra-small">ID: {{ loan.member.member_number|default:loan.member.id }}</div>
+                        </td>
+                        <td class="text-end">
+                            <span class="fw-medium">{{ loan.principal_amount|floatformat:0|intcomma }}</span>
+                        </td>
+                        <td class="text-end">
+                            <div class="fw-bold {% if loan.balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ loan.balance|floatformat:0|intcomma }}
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            {% if loan.status == 'approved' or loan.status == 'active' %}
+                                <span class="badge-pill-custom status-approved">
+                                    <i class="bi bi-check-circle-fill me-1"></i> APPROVED
+                                </span>
+                            {% elif loan.status == 'closed' %}
+                                <span class="badge-pill-custom status-closed">
+                                    <i class="bi bi-x-circle-fill me-1"></i> CLOSED
+                                </span>
+                            {% elif loan.status == 'pending' %}
+                                <span class="badge-pill-custom status-pending">
+                                    <i class="bi bi-clock-history me-1"></i> PENDING
+                                </span>
+                            {% else %}
+                                <span class="badge-pill-custom bg-light text-muted">{{ loan.status|upper }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{% url 'loan_detail' loan.id %}" 
+                               class="btn btn-outline-ledger btn-sm px-3 rounded-2">
+                                VIEW LEDGER
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <div class="py-5">
+                                <i class="bi bi-inbox fs-1 text-light"></i>
+                                <p class="text-muted mt-2 fw-bold">No records found in the credit registry.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Table Footer Summary -->
+        <div class="card-footer bg-white border-top py-3 px-4">
+            <div class="row align-items-center">
+                <div class="col">
+                    <span class="text-muted extra-small fw-bold text-uppercase">Registry End</span>
+                </div>
+                <div class="col-auto">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="small fw-bold text-success">
+                            <span class="status-approved p-1 rounded-circle">●</span> Approved Assets
+                        </div>
+                        <div class="small fw-bold text-danger">
+                            <span class="status-closed p-1 rounded-circle">●</span> Settled Accounts
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

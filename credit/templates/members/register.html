@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-dark text-white"><h4>Register New Member</h4></div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="row mb-3">
+                <div class="col-md-4"><label>Member Number</label><input type="text" name="member_number" class="form-control" required></div>
+                <div class="col-md-4"><label>First Name</label><input type="text" name="first_name" class="form-control" required></div>
+                <div class="col-md-4"><label>Last Name</label><input type="text" name="last_name" class="form-control" required></div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4"><label>Photo</label><input type="file" name="photo" class="form-control" accept="image/*"></div>
+                <div class="col-md-4"><label>ID Copy</label><input type="file" name="id_front" class="form-control" accept="image/*"></div>
+                <div class="col-md-4"><label>Signature Scan</label><input type="file" name="signature" class="form-control" accept="image/*"></div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Member Profile</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

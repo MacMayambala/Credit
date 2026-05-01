@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% block title %}General Ledger | Chart of Accounts{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small fw-medium">
+                    <li class="breadcrumb-item"><a href="{% url 'reports_dashboard' %}" class="text-muted text-decoration-none">Intelligence</a></li>
+                    <li class="breadcrumb-item active text-primary">Chart of Accounts</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold text-slate-900 mb-0">General Ledger Structure</h2>
+        </div>
+        <button class="btn btn-dark rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+            <i class="bi bi-plus-lg me-2"></i>Create New Account
+        </button>
+    </div>
+
+    <!-- Summary Overview -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-success border-4">
+                <small class="text-muted fw-bold extra-small text-uppercase">Income Accounts</small>
+                <h4 class="fw-bold mb-0 text-success">{{ income_count|default:"08" }}</h4>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-danger border-4">
+                <small class="text-muted fw-bold extra-small text-uppercase">Expense Accounts</small>
+                <h4 class="fw-bold mb-0 text-danger">{{ expense_count|default:"12" }}</h4>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-info border-4">
+                <small class="text-muted fw-bold extra-small text-uppercase">Total GL Codes</small>
+                <h4 class="fw-bold mb-0 text-dark">{{ total_count|default:"20" }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accounts Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0">Master Registry</h6>
+            <div class="input-group input-group-sm w-25">
+                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                <input type="text" id="coaSearch" class="form-control bg-light border-0" placeholder="Filter accounts...">
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-slate-50 text-uppercase fw-bold extra-small text-muted">
+                    <tr>
+                        <th class="ps-4">GL Code</th>
+                        <th>Account Name</th>
+                        <th>Category</th>
+                        <th>Standard Balance</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="small" id="coaTableBody">
+                    {% for account in accounts %}
+                    <tr>
+                        <td class="ps-4"><span class="badge bg-light text-dark border fw-bold px-2 py-1">{{ account.code }}</span></td>
+                        <td class="fw-bold text-slate-800">{{ account.name }}</td>
+                        <td>
+                            <span class="badge rounded-pill px-3 
+                                {% if account.account_type == 'income' %}bg-success-subtle text-success
+                                {% elif account.account_type == 'expense' %}bg-danger-subtle text-danger
+                                {% else %}bg-info-subtle text-info{% endif %}">
+                                {{ account.get_account_type_display|upper }}
+                            </span>
+                        </td>
+                        <td class="text-muted italic">{{ account.normal_balance|default:"Debit" }}</td>
+                        <td class="text-center">
+                            {% if account.is_active %}
+                                <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                            {% else %}
+                                <i class="bi bi-x-circle-fill text-muted fs-5"></i>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-outline-light border text-dark rounded-circle"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-light border text-danger rounded-circle"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-journal-x fs-1 d-block mb-2"></i>
+                            No accounts mapped in the General Ledger.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add New GL Account -->
+<div class="modal fade" id="addAccountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form method="POST" action="">
+                {% csrf_token %}
+                <div class="modal-header border-0 pt-4 px-4">
+                    <h5 class="fw-bold mb-0">New GL Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label extra-small fw-bold text-muted">GL CODE</label>
+                            <input type="text" name="code" class="form-control rounded-3" placeholder="e.g. 4001" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label extra-small fw-bold text-muted">ACCOUNT NAME</label>
+                            <input type="text" name="name" class="form-control rounded-3" placeholder="e.g. Loan Processing Fees" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label extra-small fw-bold text-muted">ACCOUNT TYPE</label>
+                            <select name="account_type" class="form-select rounded-3">
+                                <option value="asset">Asset</option>
+                                <option value="liability">Liability</option>
+                                <option value="income">Income</option>
+                                <option value="expense">Expense</option>
+                                <option value="equity">Equity</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label extra-small fw-bold text-muted">NORMAL BALANCE</label>
+                            <select name="normal_balance" class="form-select rounded-3">
+                                <option value="debit">Debit</option>
+                                <option value="credit">Credit</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 px-4">
+                    <button type="submit" class="btn btn-dark w-100 rounded-pill py-2 fw-bold">CREATE ACCOUNT</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-slate-50 { background-color: #f8fafc; }
+    .extra-small { font-size: 0.7rem; letter-spacing: 0.5px; }
+    .table thead th { padding-top: 15px; padding-bottom: 15px; border-bottom-width: 1px; }
+    .table tbody td { padding-top: 15px; padding-bottom: 15px; border-bottom: 1px solid #f1f5f9; }
+</style>
+
+<script>
+    // Simple filter search
+    document.getElementById('coaSearch').addEventListener('keyup', function() {
+        let value = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#coaTableBody tr');
+        rows.forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(value) ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}

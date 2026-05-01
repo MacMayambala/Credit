@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Professional Typography Import -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --ms-primary: #1e40af;
+        --ms-border: #e2e8f0;
+        --ms-text-main: #1e293b;
+        --ms-text-muted: #64748b;
+        --ms-bg-alt: #f1f5f9;
+    }
+
+    body {
+        background-color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+        color: var(--ms-text-main);
+    }
+
+    /* Layout & Cards */
+    .onboarding-card {
+        border-radius: 20px;
+        border: 1px solid var(--ms-border);
+    }
+
+    .form-section-header {
+        border-left: 4px solid var(--ms-primary);
+        padding-left: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Form Controls */
+    .form-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        color: var(--ms-text-muted);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control, .input-group-text {
+        border-color: var(--ms-border);
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--ms-primary);
+        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.08);
+    }
+
+    /* KYC Box Styling */
+    .kyc-upload-box {
+        border: 2px dashed var(--ms-border);
+        border-radius: 16px;
+        background: #ffffff;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .kyc-upload-box:hover {
+        border-color: var(--ms-primary);
+        background-color: #f0f7ff;
+    }
+
+    .kyc-upload-box i {
+        color: #94a3b8;
+        transition: color 0.2s ease;
+    }
+
+    .kyc-upload-box:hover i {
+        color: var(--ms-primary);
+    }
+
+    /* Buttons */
+    .btn-onboard {
+        background-color: var(--ms-primary);
+        padding: 1rem 2.5rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.2);
+    }
+
+    .btn-onboard:hover {
+        background-color: #1e3a8a;
+        transform: translateY(-1px);
+    }
+</style>
+
+<div class="container-fluid py-5 px-lg-5">
+    
+    <!-- Breadcrumb & Title -->
+    <div class="mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2" style="font-size: 0.85rem;">
+                <li class="breadcrumb-item"><a href="{% url 'customer_list' %}" class="text-decoration-none fw-medium text-muted">Members</a></li>
+                <li class="breadcrumb-item active fw-bold text-primary">New Registration</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold text-dark ls-tight mb-1">Member Onboarding</h2>
+        <p class="text-muted mb-0">Create a new digital profile and verify identity documents.</p>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-10">
+            <div class="card onboarding-card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Section 1: Basic Bio -->
+                        <div class="form-section-header">
+                            <h6 class="text-primary fw-bold text-uppercase small mb-1" style="letter-spacing: 0.1em;">Phase 01</h6>
+                            <h5 class="fw-bold text-dark mb-0">Basic Information</h5>
+                        </div>
+
+                        <div class="row g-4 mb-5">
+                            <div class="col-md-4">
+                                <label class="form-label">Member ID / Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-hash"></i></span>
+                                    <input type="text" name="member_number" class="form-control fw-bold text-primary" placeholder="MAC-001" required>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">First Name</label>
+                                <input type="text" name="first_name" class="form-control rounded-3" placeholder="Enter first name" required>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" name="last_name" class="form-control rounded-3" placeholder="Enter last name" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Phone Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-phone"></i></span>
+                                    <input type="tel" name="phone_number" class="form-control" placeholder="+256..." required>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Email Address <span class="text-muted fw-normal">(Optional)</span></label>
+                                <input type="email" name="email" class="form-control" placeholder="example@mail.com">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Date of Birth</label>
+                                <input type="date" name="dob" class="form-control">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">National ID (NIN)</label>
+                                <input type="text" name="nin" class="form-control" placeholder="CM1234567890">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Card Number</label>
+                                <input type="text" name="card_number" class="form-control" placeholder="CARD-001234">
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Location -->
+                        <div class="form-section-header">
+                            <h6 class="text-primary fw-bold text-uppercase small mb-1" style="letter-spacing: 0.1em;">Phase 02</h6>
+                            <h5 class="fw-bold text-dark mb-0">Physical Address</h5>
+                        </div>
+
+                        <div class="row g-4 mb-5">
+                            <div class="col-12">
+                                <label class="form-label">Residence Description</label>
+                                <textarea name="physical_address" class="form-control rounded-4" rows="2" placeholder="Building, Street, Landmark..."></textarea>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Village</label>
+                                <input type="text" name="village" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Parish</label>
+                                <input type="text" name="parish" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">District</label>
+                                <input type="text" name="district" class="form-control">
+                            </div>
+                        </div>
+
+                        <!-- Section 3: KYC -->
+                        <div class="form-section-header">
+                            <h6 class="text-primary fw-bold text-uppercase small mb-1" style="letter-spacing: 0.1em;">Phase 03</h6>
+                            <h5 class="fw-bold text-dark mb-0">Digital Verification</h5>
+                        </div>
+
+                        <div class="row g-4 mb-5">
+                            <div class="col-md-4">
+                                <div class="kyc-upload-box text-center p-4">
+                                    <i class="bi bi-person-bounding-box fs-2 mb-2 d-block"></i>
+                                    <span class="d-block fw-bold small text-dark mb-2">Passport Photo</span>
+                                    <input type="file" name="photo" class="form-control form-control-sm border-0 bg-light" accept="image/*">
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="kyc-upload-box text-center p-4">
+                                    <i class="bi bi-card-heading fs-2 mb-2 d-block"></i>
+                                    <span class="d-block fw-bold small text-dark mb-2">National ID (Front)</span>
+                                    <input type="file" name="id_front" class="form-control form-control-sm border-0 bg-light" accept="image/*">
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="kyc-upload-box text-center p-4">
+                                    <i class="bi bi-vector-pen fs-2 mb-2 d-block"></i>
+                                    <span class="d-block fw-bold small text-dark mb-2">Digital Signature</span>
+                                    <input type="file" name="signature" class="form-control form-control-sm border-0 bg-light" accept="image/*">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Area -->
+                        <div class="pt-4 border-top d-flex align-items-center flex-wrap gap-3">
+                            <button type="submit" class="btn btn-primary btn-onboard">
+                                <i class="bi bi-shield-check me-2"></i> COMPLETE ONBOARDING
+                            </button>
+                            <a href="{% url 'customer_list' %}" class="btn btn-link text-muted fw-bold text-decoration-none">
+                                DISCARD CHANGES
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow-sm border-0 rounded-4 mx-auto" style="max-width: 500px;">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-4">Update KYC Documents</h5>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">National ID (Front)</label>
+                    {{ form.id_front }}
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label small fw-bold">Signature Sample</label>
+                    {{ form.signature }}
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">UPLOAD PHOTOS</button>
+                    <a href="{% url 'member_profile' member.id %}" class="btn btn-light border w-100">CANCEL</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

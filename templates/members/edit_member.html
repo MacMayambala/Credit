@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Professional Typography Import -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --ms-primary: #1e40af;
+        --ms-border: #e2e8f0;
+        --ms-text-main: #1e293b;
+        --ms-text-muted: #64748b;
+    }
+
+    body {
+        background-color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+        color: var(--ms-text-main);
+    }
+
+    /* Cards & Layout */
+    .edit-card {
+        border-radius: 20px;
+        border: 1px solid var(--ms-border);
+    }
+
+    .form-section-header {
+        border-left: 4px solid var(--ms-primary);
+        padding-left: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Form Elements */
+    .form-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        color: var(--ms-text-muted);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border-color: var(--ms-border);
+        padding: 0.75rem 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--ms-primary);
+        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.08);
+    }
+
+    /* KYC Preview Styling */
+    .kyc-preview-container {
+        border: 1px solid var(--ms-border);
+        border-radius: 12px;
+        padding: 1rem;
+        background: #fff;
+        height: 100%;
+    }
+
+    .kyc-thumbnail {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 0.75rem;
+        border: 1px solid var(--ms-border);
+    }
+
+    /* Buttons */
+    .btn-save {
+        background-color: var(--ms-primary);
+        padding: 1rem 2.5rem;
+        font-weight: 700;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.2);
+    }
+</style>
+
+<div class="container-fluid py-5 px-lg-5">
+    
+    <!-- Breadcrumb & Title Area -->
+    <div class="mb-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2" style="font-size: 0.85rem;">
+                <li class="breadcrumb-item"><a href="{% url 'customer_list' %}" class="text-decoration-none text-muted fw-medium">Members</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'member_profile' member.id %}" class="text-decoration-none text-muted fw-medium">Profile</a></li>
+                <li class="breadcrumb-item active fw-bold text-primary">Edit Details</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center gap-3">
+            <div class="bg-white p-2 rounded-3 shadow-sm border">
+                <i class="bi bi-pencil-square text-primary fs-4"></i>
+            </div>
+            <div>
+                <h2 class="fw-bold text-dark ls-tight mb-0">Modify Account</h2>
+                <p class="text-muted mb-0">Updating records for <span class="fw-bold text-dark">{{ member.first_name }} {{ member.last_name }}</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-10">
+            <div class="card edit-card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Section 1: Core Bio -->
+                        <div class="form-section-header">
+                            <h6 class="text-primary fw-bold text-uppercase small mb-1">Section 01</h6>
+                            <h5 class="fw-bold text-dark mb-0">Personal & Identification</h5>
+                        </div>
+
+                        <div class="row g-4 mb-5">
+                            <div class="col-md-4">
+                                <label class="form-label">Member ID / Number</label>
+                                <input type="text" name="member_number" value="{{ member.member_number }}" class="form-control fw-bold bg-light" readonly>
+                                <div class="extra-small text-muted mt-1"><i class="bi bi-info-circle me-1"></i>System generated ID</div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">First Name</label>
+                                <input type="text" name="first_name" value="{{ member.first_name }}" class="form-control" required>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" name="last_name" value="{{ member.last_name }}" class="form-control" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Primary Phone</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-phone"></i></span>
+                                    <input type="tel" name="phone_number" value="{{ member.phone_number }}" class="form-control" required>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Alternative Phone</label>
+                                <input type="tel" name="alternative_phone" value="{{ member.alternative_phone|default:'' }}" class="form-control">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" name="email" value="{{ member.email|default:'' }}" class="form-control">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Date of Birth</label>
+                                <input type="date" name="dob" value="{{ member.dob|date:'Y-m-d' }}" class="form-control">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">NIN Number</label>
+                                <input type="text" name="nin" value="{{ member.nin|default:'' }}" class="form-control" maxlength="20">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Card Number</label>
+                                <input type="text" name="card_number" value="{{ member.card_number|default:'' }}" class="form-control">
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Address -->
+                        <div class="form-section-header">
+                            <h6 class="text-primary fw-bold text-uppercase small mb-1">Section 02</h6>
+                            <h5 class="fw-bold text-dark mb-0">Location Details</h5>
+                        </div>
+
+                        <div class="row g-4 mb-5">
+                            <div class="col-12">
+                                <label class="form-label">Physical Residence</label>
+                                <textarea name="physical_address" class="form-control" rows="2">{{ member.physical_address|default:'' }}</textarea>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Village</label>
+                                <input type="text" name="village" value="{{ member.village|default:'' }}" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Parish</label>
+                                <input type="text" name="parish" value="{{ member.parish|default:'' }}" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">District</label>
+                                <input type="text" name="district" value="{{ member.district|default:'' }}" class="form-control">
+                            </div>
+                        </div>
+
+                        <!-- Section 3: KYC Management -->
+                        <div class="form-section-header">
+                            <h6 class="text-primary fw-bold text-uppercase small mb-1">Section 03</h6>
+                            <h5 class="fw-bold text-dark mb-0">KYC & Documents</h5>
+                        </div>
+
+                        <div class="row g-4 mb-5">
+                            <!-- Passport Photo -->
+                            <div class="col-md-4">
+                                <div class="kyc-preview-container">
+                                    <label class="form-label">Passport Photo</label>
+                                    {% if member.photo %}
+                                        <img src="{{ member.photo.url }}" class="kyc-thumbnail" alt="Current Photo">
+                                    {% else %}
+                                        <div class="kyc-thumbnail bg-light d-flex align-items-center justify-content-center text-muted">
+                                            <i class="bi bi-image fs-2"></i>
+                                        </div>
+                                    {% endif %}
+                                    <input type="file" name="photo" class="form-control form-control-sm border-0 bg-light" accept="image/*">
+                                </div>
+                            </div>
+
+                            <!-- National ID -->
+                            <div class="col-md-4">
+                                <div class="kyc-preview-container">
+                                    <label class="form-label">National ID (Front)</label>
+                                    {% if member.id_front %}
+                                        <img src="{{ member.id_front.url }}" class="kyc-thumbnail" alt="Current ID">
+                                    {% else %}
+                                        <div class="kyc-thumbnail bg-light d-flex align-items-center justify-content-center text-muted">
+                                            <i class="bi bi-card-image fs-2"></i>
+                                        </div>
+                                    {% endif %}
+                                    <input type="file" name="id_front" class="form-control form-control-sm border-0 bg-light" accept="image/*">
+                                </div>
+                            </div>
+
+                            <!-- Signature -->
+                            <div class="col-md-4">
+                                <div class="kyc-preview-container">
+                                    <label class="form-label">Signature</label>
+                                    {% if member.signature %}
+                                        <img src="{{ member.signature.url }}" class="kyc-thumbnail" alt="Current Signature">
+                                    {% else %}
+                                        <div class="kyc-thumbnail bg-light d-flex align-items-center justify-content-center text-muted">
+                                            <i class="bi bi-pen fs-2"></i>
+                                        </div>
+                                    {% endif %}
+                                    <input type="file" name="signature" class="form-control form-control-sm border-0 bg-light" accept="image/*">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="pt-4 border-top d-flex align-items-center flex-wrap gap-3">
+                            <button type="submit" class="btn btn-primary btn-save">
+                                <i class="bi bi-check2-circle me-2"></i> SAVE ALL CHANGES
+                            </button>
+                            <a href="{% url 'member_profile' member.id %}" class="btn btn-link text-muted fw-bold text-decoration-none">
+                                CANCEL AND RETURN
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

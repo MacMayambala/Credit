@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<!-- Professional Typography Import -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --brand-blue: #1632af;
+        --brand-blue-soft: rgba(22, 50, 175, 0.08);
+        --slate-50: #f8fafc;
+        --slate-200: #e2e8f0;
+        --slate-600: #475569;
+        --slate-900: #0f172a;
+    }
+
+    body { 
+        font-family: 'Inter', sans-serif; 
+        background-color: var(--slate-50); 
+        color: var(--slate-900); 
+    }
+    
+    /* Utility */
+    .extra-small { font-size: 0.72rem; }
+    .uppercase-tracking { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.65rem; color: var(--slate-600); }
+    .ls-tight { letter-spacing: -0.02em; }
+
+    /* Cards & Components */
+    .card-stat {
+        border: none;
+        border-radius: 16px;
+        transition: transform 0.2s;
+    }
+    
+    /* Tabs Customization */
+    .nav-pills-brand .nav-link {
+        color: var(--slate-600);
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        padding: 10px 20px;
+        border-radius: 8px;
+        margin-right: 10px;
+    }
+    .nav-pills-brand .nav-link.active {
+        background-color: var(--brand-blue);
+        color: white;
+    }
+
+    /* Table & List Polish */
+    .table thead th { 
+        background-color: white; 
+        color: var(--slate-600); 
+        font-weight: 700; 
+        border-bottom: 2px solid var(--slate-50);
+        padding: 1.2rem 1rem;
+    }
+    
+    .list-group-item {
+        transition: background-color 0.2s;
+    }
+
+    /* Brand Buttons */
+    .btn-brand {
+        background-color: var(--brand-blue);
+        color: white;
+        font-weight: 700;
+        border: none;
+        transition: all 0.2s;
+    }
+    .btn-brand:hover {
+        background-color: #11268a;
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    .btn-outline-ledger {
+        color: var(--brand-blue);
+        border: 1.5px solid var(--brand-blue);
+        font-weight: 700;
+        font-size: 0.72rem;
+    }
+    .btn-outline-ledger:hover {
+        background-color: var(--brand-blue);
+        color: white;
+    }
+
+    .badge-status {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+    }
+
+    .profile-img-container {
+        border: 4px solid white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+</style>
+
+<div class="container-fluid py-4 px-lg-5">
+    
+    <!-- 1. Header Profile & Global Actions -->
+    <div class="row align-items-center mb-5 d-print-none">
+        <div class="col-auto">
+            {% if member.photo %}
+                <img src="{{ member.photo.url }}" class="rounded-4 profile-img-container" width="110" height="110" style="object-fit: cover;">
+            {% else %}
+                <div class="rounded-4 bg-white d-flex align-items-center justify-content-center profile-img-container" style="width: 110px; height: 110px;">
+                    <i class="bi bi-person-fill fs-1 text-light"></i>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col ps-md-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h1 class="fw-bold text-dark ls-tight mb-1">{{ member.first_name }} {{ member.last_name }}</h1>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="badge bg-dark rounded-pill px-3 py-1 extra-small">ID: {{ member.member_number|default:member.id }}</span>
+                        <span class="text-muted small fw-medium"><i class="bi bi-calendar3 me-1"></i> Since {{ member.date_joined|date:"M Y" }}</span>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'deposit_savings' member.id %}" class="btn btn-brand btn-sm px-3">
+                        <i class="bi bi-plus-lg me-1"></i> DEPOSIT
+                    </a>
+                    <a href="{% url 'edit_member' member.id %}" class="btn btn-outline-dark btn-sm px-3">
+                        <i class="bi bi-pencil me-1"></i> EDIT PROFILE
+                    </a>
+
+                    <a href="{% url 'apply_loan' member.id %}" class="btn btn-dark btn-sm px-3">
+                        <i class="bi bi-lightning-charge me-1"></i> NEW LOAN
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Financial Overview Cards -->
+    <div class="row mb-5 g-4">
+        <div class="col-md-4">
+            <div class="card card-stat p-4 shadow-sm bg-white border-start border-4 border-success">
+                <div class="uppercase-tracking fw-bold mb-2">Savings Balance</div>
+                <h2 class="fw-bold text-dark mb-0 ls-tight">UGX {{ savings.balance|default:"0"|floatformat:0|intcomma }}</h2>
+                <div class="mt-2 text-success extra-small fw-bold">
+                    <i class="bi bi-shield-check me-1"></i> Fully Accessible
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-stat p-4 shadow-sm bg-white border-start border-4 border-primary" style="border-left-color: var(--brand-blue) !important;">
+                <div class="uppercase-tracking fw-bold mb-2">Loan Liability</div>
+                <h2 class="fw-bold text-dark mb-0 ls-tight">UGX {{ total_loan_balance|default:"0"|floatformat:0|intcomma }}</h2>
+                <div class="mt-2 text-primary extra-small fw-bold">
+                    <i class="bi bi-info-circle me-1"></i> Principle + Interest
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-stat p-4 shadow-sm bg-dark text-white">
+                <div class="text-light opacity-75 extra-small fw-bold text-uppercase letter-spacing-1 mb-2">Contact</div>
+                <div class="fw-bold mb-1"><i class="bi bi-telephone me-2 text-primary"></i> {{ member.phone_number }}</div>
+                <div class="small opacity-75"><i class="bi bi-geo-alt me-2 text-primary"></i> {{ member.village }}, {{ member.parish}}, {{ member.district}}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Tab Navigation -->
+    <ul class="nav nav-pills nav-pills-brand mb-4 d-print-none" id="pills-tab" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#loansTab">Loan Portfolios</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#savingsTab">Transaction History</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Loans Tab -->
+        <div class="tab-pane fade show active" id="loansTab">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="list-group list-group-flush">
+                    {% for loan in loans %}
+                    <div class="list-group-item p-4 border-0 border-bottom">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="fw-bold text-primary fs-5">#LN-{{ loan.id }}</span>
+                                    <span class="badge badge-status 
+                                        {% if loan.status == 'approved' or loan.status == 'active' %}bg-success-subtle text-success
+                                        {% elif loan.status == 'pending' %}bg-warning-subtle text-dark
+                                        {% elif loan.status == 'closed' %}bg-secondary-subtle text-secondary
+                                        {% else %}bg-danger-subtle text-danger{% endif %}">
+                                        {{ loan.status }}
+                                    </span>
+                                </div>
+                                <div class="text-muted small mt-1">Product: {{ loan.get_product_type_display|default:"Standard Term Loan" }}</div>
+                            </div>
+                            <div class="col-md-2 text-md-end">
+                                <div class="uppercase-tracking" style="font-size: 0.6rem;">Principal</div>
+                                <div class="fw-bold text-dark">UGX {{ loan.principal_amount|floatformat:0|intcomma }}</div>
+                            </div>
+                            <div class="col-md-2 text-md-end">
+                                <div class="uppercase-tracking" style="font-size: 0.6rem;">Interest Due</div>
+                                <div class="fw-bold text-dark">UGX {{ loan.interest_balance|default:"0"|floatformat:0|intcomma }}</div>
+                            </div>
+                            
+                            <!-- Action Center -->
+                            <div class="col-md-4 text-end">
+                                {% if loan.status == 'pending' %}
+                                    <div class="d-flex gap-2 justify-content-end">
+                                        <a href="{% url 'approve_loan' loan.id %}" class="btn btn-success btn-sm fw-bold px-3 rounded-2 shadow-sm">
+                                            <i class="bi bi-check-lg"></i> APPROVE
+                                        </a>
+                                        <a href="#" class="btn btn-outline-danger btn-sm fw-bold px-3 rounded-2" onclick="return confirm('Reject this application?')">
+                                            REJECT
+                                        </a>
+                                    </div>
+                                {% else %}
+                                    <a href="{% url 'loan_detail' loan.id %}" class="btn btn-outline-ledger btn-sm px-4 rounded-2">
+                                        VIEW LEDGER <i class="bi bi-chevron-right ms-1"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox fs-1 text-light d-block mb-2"></i>
+                        <span class="text-muted small">No active loan accounts found.</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Savings History Tab -->
+        <div class="tab-pane fade" id="savingsTab">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="p-4 bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark uppercase-tracking">Ledger Entries</h6>
+                    <button onclick="window.print()" class="btn btn-light btn-sm fw-bold border">
+                        <i class="bi bi-printer me-2"></i> PRINT STATEMENT
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Timestamp</th>
+                                <th>Ref ID</th>
+                                <th class="text-center">Transaction Type</th>
+                                <th class="text-end pe-4">Movement (UGX)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in transactions %}
+                            <tr class="align-middle">
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark small">{{ t.timestamp|date:"d M Y" }}</div>
+                                    <div class="text-muted extra-small">{{ t.timestamp|date:"H:i" }}</div>
+                                </td>
+                               <td>
+                                    <span class="font-monospace text-muted small">
+                                        {{ t.reference|default:"N/A" }}
+                                    </span>
+                                </td>
+                                                                <td class="text-center">
+                                    <span class="badge rounded-pill px-3 py-2 extra-small fw-bold {% if t.type == 'deposit' %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %}">
+                                        {{ t.get_type_display|upper }}
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <span class="fw-bold {% if t.type == 'deposit' %}text-success{% else %}text-danger{% endif %}">
+                                        {% if t.type == 'deposit' %}+{% else %}-{% endif %} {{ t.amount|floatformat:0|intcomma }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

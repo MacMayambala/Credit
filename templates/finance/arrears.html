@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<!-- Professional Typography Import -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --ms-danger: #dc2626;
+        --ms-warning: #f59e0b;
+        --ms-primary: #1e40af;
+        --ms-text-main: #1e293b;
+        --ms-bg: #f8fafc;
+    }
+
+    body {
+        background-color: var(--ms-bg);
+        font-family: 'Inter', sans-serif;
+        color: var(--ms-text-main);
+    }
+
+    .ls-tight { letter-spacing: -0.025em; }
+    .uppercase-tracking { 
+        text-transform: uppercase; 
+        letter-spacing: 0.05em; 
+        font-weight: 700;
+        font-size: 0.72rem;
+    }
+
+    /* Risk Cards */
+    .risk-card {
+        border-radius: 16px;
+        transition: transform 0.2s ease;
+    }
+    .risk-card:hover { transform: translateY(-3px); }
+
+    .amount-display {
+        font-family: 'Inter', sans-serif;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+    }
+
+    /* Table Polish */
+    .par-table thead th {
+        background-color: #ffffff;
+        padding: 1.25rem 1rem;
+        border-bottom: 2px solid #f1f5f9;
+    }
+
+    .member-name {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--ms-text-main);
+    }
+
+    .days-badge {
+        font-weight: 700;
+        padding: 0.5rem 1rem;
+    }
+
+    /* Alert Styling */
+    .custom-alert {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+</style>
+
+<div class="container-fluid py-4 px-lg-5">
+
+    <!-- Notifications -->
+    {% if messages %}
+    <div class="row mb-4">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert custom-alert {% if message.tags == 'success' %}bg-success text-white{% else %}bg-danger text-white{% endif %} alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% else %}bi-exclamation-triangle-fill{% endif %} fs-4 me-3"></i>
+                    <div>
+                        <span class="fw-bold">System:</span> {{ message }}
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Header & Total Risk -->
+    <div class="row align-items-end mb-5 g-4">
+        <div class="col-md-7">
+            <h2 class="fw-bold text-dark ls-tight mb-1">Portfolio at Risk</h2>
+            <p class="text-muted mb-0">Arrears Analysis & Delinquency Tracking as of <span class="fw-bold text-dark">{% now "d M Y" %}</span></p>
+        </div>
+        
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm bg-danger text-white risk-card overflow-hidden">
+                <div class="card-body p-4 position-relative" style="z-index: 1;">
+                    <div class="uppercase-tracking opacity-75 mb-1">Total Principal at Risk</div>
+                    <h2 class="amount-display mb-0">UGX {{ total_at_risk|floatformat:0|intcomma }}</h2>
+                    <i class="bi bi-shield-exclamation position-absolute top-50 end-0 translate-middle-y me-4 opacity-25" style="font-size: 4rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aging Buckets -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm risk-card border-top border-4 border-warning">
+                <div class="card-body p-4 text-center text-md-start">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="bg-warning bg-opacity-10 p-2 rounded text-warning"><i class="bi bi-clock-history"></i></div>
+                        <span class="uppercase-tracking text-muted">1–30 Days <span class="fw-normal">(Watchlist)</span></span>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-0 amount-display">UGX {{ watchlist_total|default:0|floatformat:0|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm risk-card border-top border-4 border-primary">
+                <div class="card-body p-4 text-center text-md-start">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="bg-primary bg-opacity-10 p-2 rounded text-primary"><i class="bi bi-graph-down-arrow"></i></div>
+                        <span class="uppercase-tracking text-muted">31–60 Days <span class="fw-normal">(Substandard)</span></span>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-0 amount-display">UGX {{ substandard_total|default:0|floatformat:0|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm risk-card border-top border-4 border-danger">
+                <div class="card-body p-4 text-center text-md-start">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="bg-danger bg-opacity-10 p-2 rounded text-danger"><i class="bi bi-exclamation-octagon"></i></div>
+                        <span class="uppercase-tracking text-muted">60+ Days <span class="fw-normal">(Doubtful)</span></span>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-0 amount-display">UGX {{ doubtful_total|default:0|floatformat:0|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delinquency Table -->
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 16px;">
+        <div class="card-header bg-white py-4 px-4 d-flex justify-content-between align-items-center border-bottom">
+            <div>
+                <h5 class="fw-bold mb-0">Delinquent Installments</h5>
+                <p class="small text-muted mb-0">{{ overdue.count }} active arrears detected</p>
+            </div>
+            
+            <div class="d-flex gap-3">
+                <button onclick="window.print()" class="btn btn-outline-secondary btn-sm px-4 rounded-pill fw-bold">
+                    <i class="bi bi-printer me-2"></i> EXPORT REPORT
+                </button>
+                <button type="button" class="btn btn-danger btn-sm px-4 rounded-pill fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#bulkSMSModal">
+                    <i class="bi bi-chat-left-dots-fill me-2"></i> SEND REMINDERS
+                </button>
+            </div>
+        </div>
+        
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table par-table align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="uppercase-tracking text-muted">
+                            <th class="ps-4">Member Account</th>
+                            <th>Loan Ref</th>
+                            <th class="text-center">Aging</th>
+                            <th class="text-end">Balance Due</th>
+                            <th class="text-end pe-4">Manage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inst in overdue %}
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <div class="member-name">{{ inst.loan.member.get_full_name }}</div>
+                                <div class="text-muted extra-small fw-bold"><i class="bi bi-phone me-1"></i> {{ inst.loan.member.phone_number }}</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-primary border border-primary border-opacity-25 px-3 py-2 fw-bold">
+                                    #{{ inst.loan.loan_reference|default:inst.loan.id }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge days-badge rounded-pill {% if inst.days_overdue > 60 %}bg-danger{% elif inst.days_overdue > 30 %}bg-primary{% else %}bg-warning text-dark{% endif %}">
+                                    {{ inst.days_overdue }} DAYS
+                                </span>
+                                <div class="text-muted extra-small mt-1 fw-bold">DUE {{ inst.due_date|date:"d M Y" }}</div>
+                            </td>
+                            <td class="text-end fw-bold text-dark amount-display">
+                                UGX {{ inst.total_due|floatformat:0|intcomma }}
+                            </td>
+                            <td class="text-end pe-4">
+                                <a href="{% url 'member_profile' inst.loan.member.id %}" class="btn btn-sm btn-light border px-3 rounded-pill fw-bold">
+                                    Profile
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk SMS Modal -->
+<div class="modal fade" id="bulkSMSModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+            <div class="modal-body text-center p-5">
+                <div class="bg-danger bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px;">
+                    <i class="bi bi-chat-right-text-fill text-danger fs-2"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-2">Execute Bulk Notifications?</h4>
+                <p class="text-muted mb-4">
+                    Send arrears reminders to <strong>{{ overdue.count }}</strong> members. This action will deduct SMS credits from your provider balance.
+                </p>
+                <div class="d-flex flex-column gap-2">
+                    <a href="{% url 'bulk_sms_reminder' %}" class="btn btn-danger btn-lg rounded-pill fw-bold py-3 shadow-sm">
+                        Confirm & Send SMS
+                    </a>
+                    <button type="button" class="btn btn-link text-muted fw-bold text-decoration-none py-2" data-bs-dismiss="modal">
+                        Cancel Action
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

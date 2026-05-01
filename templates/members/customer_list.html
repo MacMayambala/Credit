@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<!-- Professional Typography Import -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --ms-primary: #1e40af;        
+        --ms-border: #e2e8f0;
+        --ms-text-main: #1e293b;
+        --ms-text-muted: #64748b;
+        --ms-bg: #f8fafc;
+    }
+
+    body { 
+        background-color: var(--ms-bg); 
+        font-family: 'Inter', sans-serif; 
+        -webkit-font-smoothing: antialiased;
+        color: var(--ms-text-main);
+    }
+    
+    /* Typography Overrides */
+    h4 { font-size: 1.5rem; letter-spacing: -0.025em; }
+    .extra-small { font-size: 0.7rem; }
+    .uppercase-tracking { 
+        text-transform: uppercase; 
+        letter-spacing: 0.05em; 
+        font-weight: 700;
+    }
+    
+    /* Premium Tab Styling */
+    .custom-main-tabs .nav-link {
+        font-weight: 600;
+        font-size: 0.85rem;
+        border: none;
+        padding: 0.8rem 0;
+        margin-right: 2rem;
+        color: var(--ms-text-muted);
+        position: relative;
+    }
+    .custom-main-tabs .nav-link.active {
+        background: transparent;
+        color: var(--ms-primary) !important;
+    }
+    .custom-main-tabs .nav-link.active::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: var(--ms-primary);
+        border-radius: 10px 10px 0 0;
+    }
+
+    /* Member Row Refinement */
+    .member-row {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border-left: 4px solid transparent;
+        background: white;
+    }
+    .member-row:hover {
+        background-color: #fcfdfe;
+        border-left: 4px solid var(--ms-primary);
+        transform: translateX(4px);
+        z-index: 2;
+    }
+    
+    /* Avatar & Badge */
+    .avatar-placeholder {
+        background: #f1f5f9;
+        color: #94a3b8;
+        border: 1px solid var(--ms-border);
+    }
+    
+    .id-badge {
+        
+        font-size: 0.75rem;
+        background: #eff6ff;
+        color: var(--ms-primary);
+        padding: 2px 8px;
+        border-radius: 4px;
+        border: 1px solid #dbeafe;
+    }
+
+    /* Search Bar */
+    .search-container {
+        border-radius: 10px;
+        background: #f1f5f9;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+    }
+    .search-container:focus-within {
+        background: #fff;
+        border-color: var(--ms-primary);
+        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.05);
+    }
+
+    .ms-registry-card {
+        border-radius: 16px;
+        border: 1px solid var(--ms-border);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    /* Global Button Polish */
+    .btn-primary {
+        background-color: var(--ms-primary);
+        font-weight: 600;
+        font-size: 0.875rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
+    }
+</style>
+
+<div class="container-fluid py-5 px-lg-5">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">Client Registry</h4>
+            <ul class="nav nav-tabs border-0 custom-main-tabs">
+                <li class="nav-item">
+                     <a class="nav-link text-uppercase" href="#">All Members</a>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="pb-2">
+            <a href="{% url 'register_member' %}" class="btn btn-primary d-flex align-items-center gap-2">
+                <i class="bi bi-person-plus-fill"></i> REGISTER NEW MEMBER
+            </a>
+        </div>
+    </div>
+
+    <!-- Registry Card -->
+    <div class="card ms-registry-card">
+        <!-- Utility Bar -->
+        <div class="card-header bg-white border-bottom py-3 px-4">
+            <div class="row align-items-center">
+                <div class="col-md-5">
+                    <div class="d-flex align-items-center search-container px-3 py-2">
+                        <i class="bi bi-search text-muted me-2"></i>
+                        <input type="text" id="memberSearch" class="form-control border-0 bg-transparent shadow-none" placeholder="Search by name, ID or phone...">
+                    </div>
+                </div>
+                <div class="col-md-7 text-end d-none d-md-block">
+                    <button class="btn btn-link text-muted text-decoration-none extra-small uppercase-tracking me-3">
+                        <i class="bi bi-sliders2 me-1"></i> ADVANCED FILTERS
+                    </button>
+                    <button class="btn btn-link text-muted text-decoration-none extra-small uppercase-tracking">
+                        <i class="bi bi-file-earmark-arrow-down me-1"></i> DOWNLOAD RECORDS
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Member List -->
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush" id="memberList">
+                {% for member in members %}
+                <div class="list-group-item px-4 py-4 member-row border-bottom">
+                    <div class="row align-items-center">
+                        <!-- Identity Column -->
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                {% if member.photo %}
+                                    <img src="{{ member.photo.url }}" class="rounded-circle me-3 border border-2 border-white shadow-sm" style="width: 52px; height: 52px; object-fit: cover;">
+                                {% else %}
+                                    <div class="rounded-circle avatar-placeholder d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 52px; height: 52px;">
+                                        <i class="bi bi-person text-muted fs-4"></i>
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <a href="{% url 'member_profile' member.id %}" class="text-decoration-none">
+                                        <h6 class="fw-bold mb-0 text-dark" style="font-size: 1.05rem;">{{ member.first_name }} {{ member.last_name }}</h6>
+                                    </a>
+                                    <div class="mt-1">
+                                        <span class="id-badge fw-bold">{{ member.member_number }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Demographics -->
+                        <div class="col-md-3">
+                            <div class="d-flex flex-column">
+                                <span class="text-dark fw-600 mb-1" style="font-size: 0.9rem;">{{ member.gender|default:"Male" }}</span>
+                                <span class="text-muted extra-small uppercase-tracking">{{ member.age }} Years</span>
+                            </div>
+                        </div>
+
+                        <!-- Contacts -->
+                        <div class="col-md-5">
+                            <div class="row g-0">
+                                <div class="col-6">
+                                    <div class="extra-small text-muted mb-1 uppercase-tracking opacity-75">Contact</div>
+                                    <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ member.phone_number }}</div>
+                                </div>
+                                <div class="col-6 border-start ps-4">
+                                    <div class="extra-small text-muted mb-1 uppercase-tracking opacity-75">Address</div>
+                                    <div class="fw-bold text-dark" style="font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        {{ member.village }}, {{ member.parish}}, {{ member.district}}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-5">
+                    <i class="bi bi-person-exclamation fs-1 text-muted opacity-25"></i>
+                    <p class="text-muted mt-3 fw-medium">No registered members found.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="card-footer bg-white py-4 px-4 border-top">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted uppercase-tracking extra-small opacity-75">
+                    Entry {{ members.start_index }} to {{ members.end_index }} of {{ total_count }}
+                </div>
+                
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 gap-2">
+                        {% if members.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link border-0 rounded-3 text-dark bg-light px-3" href="?page={{ members.previous_page_number }}">Previous</a>
+                            </li>
+                        {% endif %}
+
+                        {% for i in members.paginator.page_range %}
+                            {% if members.number == i %}
+                                <li class="page-item active">
+                                    <span class="page-link border-0 rounded-3 bg-primary fw-bold text-white px-3 shadow-sm">{{ i }}</span>
+                                </li>
+                            {% elif i > members.number|add:'-3' and i < members.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link border-0 rounded-3 text-muted bg-transparent px-3" href="?page={{ i }}">{{ i }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if members.has_next %}
+                            <li class="page-item">
+                                <a class="page-link border-0 rounded-3 text-dark bg-light px-3" href="?page={{ members.next_page_number }}">Next</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Search Filter logic
+    document.getElementById('memberSearch').addEventListener('input', function() {
+        const filter = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.member-row');
+
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(filter) ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}
