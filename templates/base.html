@@ -231,7 +231,7 @@
         </div>
 
         <div class="mt-auto p-3 border-top">
-            <form method="post" action="{% url 'account_logout' %}">
+            <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <button type="submit" class="nav-link text-danger border-0 bg-transparent w-100 fw-bold">
                     <i class="bi bi-box-arrow-left"></i> Logout

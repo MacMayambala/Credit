@@ -1,28 +1,43 @@
 # members/middleware.py
 from django.shortcuts import redirect
 from django.conf import settings
-from django.urls import resolve
+from django.urls import resolve, Resolver404
 
 class LoginRequiredMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        # 1. Get the name of the current URL being accessed
-        url_name = resolve(request.path_info).url_name
+        # 1. Allow authenticated users immediately
+        if request.user.is_authenticated:
+            return self.get_response(request)
+
+        # 2. Safely resolve the URL name
+        try:
+            resolver_match = resolve(request.path_info)
+            url_name = resolver_match.url_name
+            # Optional: Check if it's a Django Admin path
+            is_admin = request.path.startswith('/admin/')
+        except Resolver404:
+            url_name = None
+            is_admin = False
         
-        # 2. Define URLs that MUST be accessible without logging in
-        # We must exempt login and allauth/social views to avoid redirect loops
+        # 3. Define exempted URL names
         exempt_urls = [
-            'account_login',
-            'account_signup',
-            'account_reset_password',
-            # Add any other public landing pages here
+            'login',          
+            'logout',         
+            'password_reset',
+            'password_reset_done',
+            'password_reset_confirm',
+            'password_reset_complete',
         ]
 
-        # 3. If user is not authenticated and trying to access a protected page
-        if not request.user.is_authenticated:
-            if url_name not in exempt_urls and not request.path.startswith('/auth/'):
-                return redirect(settings.LOGIN_URL)
+        # 4. The Logic Check
+        # Exempt if: it's in the list OR starts with /auth/ OR it's the admin login
+        if (url_name in exempt_urls or 
+            request.path.startswith('/auth/') or 
+            is_admin):
+            return self.get_response(request)
 
-        return self.get_response(request)
+        # 5. Otherwise, redirect to login
+        return redirect(settings.LOGIN_URL)

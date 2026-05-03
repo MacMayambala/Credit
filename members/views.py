@@ -196,15 +196,33 @@ def customer_list(request):
 
 
 
+# accounts/views.py
 
 # accounts/views.py
-from allauth.account.views import LoginView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LoginView
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+from django.contrib import messages
 
 class CustomLoginView(LoginView):
-    template_name = 'account/login.html'   # We'll create this
+    template_name = 'account/login.html'
+
+    def form_valid(self, form):
+        messages.success(self.request, "Welcome back! Login successful.")
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        # This triggers if the username/password is wrong OR if the form is missing a field
+        messages.error(self.request, "Invalid username or password.")
+        return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Adding 'title' so it shows up in your <title> tag if your template uses it
         context['title'] = "Sign In | MAC Tech"
         return context
+
+def custom_logout(request):
+    logout(request)
+    messages.success(request, "You have been logged out successfully.")
+    return redirect('login')
