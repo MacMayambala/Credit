@@ -1,273 +1,94 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In | MAC FinTech</title>
-    
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    
-    <style>
-        :root {
-            --primary: #16508e;
-            --primary-dark: #0a2e52;
-            --accent: #3b82f6;
-            --success: #10b981;
-            --error: #ef4444;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --radius: 12px;
-        }
+{% extends 'base.html' %}
+{% load static %}
 
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: radial-gradient(circle at top right, #f8fafc, #e2e8f0);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            color: var(--text-main);
-        }
-
-        /* Toast Notifications */
-        .messages-container {
-            position: fixed;
-            top: 20px; /* Moved to top for better visibility */
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .toast-message {
-            min-width: 300px;
-            padding: 16px;
-            border-radius: var(--radius);
-            color: #fff;
-            font-weight: 500;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            animation: slideIn 0.3s ease forwards;
-        }
-
-        .toast-message.success { background: var(--success); }
-        .toast-message.error { background: var(--error); }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        .toast-message.fade-out {
-            opacity: 0;
-            transform: translateX(20px);
-            transition: 0.3s ease;
-        }
-
-        /* Login Card */
-        .login-container {
-            max-width: 440px;
-            margin: auto;
-            padding: 20px;
-            width: 100%;
-        }
-
-        .login-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-            transition: transform 0.3s ease;
-        }
-
-        .login-header {
-            padding: 40px 40px 20px;
-            text-align: center;
-        }
-
-        .brand-logo {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: white;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 2rem;
-            box-shadow: 0 8px 16px rgba(22, 80, 142, 0.2);
-        }
-
-        .login-header h2 { font-weight: 800; color: var(--primary); margin-bottom: 4px; }
-        .login-header p { color: var(--text-muted); font-size: 0.9rem; }
-
-        .login-body { padding: 0 40px 40px; }
-
-        /* Forms */
-        .form-label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-        }
-
-        .input-group {
-            background: #fff;
-            border: 1.5px solid #e2e8f0;
-            border-radius: var(--radius);
-            transition: all 0.2s;
-        }
-
-        .input-group:focus-within {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        }
-
-        .input-group-text {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding-left: 15px;
-        }
-
-        .form-control {
-            border: none;
-            padding: 12px 15px;
-            background: transparent;
-            font-weight: 500;
-        }
-
-        .form-control:focus {
-            box-shadow: none;
-            background: transparent;
-        }
-
-        .password-toggle {
-            cursor: pointer;
-            padding-right: 15px;
-            display: flex;
-            align-items: center;
-            color: var(--text-muted);
-        }
-
-        /* Button */
-        .btn-login {
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: var(--radius);
-            padding: 14px;
-            font-weight: 700;
-            margin-top: 10px;
-            transition: all 0.3s;
-        }
-
-        .btn-login:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(22, 80, 142, 0.2);
-            color: white;
-        }
-
-        .login-footer {
-            text-align: center;
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid #f1f5f9;
-            font-size: 0.85rem;
-        }
-
-        a { color: var(--accent); text-decoration: none; font-weight: 600; transition: 0.2s; }
-        a:hover { color: var(--primary); text-decoration: underline; }
-
-    </style>
-</head>
-<body>
-
-<div class="messages-container">
-    {% if messages %}
-        {% for message in messages %}
-            <div class="toast-message {% if message.tags == 'success' %}success{% else %}error{% endif %}" role="alert">
-                <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %}"></i>
-                <span>{{ message }}</span>
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 75vh;">
+    <div class="col-md-10 col-lg-7 col-xl-5">
+        
+        <!-- Login Card -->
+        <div class="text-center mb-4">
+            <div class="brand-logo mx-auto mb-3" style="
+                width: 70px; 
+                height: 70px; 
+                background: linear-gradient(135deg, var(--brand-cobalt), #3b82f6); 
+                color: white; 
+                border-radius: 18px; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center;
+                font-size: 2rem;
+                box-shadow: 0 10px 20px rgba(22, 50, 175, 0.2);">
+                <i class="bi bi-shield-lock-fill"></i>
             </div>
-        {% endfor %}
-    {% endif %}
-
-    {% if form.errors %}
-        <div class="toast-message error">
-            <i class="bi bi-shield-lock-fill"></i>
-            <span>Invalid username or password.</span>
-        </div>
-    {% endif %}
-</div>
-
-<div class="login-container">
-    <div class="login-card">
-        <div class="login-header">
-            <div class="brand-logo">
-                <i class="bi bi-shield-check"></i>
-            </div>
-            <h2>MAC FinTech</h2>
-            <p>Enter your credentials to access your account</p>
+            <h2 class="fw-bold" style="color: var(--text-primary); letter-spacing: -0.8px;">MAC FinTech</h2>
+            <p class="text-secondary small">Authorized Personnel Access Only</p>
         </div>
 
-        <div class="login-body">
-            <form method="POST" action="{% url 'login' %}">
+        <div class="p-1">
+            <form method="POST" action="{% url 'login' %}" novalidate>
                 {% csrf_token %}
 
+                <!-- Username -->
                 <div class="mb-3">
-                    <label class="form-label">Username or Email</label>
+                    <label class="form-label small fw-bold text-uppercase" style="letter-spacing: 0.5px; color: var(--text-secondary);">
+                        Username or Email
+                    </label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                        <!-- Change name="login" to name="username" -->
-                        <input type="text" name="username" class="form-control" placeholder="Enter your username" required autofocus>
+                        <span class="input-group-text bg-transparent border-end-0 border-2" style="border-color: var(--border-color);">
+                            <i class="bi bi-person text-muted"></i>
+                        </span>
+                        <input type="text" 
+                               name="username" 
+                               class="form-control form-control-lg border-start-0 border-2" 
+                               style="border-color: var(--border-color); font-size: 1rem;"
+                               placeholder="Enter your username" 
+                               required autofocus>
                     </div>
                 </div>
 
+                <!-- Password -->
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-center">
-                        <label class="form-label">Password</label>
-                        <a href="#" class="small mb-2">Forgot password?</a>
+                        <label class="form-label small fw-bold text-uppercase" style="letter-spacing: 0.5px; color: var(--text-secondary);">
+                            Security Password
+                        </label>
+                        <a href="{% url 'password_reset' %}" class="small mb-2 text-decoration-none fw-bold" style="color: var(--brand-cobalt);">Forgot?</a>
                     </div>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                        <input type="password" name="password" id="passwordInput" class="form-control" placeholder="••••••••" required>
-                        <span class="password-toggle" onclick="togglePassword()">
-                            <i class="bi bi-eye" id="toggleIcon"></i>
+                        <span class="input-group-text bg-transparent border-end-0 border-2" style="border-color: var(--border-color);">
+                            <i class="bi bi-lock text-muted"></i>
+                        </span>
+                        <input type="password" 
+                               name="password" 
+                               id="passwordInput" 
+                               class="form-control form-control-lg border-start-0 border-end-0 border-2" 
+                               style="border-color: var(--border-color); font-size: 1rem;"
+                               placeholder="••••••••" 
+                               required>
+                        <span class="input-group-text bg-transparent border-start-0 border-2" 
+                              style="border-color: var(--border-color); cursor: pointer;" 
+                              onclick="togglePassword()">
+                            <i class="bi bi-eye text-muted" id="toggleIcon"></i>
                         </span>
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-login w-100">
-                    Sign In to Portal
+                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm" 
+                        style="background-color: var(--brand-cobalt); border: none;">
+                    SIGN IN TO PORTAL <i class="bi bi-arrow-right-short ms-1"></i>
                 </button>
 
-                <div class="login-footer text-muted">
-                    Confidential System. <a href="#">Need help?</a>
+                <div class="text-center mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                    <p class="small text-muted mb-0">
+                        Confidential Infrastructure. <a href="#" class="text-decoration-none fw-bold" style="color: var(--brand-cobalt);">System Support</a>
+                    </p>
                 </div>
             </form>
         </div>
     </div>
-
-    <div class="text-center mt-4 text-muted" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-        &copy; 2026 MAC TECHNOLOGIES &bull; SECURE INFRASTRUCTURE V2.4
-    </div>
 </div>
 
 <script>
-    // Toggle Password Visibility
     function togglePassword() {
         const input = document.getElementById('passwordInput');
         const icon = document.getElementById('toggleIcon');
@@ -279,15 +100,23 @@
             icon.classList.replace('bi-eye-slash', 'bi-eye');
         }
     }
-
-    // Auto-dismiss toasts
-    document.querySelectorAll('.toast-message').forEach(toast => {
-        setTimeout(() => {
-            toast.classList.add('fade-out');
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
-    });
 </script>
 
-</body>
-</html>
+<style>
+    /* Styling for focus states within the input groups */
+    .input-group:focus-within .input-group-text,
+    .input-group:focus-within .form-control {
+        border-color: var(--brand-cobalt) !important;
+    }
+    
+    .form-control:focus {
+        box-shadow: none;
+    }
+
+    /* Custom sizing for the input groups */
+    .input-group-text {
+        padding-left: 1.2rem;
+        padding-right: 1.2rem;
+    }
+</style>
+{% endblock %}

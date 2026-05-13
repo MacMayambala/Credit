@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold" style="color: var(--brand-cobalt);">Chart of Accounts</h2>
+        <p class="text-muted">Standardized financial categorization for MAC Tech</p>
+    </div>
+</div>
+<a href="{% url 'create_coa' %}" class="btn btn-primary shadow-sm rounded-3 fw-bold">
+    <i class="bi bi-plus-lg me-2"></i> NEW ACCOUNT
+</a>
+
+<div class="row g-4">
+    {% for category_name, accounts in grouped_accounts.items %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h6 class="text-uppercase fw-bold text-secondary mb-0" style="font-size: 0.7rem; letter-spacing: 1px;">
+                    {{ category_name }}
+                </h6>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <ul class="list-group list-group-flush">
+                    {% for account in accounts %}
+                    <li class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center border-color">
+                        <div>
+                            <span class="fw-bold d-block text-dark" style="font-size: 0.9rem;">{{ account.name }}</span>
+                            <code class="small text-muted">{{ account.code }}</code>
+                        </div>
+                        <a href="{% url 'edit_coa' account.id %}" class="btn btn-sm btn-light rounded-3 shadow-xs">
+                            <i class="bi bi-pencil text-primary"></i>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

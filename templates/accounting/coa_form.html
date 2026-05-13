@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="d-flex align-items-center mb-4">
+            <a href="{% url 'chart_of_accounts' %}" class="btn btn-light rounded-circle me-3 shadow-sm">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h2 class="fw-bold mb-0" style="letter-spacing: -1px;">New Ledger Account</h2>
+                <p class="text-muted small mb-0">Define a new category for your financial tracking</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <!-- Code -->
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label small fw-bold text-secondary text-uppercase">Account Code</label>
+                            <input type="text" name="code" class="form-control form-control-lg border-color bg-light fw-bold" 
+                                   placeholder="e.g. 1001" required>
+                        </div>
+                        
+                        <!-- Account Name -->
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label small fw-bold text-secondary text-uppercase">Account Name</label>
+                            <input type="text" name="name" class="form-control form-control-lg border-color" 
+                                   placeholder="e.g. Cash at Bank" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Type -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold text-secondary text-uppercase">Account Type</label>
+                            <select name="account_type" class="form-select form-select-lg border-color" required>
+                                <option value="" selected disabled>Select Type...</option>
+                                {% for val, label in account_types %}
+                                    <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Parent Account -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold text-secondary text-uppercase">Parent Account (Optional)</label>
+                            <select name="parent" class="form-select form-select-lg border-color">
+                                <option value="">--- No Parent ---</option>
+                                {% for parent in parent_accounts %}
+                                    <option value="{{ parent.id }}">{{ parent.code }} - {{ parent.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-secondary text-uppercase">Description</label>
+                        <textarea name="description" class="form-control border-color" rows="3" 
+                                  placeholder="What is the purpose of this account?"></textarea>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary py-3 fw-bold rounded-3 shadow-sm" 
+                                style="background-color: var(--brand-cobalt); border: none;">
+                            <i class="bi bi-cloud-arrow-up me-2"></i> CREATE ACCOUNT
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Helpful Tip for the User -->
+        <div class="mt-4 p-3 rounded-4 bg-light border">
+            <div class="d-flex">
+                <i class="bi bi-info-circle-fill text-primary me-3 h4"></i>
+                <p class="small text-muted mb-0">
+                    <strong>Note:</strong> Standard accounting uses 1xxx for Assets, 2xxx for Liabilities, 
+                    3xxx for Equity, 4xxx for Income, and 5xxx for Expenses. 
+                    Ensure <strong>1001</strong> is created as your primary Cash account.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

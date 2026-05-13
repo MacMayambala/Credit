@@ -98,6 +98,13 @@
         border: 4px solid white;
         box-shadow: 0 4px 10px rgba(0,0,0,0.08);
     }
+
+    /* Reversal Styles */
+    .reversed-row {
+        text-decoration: line-through;
+        opacity: 0.6;
+        background-color: #fff5f5 !important;
+    }
 </style>
 
 <div class="container-fluid py-4 px-lg-5">
@@ -119,7 +126,7 @@
                 <div>
                     <h1 class="fw-bold text-dark ls-tight mb-1">{{ member.first_name }} {{ member.last_name }}</h1>
                     <div class="d-flex align-items-center gap-3">
-                        <span class="badge bg-dark rounded-pill px-3 py-1 extra-small">ID: {{ member.member_number|default:member.id }}</span>
+                        <span class="badge bg-dark rounded-pill px-3 py-1 extra-small">Account Number: {{ member.member_number|default:member.id }}</span>
                         <span class="text-muted small fw-medium"><i class="bi bi-calendar3 me-1"></i> Since {{ member.date_joined|date:"M Y" }}</span>
                     </div>
                 </div>
@@ -127,6 +134,11 @@
                     <a href="{% url 'deposit_savings' member.id %}" class="btn btn-brand btn-sm px-3">
                         <i class="bi bi-plus-lg me-1"></i> DEPOSIT
                     </a>
+                    
+                    <a href="{% url 'withdraw_savings' member.id %}" class="btn btn-outline-danger btn-sm px-3 fw-bold">
+                        <i class="bi bi-dash-lg me-1"></i> WITHDRAW
+                    </a>
+
                     <a href="{% url 'edit_member' member.id %}" class="btn btn-outline-dark btn-sm px-3">
                         <i class="bi bi-pencil me-1"></i> EDIT PROFILE
                     </a>
@@ -171,10 +183,10 @@
     <!-- 3. Tab Navigation -->
     <ul class="nav nav-pills nav-pills-brand mb-4 d-print-none" id="pills-tab" role="tablist">
         <li class="nav-item">
-            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#loansTab">Loan Portfolios</button>
+            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#loansTab">Loans</button>
         </li>
         <li class="nav-item">
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#savingsTab">Transaction History</button>
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#savingsTab">Transaction</button>
         </li>
     </ul>
 
@@ -188,7 +200,7 @@
                         <div class="row align-items-center">
                             <div class="col-md-4">
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="fw-bold text-primary fs-5">#LN-{{ loan.id }}</span>
+                                    <span class="fw-bold text-primary fs-5">{{ loan.loan_reference|default:loan.id }}</span>
                                     <span class="badge badge-status 
                                         {% if loan.status == 'approved' or loan.status == 'active' %}bg-success-subtle text-success
                                         {% elif loan.status == 'pending' %}bg-warning-subtle text-dark
@@ -220,6 +232,7 @@
                                         </a>
                                     </div>
                                 {% else %}
+                                    <!-- Use loan_reference for URL if defined in your urls.py -->
                                     <a href="{% url 'loan_detail' loan.id %}" class="btn btn-outline-ledger btn-sm px-4 rounded-2">
                                         VIEW LEDGER <i class="bi bi-chevron-right ms-1"></i>
                                     </a>
@@ -253,12 +266,13 @@
                                 <th class="ps-4">Timestamp</th>
                                 <th>Ref ID</th>
                                 <th class="text-center">Transaction Type</th>
-                                <th class="text-end pe-4">Movement (UGX)</th>
+                                <th class="text-end">Movement (UGX)</th>
+                                <th class="text-center pe-4 d-print-none">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for t in transactions %}
-                            <tr class="align-middle">
+                            <tr class="align-middle {% if t.is_reversed %}reversed-row{% endif %}">
                                 <td class="ps-4">
                                     <div class="fw-bold text-dark small">{{ t.timestamp|date:"d M Y" }}</div>
                                     <div class="text-muted extra-small">{{ t.timestamp|date:"H:i" }}</div>
@@ -268,15 +282,27 @@
                                         {{ t.reference|default:"N/A" }}
                                     </span>
                                 </td>
-                                                                <td class="text-center">
-                                    <span class="badge rounded-pill px-3 py-2 extra-small fw-bold {% if t.type == 'deposit' %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %}">
-                                        {{ t.get_type_display|upper }}
+                                <td class="text-center">
+                                    <span class="badge rounded-pill px-3 py-2 extra-small fw-bold 
+                                        {% if t.is_reversed %}bg-danger text-white
+                                        {% elif t.type == 'deposit' %}bg-success-subtle text-success
+                                        {% else %}bg-danger-subtle text-danger{% endif %}">
+                                        {{ t.get_type_display|upper }}{% if t.is_reversed %} (REVERSED){% endif %}
                                     </span>
                                 </td>
-                                <td class="text-end pe-4">
+                                <td class="text-end">
                                     <span class="fw-bold {% if t.type == 'deposit' %}text-success{% else %}text-danger{% endif %}">
                                         {% if t.type == 'deposit' %}+{% else %}-{% endif %} {{ t.amount|floatformat:0|intcomma }}
                                     </span>
+                                </td>
+                                <td class="text-center pe-4 d-print-none">
+                                    {% if not t.is_reversed and user.is_staff %}
+                                        <a href="{% url 'reverse_transaction' t.id %}" class="btn btn-link text-danger p-0" title="Reverse Transaction">
+                                            <i class="bi bi-arrow-counterclockwise fs-5"></i>
+                                        </a>
+                                    {% elif t.is_reversed %}
+                                        <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" title="Reversed for: {{ t.reversal_details.reason }}"></i>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -287,4 +313,12 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Initialize tooltips for reversal reasons
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
 {% endblock %}

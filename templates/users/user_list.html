@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h2 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -1px;">User Management</h2>
+        <p class="text-muted small mb-0">Manage staff access levels and system permissions</p>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'user_create' %}" class="btn btn-primary rounded-3 px-4 py-2 fw-bold shadow-sm border-0" 
+           style="background-color: var(--brand-cobalt);">
+            <i class="bi bi-person-plus-fill me-2"></i> Register New Staff
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead style="background-color: #f8fafc; border-bottom: 2px solid var(--border-color);">
+                <tr style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary);">
+                    <th class="ps-4 py-3">Staff Member</th>
+                    <th class="py-3">Role / Department</th>
+                    <th class="py-3">System Status</th>
+                    <th class="py-3">Last Activity</th>
+                    <th class="text-end pe-4 py-3">Management</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr class="transition-all">
+                    <td class="ps-4 py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center me-3 shadow-sm" 
+                                 style="width: 45px; height: 45px; background-color: rgba(22, 50, 175, 0.1); color: var(--brand-cobalt);">
+                                <span class="fw-bold">{{ user.username|slice:":1"|upper }}</span>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="text-muted" style="font-size: 0.85rem;">{{ user.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% for group in user.groups.all %}
+                            <span class="badge rounded-pill bg-soft-cobalt text-cobalt px-3 py-2" style="font-size: 0.7rem;">
+                                {{ group.name }}
+                            </span>
+                        {% empty %}
+                            <span class="badge rounded-pill bg-light text-muted px-3 py-2" style="font-size: 0.7rem;">
+                                No Role Assigned
+                            </span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% if user.is_active %}
+                            <div class="d-flex align-items-center text-success fw-bold" style="font-size: 0.85rem;">
+                                <span class="pulse-indicator bg-success me-2"></span> Active
+                            </div>
+                        {% else %}
+                            <div class="d-flex align-items-center text-danger fw-bold" style="font-size: 0.85rem;">
+                                <span class="bg-danger rounded-circle me-2" style="width: 8px; height: 8px; display: inline-block;"></span> Blocked
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted small">
+                        {% if user.last_login %}
+                            <span class="text-dark">{{ user.last_login|date:"M d, Y" }}</span><br>
+                            {{ user.last_login|time:"H:i" }}
+                        {% else %}
+                            <span class="fst-italic">Never Logged In</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <div class="btn-group shadow-sm rounded-3 overflow-hidden">
+                            <a href="{% url 'user_edit' user.id %}" class="btn btn-white border px-3" title="Edit Profile">
+                                <i class="bi bi-pencil-square text-primary"></i>
+                            </a>
+                            <a href="{% url 'toggle_user_status' user.id %}" 
+                               class="btn btn-white border px-3 {% if user.is_active %}hover-danger{% else %}hover-success{% endif %}" 
+                               title="{% if user.is_active %}Deactivate Account{% else %}Activate Account{% endif %}">
+                                <i class="bi {% if user.is_active %}bi-slash-circle text-danger{% else %}bi-check-circle text-success{% endif %}"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    /* Branding Colors */
+    :root {
+        --brand-cobalt: #1632af;
+        --border-color: #e2e8f0;
+    }
+
+    .bg-soft-cobalt { background-color: rgba(22, 50, 175, 0.1); }
+    .text-cobalt { color: var(--brand-cobalt); }
+
+    /* Transitions & Hovers */
+    .transition-all { transition: all 0.2s ease; }
+    .table-hover tbody tr:hover { background-color: #f1f5f9 !important; }
+    
+    .btn-white { background-color: #fff; border-color: var(--border-color); }
+    .btn-white:hover { background-color: #f8fafc; }
+
+    .hover-danger:hover { background-color: #fff1f2 !important; }
+    .hover-success:hover { background-color: #f0fdf4 !important; }
+
+    /* Active Pulse Indicator */
+    .pulse-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(25, 135, 84, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+    }
+</style>
+{% endblock %}

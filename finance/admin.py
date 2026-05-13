@@ -181,6 +181,30 @@ class TransactionAdmin(admin.ModelAdmin):
         return format_html('UGX {}', f"{int(amount):,}")
     amount_formatted.short_description = "Amount"
 
+from django.contrib import admin
+from .models import SystemSetting
+
+@admin.register(SystemSetting)
+class SystemSettingAdmin(admin.ModelAdmin):
+    list_display = ('id', 'enable_back_dating', 'updated_at')
+    list_editable = ('enable_back_dating',)
+    
+    def has_add_permission(self, request):
+        # Prevent creating multiple setting rows. 
+        # If one exists, don't allow adding another.
+        if self.model.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        # Prevent deleting the configuration row
+        return False
+
+    # Optional: Force the ID to be 1 to match your model's .get_or_create(id=1)
+    def save_model(self, request, obj, form, change):
+        obj.id = 1
+        super().save_model(request, obj, form, change)
+
 
 @admin.register(Repayment)
 class RepaymentAdmin(admin.ModelAdmin):
@@ -201,15 +225,23 @@ class SMSTransactionAdmin(admin.ModelAdmin):
     list_filter = ('transaction_type', 'created_at')
 
 
-@admin.register(ChartOfAccount)
+# finance/admin.py
+from django.contrib import admin
+from .models import ChartOfAccount, GeneralLedger
+
 class ChartOfAccountAdmin(admin.ModelAdmin):
-    list_display = ('code', 'name', 'account_type', 'is_active')
-    list_filter = ('account_type', 'is_active')
-    search_fields = ('code', 'name')
+    list_display = ['code', 'name', 'account_type', 'is_active']   # Changed from 'category'
+    list_filter = ['account_type', 'is_active']                    # Changed from 'category'
+    search_fields = ['code', 'name']
+    ordering = ['code']
 
 
-@admin.register(GeneralLedger)
 class GeneralLedgerAdmin(admin.ModelAdmin):
-    list_display = ('date', 'account', 'description', 'debit', 'credit', 'balance')
-    list_filter = ('account__account_type', 'date')
+    list_display = ['date', 'account', 'description', 'debit', 'credit']
+    list_filter = ['date', 'account']
+    search_fields = ['description', 'reference']
     date_hierarchy = 'date'
+
+
+admin.site.register(ChartOfAccount, ChartOfAccountAdmin)
+admin.site.register(GeneralLedger, GeneralLedgerAdmin)

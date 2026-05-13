@@ -73,6 +73,23 @@
                             </div>
                         </div>
 
+                        <!-- Admin Back-date Section -->
+                        {% if backdate_allowed %}
+                        <div class="mb-5">
+                            <label class="form-label fw-semibold text-warning text-uppercase small tracking-widest">
+                                <i class="bi bi-calendar-check me-1"></i> Admin: Override Date
+                            </label>
+                            <div class="p-3 rounded-3 border border-warning border-opacity-25 bg-warning bg-opacity-10">
+                                <input type="datetime-local" 
+                                       name="back_date" 
+                                       class="form-control border-0 bg-transparent fw-semibold text-dark shadow-none">
+                                <div class="form-text text-dark-50 mt-1 small">
+                                    Leave blank to use current server time.
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <!-- Info Alert -->
                         <div class="alert border border-primary border-opacity-25 bg-primary bg-opacity-5 rounded-3 p-4 mb-5">
                             <div class="d-flex gap-3">
@@ -125,7 +142,7 @@
 
 <style>
     :root {
-        --ms-primary: #1e40af;   /* Your preferred deep blue */
+        --ms-primary: #1e40af;
     }
 
     .tracking-widest {
@@ -137,7 +154,6 @@
         color: var(--ms-primary) !important;
     }
 
-    /* Enhanced Input Focus */
     .input-group:focus-within {
         box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.15);
     }
@@ -147,7 +163,6 @@
         box-shadow: none;
     }
 
-    /* Button Styling - Your Deep Blue */
     .btn-primary {
         background-color: var(--ms-primary);
         border: none;
@@ -161,21 +176,12 @@
         box-shadow: 0 8px 20px rgba(30, 64, 175, 0.3) !important;
     }
 
-    .btn-primary:active {
-        transform: translateY(0);
-    }
-
-    /* Card Enhancements */
     .card {
         transition: transform 0.3s ease;
     }
     
     .card:hover {
         transform: translateY(-4px);
-    }
-
-    .bg-gradient {
-        background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
     }
 </style>
 {% endblock %}

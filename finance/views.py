@@ -5,7 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 from decimal import Decimal
 from .models import (
-    Installment, Loan, Member, Repayment, SavingsAccount, Transaction, 
+    Installment, Loan, Member, Repayment, SavingsAccount, SystemSetting, Transaction, TransactionReversal, 
     process_repayment, generate_schedule
 )
 
@@ -74,6 +74,22 @@ from .utils import send_bulk_arrears_reminders
 # ========================
 # DASHBOARD & REGISTRY
 # ========================
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import redirect
+
+def allowed_users(allowed_roles=[]):
+    def decorator(view_func):
+        def wrapper_func(request, *args, **kwargs):
+            group = None
+            if request.user.groups.exists():
+                group = request.user.groups.all()[0].name
+
+            if group in allowed_roles or request.user.is_superuser:
+                return view_func(request, *args, **kwargs)
+            else:
+                raise PermissionDenied # Shows 403 Forbidden
+        return wrapper_func
+    return decorator
 
 @login_required
 def dashboard(request):
@@ -153,60 +169,96 @@ def approve_loan(request, loan_id):
     return redirect('dashboard')
 
 
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.utils import timezone
+from .models import Member, SavingsAccount, Transaction, SystemSetting, Loan
+# from .utils import generate_transaction_ref, process_repayment
+
+@login_required
 @transaction.atomic
 def deposit_savings(request, member_id):
+    """
+    Handles member deposits with high-precision Decimal math and 
+    automated loan recovery (sweep logic).
+    """
     member = get_object_or_404(Member, id=member_id)
     
+    # Permission check: Setting must be ON and user must be Staff/Admin
+    backdate_allowed = SystemSetting.is_backdate_allowed()
+    
     if request.method == "POST":
-        amount_raw = request.POST.get('amount')
+        amount_raw = request.POST.get('amount', '0').strip()
+        custom_date = request.POST.get('back_date')
         
-        if not amount_raw or Decimal(amount_raw) <= 0:
-            messages.error(request, "Invalid deposit amount.")
-            return redirect('deposit_savings', member_id=member.id)
+        try:
+            # CRITICAL: Fix precision error (ensure exact math to 2 decimal places)
+            amount = Decimal(amount_raw).quantize(Decimal('1.00'), rounding=ROUND_HALF_UP)
             
-        amount = Decimal(amount_raw)
-        
-        # 1. Update Savings
-        # Using select_for_update() to prevent race conditions during the balance update
-        savings, created = SavingsAccount.objects.select_for_update().get_or_create(member=member)
-        savings.balance = Decimal(str(savings.balance)) + amount
-        savings.save()
-        
-        # 2. Generate Unique Reference and Log Transaction
-        # We use the 'DEP' prefix for all savings deposits
-        ref = generate_transaction_ref("DEP")
-        Transaction.objects.create(
-            member=member,
-            amount=amount,
-            type='deposit',
-            reference=ref
-        )
-        
-        # 3. Loan Link Logic
-        # Check if the member has an active loan that needs recovery
-        active_loan = Loan.objects.filter(member=member, is_active=True).first()
-        if active_loan:
-            # Check for overdue installments up to today
-            has_overdue = active_loan.installments.filter(
-                paid=False, 
-                due_date__lte=timezone.now().date()
-            ).exists()
+            if amount <= 0:
+                messages.error(request, "Deposit amount must be greater than zero.")
+                return redirect('deposit_savings', member_id=member.id)
             
-            if has_overdue:
-                # The process_repayment function should also be updated 
-                # to use generate_transaction_ref("AUTO")
-                process_repayment(active_loan.id)
-                messages.info(request, f"Deposit {ref} received. Auto-repayment processed for overdue balance.")
+            # 1. Update Savings Account using row locking
+            savings, created = SavingsAccount.objects.select_for_update().get_or_create(member=member)
+            
+            # Convert existing balance to string before Decimal to avoid float pollution
+            current_balance = Decimal(str(savings.balance))
+            savings.balance = current_balance + amount
+            savings.save()
+            
+            # 2. Determine Timestamp
+            txn_timestamp = timezone.now()
+            if backdate_allowed and custom_date:
+                # The view expects the template to provide a valid datetime string
+                txn_timestamp = custom_date
+
+            # 3. Log the Transaction
+            ref = generate_transaction_ref("DEP")
+            Transaction.objects.create(
+                member=member,
+                amount=amount,
+                type='deposit',
+                reference=ref,
+                timestamp=txn_timestamp
+            )
+            
+            # 4. Loan Link Logic (Auto-sweep for overdue balance)
+            # We look for active loans to see if we should trigger process_repayment
+            active_loan = Loan.objects.filter(member=member, is_active=True).first()
+            
+            if active_loan:
+                # Check for overdue installments up to TODAY
+                has_overdue = active_loan.installments.filter(
+                    paid=False, 
+                    due_date__lte=timezone.now().date()
+                ).exists()
+                
+                if has_overdue:
+                    # Trigger the repayment engine
+                    process_repayment(active_loan.id)
+                    messages.info(request, f"Deposit {ref} recorded. Arrears detected and auto-repayment triggered.")
+                else:
+                    messages.success(request, f"Deposit {ref} of UGX {amount:,.0f} successful.")
             else:
                 messages.success(request, f"Deposit {ref} of UGX {amount:,.0f} processed successfully.")
-        else:
-            messages.success(request, f"Deposit {ref} of UGX {amount:,.0f} processed successfully.")
-        
-        return redirect('member_profile', member_id=member.id)
+            
+            return redirect('member_profile', member_id=member.id)
+
+        except (ValueError, InvalidOperation):
+            messages.error(request, "Please enter a valid deposit amount.")
+            return redirect('deposit_savings', member_id=member.id)
+        except Exception as e:
+            messages.error(request, f"An unexpected error occurred: {str(e)}")
+            return redirect('deposit_savings', member_id=member.id)
     
-    return render(request, 'finance/deposit.html', {'member': member})
-
-
+    return render(request, 'finance/deposit.html', {
+        'member': member,
+        'backdate_allowed': backdate_allowed
+    })
 def member_statement(request, member_id):
     """
     Detailed financial ledger for a specific member.
@@ -595,73 +647,66 @@ def receive_payment(request, loan_id):
     if request.method != "POST":
         return redirect('loan_detail', pk=loan_id)
 
-    # Use select_for_update to lock the loan row during the payment process
     loan = get_object_or_404(Loan.objects.select_for_update(), id=loan_id)
+    
+    # Permission check: Only staff can backdate, and only if global setting is ON
+    backdate_allowed = SystemSetting.is_backdate_allowed()
 
-    if loan.status != 'approved' or not getattr(loan, 'is_active', True):
-        messages.error(request, "Repayments are only accepted for active and approved loans.")
+    if loan.status != 'approved' and loan.status != 'arrears':
+        messages.error(request, "Repayments are only accepted for active loans.")
         return redirect('loan_detail', pk=loan_id)
 
-    # Get current balance safely using both principal and interest balances
     try:
         current_balance = Decimal(str(loan.principal_balance + loan.interest_balance))
-    except (TypeError, InvalidOperation):
-        current_balance = Decimal('0')
+        if current_balance <= 0:
+            messages.warning(request, "This loan is already fully paid.")
+            return redirect('loan_detail', pk=loan_id)
 
-    if current_balance <= 0:
-        messages.warning(request, "This loan has already been fully paid.")
-        return redirect('loan_detail', pk=loan_id)
-
-    # Get form data
-    principal_raw = request.POST.get('principal', '0')
-    interest_raw = request.POST.get('interest', '0')
-    penalty_raw = request.POST.get('penalty', '0')
-    notes = request.POST.get('notes', '').strip()
-
-    try:
-        principal = Decimal(str(principal_raw).strip() or '0')
-        interest = Decimal(str(interest_raw).strip() or '0')
-        penalty = Decimal(str(penalty_raw).strip() or '0')
+        # Get form data
+        principal = Decimal(request.POST.get('principal', '0').strip() or '0')
+        interest = Decimal(request.POST.get('interest', '0').strip() or '0')
+        penalty = Decimal(request.POST.get('penalty', '0').strip() or '0')
+        custom_date = request.POST.get('back_date')
+        notes = request.POST.get('notes', '').strip()
 
         total_payment = principal + interest + penalty
 
         if total_payment <= 0:
-            messages.error(request, "Total payment amount must be greater than zero.")
+            messages.error(request, "Total payment must be greater than zero.")
             return redirect('loan_detail', pk=loan_id)
 
-        if total_payment > current_balance:
-            messages.error(request, 
-                f"Total payment (UGX {total_payment:,.0f}) cannot exceed the current balance (UGX {current_balance:,.0f}).")
-            return redirect('loan_detail', pk=loan_id)
+        # Determine Payment Date
+        txn_timestamp = timezone.now()
+        if backdate_allowed and custom_date:
+            txn_timestamp = custom_date
 
-        # 1. Generate a Unique Payment Reference
-        # This replaces the need for random integers in the model save() method
         ref = generate_transaction_ref("PAY")
 
-        # 2. Create the repayment record
-        # The Repayment.save() method will handle the 'waterfall' logic to installments
+        # 1. Create the repayment record 
+        # (Pass date_paid to override the default now())
         Repayment.objects.create(
             loan=loan,
             amount_paid=total_payment,
             receipt_number=ref,
+            date_paid=txn_timestamp, 
             notes=notes if notes else None,
         )
 
-        # 3. Create a Transaction log for the audit trail
+        # 2. Create Transaction log
         Transaction.objects.create(
             member=loan.member,
             amount=total_payment,
             type='repayment',
-            reference=ref
+            reference=ref,
+            timestamp=txn_timestamp
         )
 
-        messages.success(request, 
-            f"Payment {ref} of UGX {total_payment:,.0f} successfully recorded for {loan.loan_reference}.")
+        messages.success(request, f"Payment {ref} recorded for date: {txn_timestamp}.")
 
     except (ValueError, InvalidOperation):
-        messages.error(request, "Please enter valid numbers for the payment amounts.")
+        messages.error(request, "Invalid payment amounts entered.")
     except Exception as e:
-        messages.error(request, f"System Error: {str(e)}")
+        messages.error(request, f"Error: {str(e)}")
 
     return redirect('loan_detail', pk=loan_id)
 
@@ -793,56 +838,87 @@ from django.contrib import messages
 from django.db import transaction
 from decimal import Decimal
 from .models import SavingsAccount, Transaction, Member
+from decimal import Decimal, ROUND_HALF_UP
 
+from decimal import Decimal, InvalidOperation
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.utils import timezone
+from .models import Member, SavingsAccount, Transaction, SystemSetting
+# Assuming these utility functions exist in your project
+# from .utils import generate_transaction_ref 
+
+@login_required
 @transaction.atomic
 def withdraw_savings(request, member_id):
     """
-    Handles internal withdrawals from a member's savings account with unique referencing.
+    Handles internal withdrawals with exact Decimal precision to prevent 
+    rounding errors (e.g., 40,000 becoming 39,998).
     """
     member = get_object_or_404(Member, id=member_id)
-    # Ensure the member has a savings account
+    
+    # Use select_for_update() to lock the row and prevent race conditions
     savings, created = SavingsAccount.objects.select_for_update().get_or_create(member=member)
+    
+    # Permission check: Setting must be enabled AND user must be staff
+    backdate_allowed = SystemSetting.is_backdate_allowed()
 
     if request.method == 'POST':
-        amount_str = request.POST.get('amount')
+        amount_raw = request.POST.get('amount', '0').strip()
+        custom_date = request.POST.get('back_date')
         
         try:
-            amount = Decimal(amount_str)
+            # CRITICAL: Convert to string first, then Decimal to maintain exact precision
+            amount = Decimal(amount_raw)
+            
+            # Ensure the savings balance is also treated as a Decimal
+            current_balance = Decimal(str(savings.balance))
             
             if amount <= 0:
                 messages.error(request, "Withdrawal amount must be greater than zero.")
-            elif savings.balance < amount:
-                messages.error(request, f"Insufficient funds. Current balance is UGX {savings.balance:,.0f}")
+            elif current_balance < amount:
+                messages.error(request, f"Insufficient funds. Current balance is UGX {current_balance:,.0f}")
             else:
-                # 1. Generate a unique reference for this specific withdrawal
-                # We use the 'WTH' prefix for withdrawals
+                # 1. Determine Timestamp (Back-date logic)
+                # Ensure custom_date is parsed correctly if provided
+                txn_timestamp = timezone.now()
+                if backdate_allowed and custom_date:
+                    try:
+                        txn_timestamp = custom_date
+                    except Exception:
+                        messages.warning(request, "Invalid date format provided. Using current time.")
+
+                # 2. Generate a unique reference
                 ref = generate_transaction_ref("WTH")
 
-                # 2. Deduct from Savings
-                savings.balance -= amount
+                # 3. Deduct from Savings (Exact math)
+                savings.balance = current_balance - amount
                 savings.save()
 
-                # 3. Create Audit Transaction with the unique reference
+                # 4. Create Audit Transaction
+                # Ensure your Transaction model's 'timestamp' field is NOT 'auto_now_add=True'
+                # It should have 'default=timezone.now' to allow manual overrides.
                 Transaction.objects.create(
                     member=member,
                     amount=amount,
                     type='withdrawal',
-                    reference=ref
+                    reference=ref,
+                    timestamp=txn_timestamp
                 )
 
-                messages.success(request, f"Successfully processed {ref}. UGX {amount:,.0f} withdrawn from {member.first_name}'s account.")
+                messages.success(request, f"Successfully processed {ref}. UGX {amount:,.0f} withdrawn.")
                 return redirect('member_profile', member_id=member.id)
 
-        except (ValueError, TypeError, Decimal.InvalidOperation):
+        except (ValueError, TypeError, InvalidOperation):
             messages.error(request, "Invalid amount entered. Please enter a valid number.")
 
     return render(request, 'finance/withdraw_form.html', {
         'member': member,
-        'savings': savings
+        'savings': savings,
+        'backdate_allowed': backdate_allowed
     })
-
-
-
 # finance/views.py
 from django.shortcuts import render
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Q
@@ -1195,3 +1271,383 @@ def chart_of_accounts(request):
     
     context = {'accounts': accounts}
     return render(request, 'finance/reports/chart_of_accounts.html', context)
+
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.contrib import messages
+from .models import Transaction, TransactionReversal, SavingsAccount
+
+@login_required
+@transaction.atomic
+def reverse_transaction(request, transaction_id):
+    # 1. Permission Check
+    if not request.user.is_staff:
+        messages.error(request, "You do not have permission to reverse transactions.")
+        return redirect('dashboard')
+
+    # 2. Get Transaction with Row-Level Locking
+    txn = get_object_or_404(Transaction.objects.select_for_update(), id=transaction_id)
+    
+    if txn.is_reversed:
+        messages.warning(request, "This transaction has already been reversed.")
+        return redirect('member_profile', member_id=txn.member.id)
+
+    if request.method == "POST":
+        reason = request.POST.get('reason')
+        if not reason:
+            messages.error(request, "A reason for reversal is required.")
+            return render(request, 'finance/reverse_confirm.html', {'txn': txn})
+
+        # 3. Update Member Savings Balance
+        savings = get_object_or_404(SavingsAccount.objects.select_for_update(), member=txn.member)
+        
+        # Determine the contra-type based on the original transaction
+        # If they deposited, we must "withdraw" to fix balance, and vice-versa.
+        if txn.type == 'deposit':
+            savings.balance -= txn.amount
+            contra_type = 'withdrawal'
+        elif txn.type == 'withdrawal':
+            savings.balance += txn.amount
+            contra_type = 'deposit'
+        else:
+            # Handle other types like 'repayment' or 'penalty' if necessary
+            messages.error(request, f"Reversal for type {txn.type} not configured.")
+            return redirect('member_profile', member_id=txn.member.id)
+        
+        savings.save()
+
+        # 4. Mark original transaction as reversed
+        txn.is_reversed = True
+        txn.save()
+
+        # 5. Create the Contra-Entry (The "Correction" Transaction)
+        # Note: We removed 'notes' because it's not in your model.
+        # We use your existing choices ('deposit'/'withdrawal') for the type.
+        Transaction.objects.create(
+            member=txn.member,
+            amount=txn.amount,
+            type=contra_type, 
+            reference=f"REV-{txn.id}",
+            created_by=request.user
+        )
+
+        # 6. Create the Audit Log (The 'reason' is stored here)
+        TransactionReversal.objects.create(
+            original_transaction=txn,
+            reversed_by=request.user,
+            reason=reason
+        )
+
+        messages.success(request, f"Transaction reversed successfully. Balance updated.")
+        return redirect('member_profile', member_id=txn.member.id)
+
+    return render(request, 'finance/reverse_confirm.html', {'txn': txn})
+
+
+
+from django.shortcuts import render, get_object_or_404
+from .models import Loan, Transaction
+
+def loan_details(request, loan_id):
+    loan = get_object_or_404(Loan, id=loan_id)
+    # Fetch repayments specifically related to this loan if you have a way to link them
+    # For now, we'll assume you might want to see recent activity
+    repayments = Transaction.objects.filter(member=loan.member, type='repayment').order_by('-timestamp')[:10]
+    
+    context = {
+        'loan': loan,
+        'repayments': repayments,
+    }
+    return render(request, 'finance/loan_details.html', context)
+
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Sum
+
+# Updated imports - using GeneralLedger instead of LedgerEntry
+from .models import (
+    GeneralLedger, 
+    ChartOfAccount,
+    # AccountCategory is removed because we are using account_type
+)
+
+
+@login_required
+def accounting_dashboard(request):
+    """Simple dashboard"""
+    inflows = GeneralLedger.objects.filter(
+        account__code='1001', 
+        debit__gt=0
+    ).aggregate(total=Sum('debit'))['total'] or 0
+
+    outflows = GeneralLedger.objects.filter(
+        account__code='1001', 
+        credit__gt=0
+    ).aggregate(total=Sum('credit'))['total'] or 0
+
+    context = {
+        'total_inflow': inflows,
+        'total_outflow': outflows,
+        'net_cash': inflows - outflows,
+        'recent_entries': GeneralLedger.objects.select_related('account').order_by('-date')[:10]
+    }
+    return render(request, 'accounting/ledger.html', context)
+
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+from .models import GeneralLedger, ChartOfAccount
+
+@login_required
+def general_ledger(request):
+    """
+    Main General Ledger View
+    Synchronized with ledger.html to show all movements.
+    """
+    
+    # 1. Calculate Total Revenue (Inflows) 
+    # In accounting, Income is increased by Credits
+    total_inflow = GeneralLedger.objects.filter(
+        account__account_type='income'
+    ).aggregate(total=Sum('credit'))['total'] or 0
+
+    # 2. Calculate Total Expenses (Outflows)
+    # In accounting, Expenses are increased by Debits
+    total_outflow = GeneralLedger.objects.filter(
+        account__account_type='expense'
+    ).aggregate(total=Sum('debit'))['total'] or 0
+
+    # 3. Calculate Net Cash Position (Account 1001)
+    # For Assets (Cash), Balance = Debits - Credits
+    cash_entries = GeneralLedger.objects.filter(account__code='1001')
+    cash_in = cash_entries.aggregate(total=Sum('debit'))['total'] or 0
+    cash_out = cash_entries.aggregate(total=Sum('credit'))['total'] or 0
+    net_cash = cash_in - cash_out
+
+    # 4. Fetch all entries for the table
+    # We use 'transactions' to match the {% for tx in transactions %} in your HTML
+    # We exclude the '1001' account entries if you only want to see the "Category" side
+    # Or keep them all to see the full double-entry trail:
+    transactions = GeneralLedger.objects.select_related('account', 'transaction').order_by('-date')
+
+    context = {
+        'transactions': transactions, # This matches your template loop
+        'total_inflow': total_inflow,
+        'total_outflow': total_outflow,
+        'net_cash': net_cash,
+        'title': 'General Ledger'
+    }
+    
+    return render(request, 'accounting/ledger.html', context)
+
+
+@login_required
+def chart_of_accounts(request):
+    """List Chart of Accounts grouped by type"""
+    grouped_accounts = {}
+    for account_type, label in ChartOfAccount.ACCOUNT_TYPES:
+        grouped_accounts[label] = ChartOfAccount.objects.filter(
+            account_type=account_type, 
+            is_active=True
+        )
+
+    context = {
+        'grouped_accounts': grouped_accounts,
+        'title': 'Chart of Accounts'
+    }
+    return render(request, 'accounting/coa_list.html', context)
+
+from decimal import Decimal
+
+from decimal import Decimal
+from django.db import transaction
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import ChartOfAccount, GeneralLedger
+
+from decimal import Decimal
+from django.db import transaction
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import ChartOfAccount, GeneralLedger
+
+@login_required
+def record_expense(request):
+    if request.method == "POST":
+        account_id = request.POST.get('account')
+        amount_raw = request.POST.get('amount')
+        desc = request.POST.get('description')
+
+        try:
+            amount = Decimal(amount_raw)
+            expense_account = ChartOfAccount.objects.get(id=account_id)
+            cash_account = ChartOfAccount.objects.get(code='1001') 
+
+            with transaction.atomic():
+                # Entry 1: Debit the Expense
+                GeneralLedger.objects.create(
+                    account=expense_account,
+                    debit=amount,
+                    description=desc,
+                )
+                # Entry 2: Credit the Cash
+                GeneralLedger.objects.create(
+                    account=cash_account,
+                    credit=amount,
+                    description=f"Payment for: {desc}",
+                )
+
+            messages.success(request, f"Expense of UGX {amount:,.0f} recorded successfully.")
+            return redirect('general_ledger')
+
+        except ChartOfAccount.DoesNotExist:
+            messages.error(request, "Required account missing (Check if Cash Account 1001 exists).")
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
+
+    # Fixed: Filter matches the lowercase 'expense' in your ACCOUNT_TYPES
+    expense_accounts = ChartOfAccount.objects.filter(account_type='expense')
+    
+    return render(request, 'accounting/expense_form.html', {
+        'expense_accounts': expense_accounts
+    })
+
+from decimal import Decimal
+from django.db import transaction
+
+@login_required
+def record_inflow(request):
+    """Record Income with Double Entry (Debit Cash, Credit Income)"""
+    if request.method == "POST":
+        account_id = request.POST.get('account')
+        amount_raw = request.POST.get('amount')
+        desc = request.POST.get('description')
+
+        try:
+            amount = Decimal(amount_raw)
+            income_account = ChartOfAccount.objects.get(id=account_id)
+            # Ensure this code matches your 'Cash' account in the DB
+            cash_account = ChartOfAccount.objects.get(code='1001') 
+
+            with transaction.atomic():
+                # CREDIT the Income Account (Increases Income)
+                GeneralLedger.objects.create(
+                    account=income_account,
+                    credit=amount,
+                    debit=0,
+                    description=desc,
+                )
+                # DEBIT the Cash Account (Increases Asset)
+                GeneralLedger.objects.create(
+                    account=cash_account,
+                    debit=amount,
+                    credit=0,
+                    description=f"Received: {desc}",
+                )
+
+            messages.success(request, f"Inflow of UGX {amount:,.0f} recorded.")
+            return redirect('general_ledger')
+            
+        except ChartOfAccount.DoesNotExist:
+            messages.error(request, "Account error: Ensure Income and Cash accounts exist.")
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
+
+    context = {
+        # FIXED: Changed 'category' to 'account_type' and 'INCOME' to 'income'
+        'income_accounts': ChartOfAccount.objects.filter(account_type='income'),
+        'title': 'Record Inflow'
+    }
+    return render(request, 'accounting/inflow_form.html', context)
+@login_required
+def create_chart_of_account(request):
+    if request.method == "POST":
+        # Capture all fields from the POST request
+        code = request.POST.get('code')
+        name = request.POST.get('name')
+        account_type = request.POST.get('account_type') # This was the missing piece
+        parent_id = request.POST.get('parent')
+        description = request.POST.get('description')
+
+        # Basic Validation
+        if not account_type:
+            messages.error(request, "Please select an account type.")
+        elif ChartOfAccount.objects.filter(code=code).exists():
+            messages.error(request, f"Account code {code} already exists!")
+        else:
+            try:
+                parent = ChartOfAccount.objects.get(id=parent_id) if parent_id else None
+                
+                ChartOfAccount.objects.create(
+                    code=code,
+                    name=name,
+                    account_type=account_type, # Passing the string 'asset', 'income', etc.
+                    parent=parent,
+                    description=description
+                )
+                messages.success(request, f"Account '{name}' (Code: {code}) has been added.")
+                return redirect('general_ledger') # Or your COA list view
+            except Exception as e:
+                messages.error(request, f"Error creating account: {str(e)}")
+
+    context = {
+        'account_types': ChartOfAccount.ACCOUNT_TYPES,
+        'parent_accounts': ChartOfAccount.objects.filter(parent=None),
+        'title': 'Add New Ledger Account'
+    }
+    return render(request, 'accounting/coa_form.html', context)
+@login_required
+def edit_chart_of_account(request, pk):
+    account = get_object_or_404(ChartOfAccount, pk=pk)
+
+    if request.method == "POST":
+        code = request.POST.get('code')
+        name = request.POST.get('name')
+        selected_type = request.POST.get('category') # Match the HTML 'name'
+        description = request.POST.get('description')
+
+        if ChartOfAccount.objects.filter(code=code).exclude(pk=pk).exists():
+            messages.error(request, f"Account code {code} is already taken!")
+        else:
+            account.code = code
+            account.name = name
+            account.account_type = selected_type
+            account.description = description
+            account.save()
+            
+            messages.success(request, f"Account '{name}' updated successfully.")
+            return redirect('chart_of_accounts')
+
+    context = {
+        'account': account,
+        'account_types': ChartOfAccount.ACCOUNT_TYPES,
+        'title': f'Edit {account.name}'
+    }
+    return render(request, 'accounting/coa_edit_form.html', context)
+
+
+@login_required
+def accounts_hub(request):
+    # Get total counts and high-level balances
+    total_accounts = ChartOfAccount.objects.count()
+    total_inflow = GeneralLedger.objects.filter(account__account_type='income').aggregate(Sum('credit'))['credit__sum'] or 0
+    total_outflow = GeneralLedger.objects.filter(account__account_type='expense').aggregate(Sum('debit'))['debit__sum'] or 0
+    
+    # Recent activity for the mini-table
+    recent_transactions = GeneralLedger.objects.select_related('account').order_by('-date')[:5]
+
+    context = {
+        'total_accounts': total_accounts,
+        'total_inflow': total_inflow,
+        'total_outflow': total_outflow,
+        'recent_transactions': recent_transactions,
+        'net_profit': total_inflow - total_outflow,
+    }
+    return render(request, 'accounting/accounts_hub.html', context)

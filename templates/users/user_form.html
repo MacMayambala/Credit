@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8 col-xl-6">
+        <!-- Header Section -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div class="d-flex align-items-center">
+                <a href="{% url 'user_list' %}" class="btn btn-outline-secondary btn-sm rounded-circle me-3" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <div>
+                    <h2 class="fw-bold mb-0" style="color: var(--text-primary); letter-spacing: -1px;">
+                        {% if object %}Edit Staff Details{% else %}Register New Staff{% endif %}
+                    </h2>
+                    <p class="text-muted small mb-0">Manage system access and roles for MAC Tech Personnel</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="card-body p-4 p-md-5">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-uppercase" style="letter-spacing: 0.5px; color: var(--text-secondary);">
+                            {{ field.label }}
+                        </label>
+                        
+                        {% if field.errors %}
+                            {% for error in field.errors %}
+                                <div class="text-danger small fw-bold mb-1"><i class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <div class="{% if field.name == 'groups' %}p-3 rounded-3 border{% endif %}" 
+                             style="{% if field.name == 'groups' %}background-color: #f8fafc; border-color: var(--border-color) !important;{% endif %}">
+                            
+                            {% if field.name == 'groups' %}
+                                <p class="small text-muted mb-3"><i class="bi bi-shield-check me-1"></i> Assign one or more functional roles:</p>
+                                <div class="custom-group-select">
+                                    {{ field }}
+                                </div>
+                            {% elif field.name == 'is_staff' or field.field.widget.input_type == 'checkbox' %}
+                                <div class="form-check form-switch custom-switch">
+                                    {{ field }}
+                                    <label class="form-check-label ms-2 text-muted small">Grant Administrative Privileges</label>
+                                </div>
+                            {% else %}
+                                <input type="{{ field.field.widget.input_type|default:'text' }}" 
+                                       name="{{ field.name }}" 
+                                       class="form-control form-control-lg border-2 {% if field.errors %}is-invalid{% endif %}"
+                                       style="border-color: var(--border-color); font-size: 0.95rem; border-radius: 10px;"
+                                       value="{{ field.value|default:'' }}"
+                                       placeholder="Enter {{ field.label|lower }}..."
+                                       required>
+                            {% endif %}
+                        </div>
+                        
+                        {% if field.help_text %}
+                            <div class="form-text text-muted small">{{ field.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <div class="mt-5 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm border-0" 
+                                style="background-color: var(--brand-cobalt);">
+                            <i class="bi bi-check2-circle me-2"></i> 
+                            {% if object %}UPDATE STAFF RECORD{% else %}PROVISION ACCOUNT{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <p class="small text-muted">
+                <i class="bi bi-info-circle-fill me-1" style="color: var(--brand-cobalt);"></i> 
+                Credentials will be managed securely via the system's recovery protocol.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Styling for the Multiple Choice Select (Groups) */
+    .custom-group-select select {
+        height: 150px !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px !important;
+        background: #ffffff !important;
+        padding: 5px;
+        width: 100%;
+        outline: none;
+    }
+    
+    .custom-group-select select option {
+        padding: 10px 15px;
+        margin: 2px 0;
+        border-radius: 6px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        transition: all 0.2s;
+    }
+    
+    .custom-group-select select option:checked {
+        background: var(--brand-cobalt) linear-gradient(0deg, var(--brand-cobalt) 0%, var(--brand-cobalt) 100%) !important;
+        color: white !important;
+    }
+
+    /* Input Focus States */
+    .form-control:focus {
+        border-color: var(--brand-cobalt) !important;
+        box-shadow: 0 0 0 4px rgba(22, 50, 175, 0.1);
+    }
+
+    /* Toggle/Switch Styling */
+    .form-check-input:checked {
+        background-color: var(--brand-cobalt);
+        border-color: var(--brand-cobalt);
+    }
+</style>
+{% endblock %}

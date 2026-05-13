@@ -151,7 +151,7 @@
                     {% for loan in loans %}
                     <tr class="border-bottom">
                         <td class="ps-4">
-                            <div class="fw-bold text-dark">#LN-{{ loan.id }}</div>
+                            <div class="fw-bold text-dark">{{ loan.loan_reference }}</div>
                             <div class="text-muted" style="font-size: 0.65rem;">Applied: {{ loan.application_date|date:"d M Y" }}</div>
                         </td>
                         <td>

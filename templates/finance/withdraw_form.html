@@ -22,6 +22,8 @@
 
                     <form method="POST">
                         {% csrf_token %}
+                        
+                        <!-- Withdrawal Amount -->
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Amount to Withdraw (UGX)</label>
                             <div class="input-group input-group-lg">
@@ -30,9 +32,24 @@
                             </div>
                         </div>
 
+                        <!-- Back-date Section (Admin Only) -->
+                        {% if backdate_allowed %}
+                        <div class="card border-warning bg-warning bg-opacity-10 mb-3">
+                            <div class="card-body p-3">
+                                <label class="form-label small fw-bold text-warning-emphasis">
+                                    <i class="bi bi-calendar-event me-1"></i> Admin: Back-date Withdrawal
+                                </label>
+                                <input type="datetime-local" name="back_date" class="form-control border-warning-subtle">
+                                <div class="form-text text-muted small">
+                                    Leave blank to use current system time.
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <div class="mb-4">
                             <label class="form-label small fw-bold">Reference / Reason</label>
-                            <input type="text" name="reference" class="form-control" placeholder="e.g. Personal Use, Medical bill">
+                            <input type="text" name="notes" class="form-control" placeholder="e.g. Personal Use, Medical bill">
                         </div>
 
                         <div class="d-grid gap-2">

@@ -2,6 +2,7 @@ from django.db import models, transaction
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
+from django.conf import settings
 from members.models import Member
 
 class SavingsAccount(models.Model):
@@ -23,6 +24,26 @@ from django.utils import timezone
 from decimal import Decimal
 
 # In finance/models.py
+# finance/models.py
+
+class SystemSetting(models.Model):
+    """Global configuration for the SACCO system."""
+    enable_back_dating = models.BooleanField(
+        default=False, 
+        help_text="If enabled, Admins can manually set the date for deposits and repayments."
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "System Setting"
+        
+    def __str__(self):
+        return f"Back-Dating: {'Enabled' if self.enable_back_dating else 'Disabled'}"
+
+    @classmethod
+    def is_backdate_allowed(cls):
+        setting, _ = cls.objects.get_or_create(id=1)
+        return setting.enable_back_dating
 
 from django.db import models
 from django.utils import timezone
@@ -214,16 +235,44 @@ class Transaction(models.Model):
     T_TYPES = (
         ('deposit', 'Deposit'), 
         ('withdrawal', 'Withdrawal'),
-        ('disbursement', 'Loan Disbursement'), # Money added to savings from a loan
-        ('repayment', 'Loan Repayment'),       # Money taken from savings to pay loan
+        ('disbursement', 'Loan Disbursement'),
+        ('repayment', 'Loan Repayment'),
         ('penalty', 'Penalty')  
     )
     member = models.ForeignKey(Member, on_delete=models.CASCADE)
+    # ADD THIS FIELD:
+    loan = models.ForeignKey(Loan, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
+    
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    type = models.CharField(max_length=20, choices=T_TYPES)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    reference = models.CharField(max_length=100, blank=True, null=True)
+    type = models.CharField(max_length=20, choices=T_TYPES) # Keep as 'type'
+    timestamp = models.DateTimeField(default=timezone.now)
+    reference = models.CharField(max_length=100, blank=True, null=True) # Keep as 'reference'
+    is_reversed = models.BooleanField(default=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name='transactions_created'
+    )
 
+    
+class TransactionReversal(models.Model):
+    """Audit log for reversed transactions"""
+    original_transaction = models.OneToOneField(
+        Transaction, 
+        on_delete=models.CASCADE, 
+        related_name='reversal_details'
+    )
+    reversed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True
+    )
+    reversal_time = models.DateTimeField(auto_now_add=True)
+    reason = models.TextField()
+    
+    def __str__(self):
+        return f"Reversal of {self.original_transaction.reference}"
 # -------------------------
 # CORE UTILITY FUNCTIONS
 # -------------------------
@@ -586,6 +635,12 @@ class SMSTransaction(models.Model):
     def __str__(self):
         return f"{self.transaction_type} - UGX {self.amount}"
     
+from django.db import models
+from django.utils import timezone
+from django.conf import settings
+from decimal import Decimal
+
+# ==================== CHART OF ACCOUNTS ====================
 class ChartOfAccount(models.Model):
     ACCOUNT_TYPES = (
         ('asset', 'Asset'),
@@ -600,22 +655,115 @@ class ChartOfAccount(models.Model):
     account_type = models.CharField(max_length=20, choices=ACCOUNT_TYPES)
     parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=True)
+    description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['code']
+        verbose_name = "Chart of Account"
 
     def __str__(self):
         return f"{self.code} - {self.name} ({self.account_type})"
 
 
+
+# ==================== GENERAL LEDGER ====================
 class GeneralLedger(models.Model):
-    """For double-entry bookkeeping (Cash Flow & Financial Statements)"""
+    """Double-entry bookkeeping"""
     date = models.DateField(default=timezone.now)
-    account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT)
+    
+    account = models.ForeignKey(
+        'ChartOfAccount', 
+        on_delete=models.PROTECT,
+        related_name='ledger_entries'
+    )
+    
     description = models.CharField(max_length=200)
-    reference = models.CharField(max_length=100, blank=True)
+    reference = models.CharField(max_length=100, blank=True, null=True)
+    
     debit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     credit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    transaction = models.ForeignKey('Transaction', null=True, blank=True, on_delete=models.SET_NULL)
+    
+    transaction = models.ForeignKey(
+        'Transaction', 
+        null=True, 
+        blank=True, 
+        on_delete=models.SET_NULL,
+        related_name='ledger_entries'      # ← Explicit related_name
+    )
 
     class Meta:
         ordering = ['date', 'id']
+        verbose_name = "General Ledger"
+        verbose_name_plural = "General Ledger Entries"
+
+    def __str__(self):
+        return f"{self.date} - {self.account.name} | Dr:{self.debit} Cr:{self.credit}"
+
+############################################ACCOUNTING SIGNALS############################################
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+
+# 1. The Categories for your Chart of Accounts
+class AccountCategory(models.TextChoices):
+    ASSET = 'ASSET', 'Asset (Items you own / Loans issued)'
+    LIABILITY = 'LIABILITY', 'Liability (Member Savings / Debts)'
+    EQUITY = 'EQUITY', 'Equity (Capital / Retained Earnings)'
+    INCOME = 'INCOME', 'Income (Inflows from interest/fees)'
+    EXPENSE = 'EXPENSE', 'Expense (Outflows for operations)'
+
+# # 2. The Chart of Accounts (COA)
+# class ChartOfAccount(models.Model):
+#     code = models.CharField(max_length=10, unique=True)  # e.g., 1001, 2001, 4001
+#     name = models.CharField(max_length=100)              # e.g., Cash at Hand, Member Savings
+#     category = models.CharField(max_length=20, choices=AccountCategory.choices)
+#     description = models.TextField(blank=True, null=True)
+#     is_active = models.BooleanField(default=True)
+
+#     def __str__(self):
+#         return f"{self.code} - {self.name}"
+
+#     class Meta:
+#         ordering = ['code']
+
+# 3. The General Ledger (The Inflow/Outflow record)
+# class LedgerEntry(models.Model):
+#     # Link to your EXISTING Transaction model (use 'app_name.Transaction')
+#     # Change 'transactions' to whatever app your existing Transaction model is in
+#     member_transaction = models.ForeignKey(
+#         'finance.Transaction', 
+#         on_delete=models.SET_NULL, 
+#         null=True, 
+#         blank=True,
+#         related_name='ledger_entries'
+#     )
+    
+#     account = models.ForeignKey(ChartOfAccount, on_delete=models.CASCADE, related_name='entries')
+#     date = models.DateTimeField(default=timezone.now)
+    
+#     # Professional Accounting uses Debit/Credit columns
+#     debit = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+#     credit = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    
+#     description = models.CharField(max_length=255)
+#     reference = models.CharField(max_length=100, blank=True, null=True)
+    
+#     created_by = models.ForeignKey(
+#         settings.AUTH_USER_MODEL, 
+#         on_delete=models.SET_NULL, 
+#         null=True
+#     )
+
+#     def __str__(self):
+#         return f"{self.date.date()} - {self.account.name} ({self.debit}/{self.credit})"
+
+#     class Meta:
+#         verbose_name_plural = "Ledger Entries"
+#         ordering = ['-date']
+
+#     @property
+#     def amount_display(self):
+#         """Helper to show the absolute movement for simple lists"""
+#         return self.debit if self.debit > 0 else self.credit

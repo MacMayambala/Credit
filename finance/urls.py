@@ -25,5 +25,19 @@ urlpatterns = [
     path('reports/chart-of-accounts/', views.chart_of_accounts, name='chart_of_accounts'),
     path('reports/arrears/', views.arrears_report, name='arrears_report'),
     path('reports/portfolio-status/', views.portfolio_status_report, name='portfolio_status_report'),
+    path('transaction/<int:transaction_id>/reverse/', views.reverse_transaction, name='reverse_transaction'),
+    path('loann/<int:loan_id>/', views.loan_details, name='loan_details'),
+
+    ################################# Accounting API Endpoints #################################
+    path('ledger/', views.general_ledger, name='general_ledger'),
+    path('coa/', views.chart_of_accounts, name='chart_of_accounts'),
+    path('expense/add/', views.record_expense, name='record_expense'),
+    path('coa/edit/<int:pk>/', views.edit_chart_of_account, name='edit_coa'),
+    path('coa/add/', views.create_chart_of_account, name='create_coa'),
+    path('finance/', views.accounting_dashboard, name='finance_dashboard'),
+    path('expense/add/', views.record_expense, name='record_expense'),
+    path('ledger/inflow/', views.record_inflow, name='record_inflow'),
+    path('accounts/hub/', views.accounts_hub, name='accounts_hub'),
+
     
 ]

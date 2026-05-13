@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="d-flex align-items-center mb-4">
+            <a href="{% url 'general_ledger' %}" class="btn btn-light rounded-circle me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h2 class="fw-bold mb-0">Record Expense</h2>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <!-- Expense Account Selection -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary text-uppercase">Expense Category</label>
+                        <select name="account" class="form-select form-select-lg border-color" required>
+                            <option value="" selected disabled>Select Expense Account</option>
+                            {% for acc in expense_accounts %}
+                                <option value="{{ acc.id }}">{{ acc.code }} - {{ acc.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary text-uppercase">Amount (UGX)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-color fw-bold">UGX</span>
+                            <input type="number" name="amount" step="0.01" class="form-control form-control-lg border-color" placeholder="0.00" required>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-secondary text-uppercase">Description / Purpose</label>
+                        <textarea name="description" class="form-control border-color" rows="3" placeholder="e.g. Office rent for May 2026" required></textarea>
+                    </div>
+
+                    <!-- Submit -->
+                    <button type="submit" class="btn btn-danger w-100 py-3 fw-bold rounded-3 shadow-sm">
+                        <i class="bi bi-dash-circle me-2"></i> POST EXPENSE
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

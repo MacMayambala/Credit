@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="d-flex align-items-center mb-4">
+            <a href="{% url 'general_ledger' %}" class="btn btn-light rounded-circle me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h2 class="fw-bold mb-0">Record Inflow</h2>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary text-uppercase">Income Category</label>
+                        <select name="account" class="form-select form-select-lg" required>
+                            <option value="" selected disabled>Select Income Account</option>
+                            {% for acc in income_accounts %}
+                                <option value="{{ acc.id }}">{{ acc.code }} - {{ acc.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary text-uppercase">Amount (UGX)</label>
+                        <input type="number" name="amount" step="0.01" class="form-control form-control-lg fw-bold text-success" placeholder="0.00" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-secondary text-uppercase">Description</label>
+                        <textarea name="description" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 py-3 fw-bold rounded-3">
+                        <i class="bi bi-check-circle me-2"></i> POST INFLOW
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
