@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 
-import django
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,16 +22,30 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-0d5@6ixvxr&x(^v--tx0%$k=ps5oy8%kg6q36=3e1dnb1og0s^'
+from pathlib import Path
+import os
+from dotenv import load_dotenv
+from dotenv import load_dotenv
+load_dotenv()
+# Load environment variables
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-import os
-
+#DEBUG = os.getenv('DEBUG', 'False') == 'False'
+DEBUG =False
+#ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+#ALLOWED_HOSTS = ['https://credit.schooladmin.tech']
+# Database
+ALLOWED_HOSTS = ['credit.schooladmin.tech', 'schooladmin.tech', 'www.schooladmin.tech', 'localhost', '127.0.0.1']
+# Media files (you already had this)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 
 # Application definition
@@ -96,8 +110,13 @@ WSGI_APPLICATION = 'credit.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
+
     }
 }
 
@@ -135,22 +154,63 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
+import os
 
-STATIC_URL = 'static/'
-# settings.py
-# Redirect to your custom login page after logout
+# =========================
+# STATIC FILES
+# =========================
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# =========================
+# MEDIA FILES (if used)
+# =========================
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# =========================
+# PROXY / HTTPS SETTINGS
+# =========================
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+SECURE_SSL_REDIRECT = True
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# =========================
+# AUTH SETTINGS
+# =========================
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = '/auth/login/'
-
-# Optional: Allauth specific settings
 ACCOUNT_LOGOUT_REDIRECT_URL = '/auth/login/'
-# Skip the "Are you sure you want to log out?" intermediate page
-ACCOUNT_LOGOUT_ON_GET = False  # Set to False to keep the secure POST requirement
 
-# Optional: Better security & UX
 ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Forces logout when the browser is closed
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True 
+SESSION_COOKIE_AGE = 1800  # 30 minutes
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+#ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
+
+SESSION_COOKIE_AGE = 1800          # 30 minutes (in seconds)
+SESSION_SAVE_EVERY_REQUEST = True  # ← Very important!
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+# =========================
+# CSRF TRUST
+# =========================
+CSRF_TRUSTED_ORIGINS = [
+    "https://credit.schooladmin.tech",
+]
 
 
 from decouple import config
@@ -164,7 +224,7 @@ SMS_COST_PER_MESSAGE = config('SMS_COST_PER_MESSAGE', default=100, cast=int)
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 
 # Email Configuration using Decouple
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
