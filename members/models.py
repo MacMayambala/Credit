@@ -70,6 +70,21 @@ class Member(models.Model):
 
 from django.db import models
 from django.contrib.auth.models import User
+
+class Module(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    # Optional: help_text to describe what the module does
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+from django.db import models
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.db import models
+from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -78,6 +93,7 @@ class UserProfile(models.Model):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     otp_base32 = models.CharField(max_length=32, blank=True, null=True) # For Google Authenticator
     is_2fa_enabled = models.BooleanField(default=False)
+    allowed_modules = models.ManyToManyField(Module, blank=True)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
@@ -94,3 +110,7 @@ def save_user_profile(sender, instance, **kwargs):
         instance.profile.save()
     else:
         UserProfile.objects.get_or_create(user=instance)
+
+
+
+

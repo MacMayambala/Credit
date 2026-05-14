@@ -362,46 +362,37 @@ from django.views.decorators.http import require_http_methods
 from .models import UserProfile
 
 
+from finance.models import GlobalSettings
+
 @require_http_methods(["GET", "POST"])
 def user_login(request):
-
     if request.method == "POST":
-
         username = request.POST.get("username")
         password = request.POST.get("password")
 
-        user = authenticate(
-            request,
-            username=username,
-            password=password
-        )
+        user = authenticate(request, username=username, password=password)
 
         if user:
-
-            # LOGIN USER FIRST
             login(request, user)
+            
+            # Fetch the setting from the database
+            config = GlobalSettings.objects.first()
+            # Default to True if for some reason the config doesn't exist yet
+            is_2fa_required = config.enable_global_2fa if config else True
 
-            # Mark 2FA as NOT verified yet
-            request.session["2fa_verified"] = False
-
-            messages.success(
-                request,
-                "Credentials verified successfully."
-            )
-
-            return redirect("select_2fa_method")
-
+            if is_2fa_required:
+                request.session["2fa_verified"] = False
+                messages.success(request, "Credentials verified. Complete 2FA.")
+                return redirect("select_2fa_method")
+            else:
+                # SKIP 2FA
+                request.session["2fa_verified"] = True
+                messages.success(request, f"Welcome, {user.username}!")
+                return redirect("dashboard")
         else:
+            messages.error(request, "Invalid username or password.")
 
-            messages.error(
-                request,
-                "Invalid username or password."
-            )
-
-    return render(
-        request,
-        "account/login.html"
-    )
+    return render(request, "account/login.html")
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 
@@ -431,7 +422,12 @@ from django.conf import settings
 from django.utils import timezone
 
 from .models import UserProfile  # Adjust the import path if needed
-
+def get_masked_email(email):
+    try:
+        user_part, domain_part = email.split('@')
+        return f"{user_part[:4]}****@***{domain_part[-8:]}"
+    except:
+        return email
 
 class Select2FAMethodView(View):
     """Step 1: User selects 2FA method (Email or Authenticator App)"""
@@ -483,7 +479,8 @@ class Select2FAMethodView(View):
                     fail_silently=False,
                 )
 
-                messages.success(request, f'A verification code has been sent to {request.user.email}')
+                masked = get_masked_email(request.user.email)
+                messages.success(request, f'A verification code has been sent to {masked}')
 
             except Exception as e:
                 messages.error(request, 'Failed to send email. Please try again later.')
@@ -664,35 +661,32 @@ class UserListView(LoginRequiredMixin, AdminOnlyMixin, ListView):
     context_object_name = 'users'
     ordering = ['-date_joined']
 
+from .forms import StaffForm # Import your new form
+
 # 2. Create User View
 class UserCreateView(LoginRequiredMixin, AdminOnlyMixin, CreateView):
     model = User
+    form_class = StaffForm  # <--- Changed from fields to form_class
     template_name = 'users/user_form.html'
-    fields = ['username', 'first_name', 'last_name', 'email', 'groups']
     success_url = reverse_lazy('user_list')
 
     def form_valid(self, form):
-        # Create user without a password (they will set it via email reset)
-        user = form.save(commit=False)
-        user.is_active = True  # Or False if you want to force email activation
-        user.save()
-        form.save_m2m() # Important for groups!
-        
+        # The form.save() now handles user creation AND profile module assignment
+        user = form.save()
         messages.success(self.request, f"Staff account for {user.username} created successfully.")
-        logger.info(f"New user created by {self.request.user}: {user.username}")
         return super().form_valid(form)
 
 # 3. Update User View
 class UserUpdateView(LoginRequiredMixin, AdminOnlyMixin, UpdateView):
     model = User
+    form_class = StaffForm  # <--- Changed from fields to form_class
     template_name = 'users/user_form.html'
-    fields = ['username', 'first_name', 'last_name', 'email', 'groups', 'is_staff']
     success_url = reverse_lazy('user_list')
 
     def form_valid(self, form):
+        form.save() # This ensures modules are updated on the profile
         messages.success(self.request, "User details updated successfully.")
         return super().form_valid(form)
-
 # 4. Toggle Status (Block/Unblock)
 @user_passes_test(lambda u: u.is_staff)
 def toggle_user_status(request, user_id):

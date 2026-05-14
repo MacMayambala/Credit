@@ -1,5 +1,6 @@
 {% load static %}
 {% load humanize %}
+{% load email_extras %} {# Loads your custom masking filters #}
 
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -198,6 +199,7 @@
                 <div class="custom-toast alert d-flex align-items-center shadow" 
                      style="border-left-color: {% if message.tags == 'success' %}#10b981{% elif message.tags == 'error' or message.tags == 'danger' %}#ef4444{% else %}#1632af{% endif %};">
                     <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill text-success{% elif 'error' in message.tags or 'danger' in message.tags %}bi-x-circle-fill text-danger{% else %}bi-info-circle{% endif %} fs-4 me-3"></i>
+                    
                     <div>{{ message }}</div>
                     <button type="button" class="btn-close ms-auto" onclick="this.parentElement.remove()"></button>
                 </div>
@@ -205,7 +207,9 @@
         {% endif %}
     </div>
 
-    {% if user.is_authenticated %}
+    {# In your view or context processor, you should pass 'is_2fa_required' #}
+{% if user.is_authenticated %}
+    {% if not global_2fa_enabled or request.session.2fa_verified %}
     <!-- Sidebar -->
     <aside id="sidebar">
         <div class="sidebar-header">
@@ -214,7 +218,7 @@
                 <span>MAC Tech</span>
             </div>
             <div class="badge bg-primary bg-opacity-10 text-primary mt-2" style="font-size: 0.62rem; letter-spacing: 0.5px;">
-                CORE BANKING v2.0
+                CORE BANKING SOLUTION
             </div>
         </div>
 
@@ -223,15 +227,25 @@
             <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                 <i class="bi bi-grid-1x2-fill"></i> Dashboard
             </a>
+            
+            {# MODULAR: Customers #}
+            {% if 'Customers' in allowed_modules %}
             <a href="{% url 'customer_list' %}" class="nav-link {% if 'customer' in request.path %}active{% endif %}">
                 <i class="bi bi-people-fill"></i> Customers
             </a>
+            {% endif %}
 
             <div class="nav-section">Finance</div>
-            <a href="{% url 'accounts_hub' %}" class="nav-link">
+            
+            {# MODULAR: Accounts Hub #}
+            {% if 'Accounts' in allowed_modules %}
+            <a href="{% url 'accounts_hub' %}" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
                 <i class="bi bi-speedometer2"></i> Accounts Hub
             </a>
+            {% endif %}
 
+            {# MODULAR: Accounting #}
+            {% if 'Accounting' in allowed_modules %}
             <a class="nav-link justify-content-between" data-bs-toggle="collapse" href="#ledgerMenu" role="button">
                 <span class="d-flex align-items-center gap-3">
                     <i class="bi bi-journal-text"></i> Accounting
@@ -242,19 +256,28 @@
                 <a href="{% url 'general_ledger' %}" class="nav-link py-2 small">General Ledger</a>
                 <a href="{% url 'chart_of_accounts' %}" class="nav-link py-2 small">Chart of Accounts</a>
             </div>
+            {% endif %}
 
-            {% if user.is_superuser or "Credit Officers" in user.groups.all|first %}
-            <a href="{% url 'loan_list' %}" class="nav-link {% if 'loan' in request.path %}active{% endif %}">
-                <i class="bi bi-bank2"></i> Loans
-            </a>
+            {# MODULAR: Loans #}
+            {% if 'Loans' in allowed_modules %}
+                
+                <a href="{% url 'loan_list' %}" class="nav-link {% if 'loan' in request.path %}active{% endif %}">
+                    <i class="bi bi-bank2"></i> Loans
+                </a>
+                
             {% endif %}
 
             <div class="nav-section">Management</div>
+            
+            {# MODULAR: Staff #}
+            {% if 'Staff' in allowed_modules %}
             <a href="{% url 'user_list' %}" class="nav-link {% if 'staff' in request.path %}active{% endif %}">
                 <i class="bi bi-shield-lock"></i> Staff
             </a>
+            {% endif %}
 
-            {% if user.is_superuser %}
+            {# MODULAR: Reports #}
+            {% if 'Reports' in allowed_modules and user.is_superuser %}
             <a href="{% url 'reports_dashboard' %}" class="nav-link">
                 <i class="bi bi-graph-up"></i> Reports
             </a>
@@ -268,9 +291,11 @@
         </div>
     </aside>
     {% endif %}
-
-    <div id="main" {% if not user.is_authenticated %}style="margin-left:0"{% endif %}>
-        {% if user.is_authenticated %}
+{% endif %}
+    <div id="main" {% if not user.is_authenticated or not request.session.2fa_verified %}style="margin-left:0"{% endif %}>
+        
+        {# HIDE TOP NAVBAR IF NOT AUTHENTICATED OR 2FA NOT VERIFIED #}
+        {% if user.is_authenticated and request.session.2fa_verified %}
         <!-- Top Navbar -->
         <nav class="top-navbar d-flex justify-content-between align-items-center">
             <button id="sidebarToggle" class="btn btn-light border-0 d-lg-none">
@@ -294,19 +319,10 @@
                              width="42" height="42" class="rounded-circle shadow-sm border border-light" alt="Profile">
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="profileDropdown">
-                        <li class="px-3 py-2 border-bottom d-md-none">
-                            <div class="fw-bold small">{{ request.user.get_full_name|default:request.user.username }}</div>
-                        </li>
                         <li>
                             <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'setup_authenticator' %}">
                                 <i class="bi bi-shield-lock text-primary"></i>
                                 <span>2FA Settings</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#">
-                                <i class="bi bi-person"></i>
-                                <span>My Profile</span>
                             </a>
                         </li>
                         <li><hr class="dropdown-divider"></li>
@@ -320,25 +336,28 @@
                 </div>
             </div>
         </nav>
+        {% endif %}
 
-        <!-- Floating Stats Bar -->
+
+        {# IMPROVED: Use the show_stat_bar flag from context processor #}
+        {% if show_stat_bar %}
         <div class="stat-command-bar">
             <div class="glass-stats">
                 <div class="stat-item">
                     <div class="stat-label">Arrears</div>
-                    <div class="stat-val text-danger">{{ total_arrears|default:"0"|intcomma }}</div>
+                    <div class="stat-val text-danger">{{ total_arrears|intcomma }}</div>
                 </div>
                 <div class="stat-item border-start ps-5">
                     <div class="stat-label">Earnings</div>
-                    <div class="stat-val text-success">{{ total_profit|default:"0"|intcomma }}</div>
+                    <div class="stat-val text-success">{{ total_profit|intcomma }}</div>
                 </div>
                 <div class="stat-item border-start ps-5">
                     <div class="stat-label">Cash Position</div>
-                    <div class="stat-val text-primary">UGX {{ net_cash|default:"0"|intcomma }}</div>
+                    <div class="stat-val text-primary">UGX {{ net_cash|intcomma }}</div>
                 </div>
                 <div class="stat-item border-start ps-5">
                     <div class="stat-label">SMS Credits</div>
-                    <div class="stat-val text-info">{{ sms_credits|default:"0"|intcomma }}</div>
+                    <div class="stat-val text-info">{{ sms_credits|intcomma }}</div>
                 </div>
             </div>
         </div>
@@ -346,7 +365,7 @@
 
         <!-- Main Content -->
         <main class="py-4">
-            <div class="{% if user.is_authenticated %}content-card{% else %}container{% endif %}">
+            <div class="{% if user.is_authenticated and request.session.2fa_verified %}content-card{% else %}container{% endif %}">
                 {% block content %}{% endblock %}
             </div>
         </main>

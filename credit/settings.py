@@ -82,6 +82,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'finance.context_processors.sacco_stats',
+                'members.context_processors.module_permissions',
             ],
         },
     },

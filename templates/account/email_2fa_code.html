@@ -93,7 +93,7 @@
         <!-- Header -->
         <div class="header">
             <h1 class="logo">MAC TECHNOLOGIES</h1>
-            <p style="margin: 8px 0 0 0; opacity: 0.9;">SACCO • Core Banking</p>
+            <p style="margin: 8px 0 0 0; opacity: 0.9;">Core Banking</p>
         </div>
 
         <!-- Content -->
@@ -110,7 +110,7 @@
             <!-- OTP Box -->
             <div class="otp-box">
                 <p class="otp-code">{{ otp_code }}</p>
-                <p class="valid">This code expires in 10 minutes</p>
+                <p class="valid">This code expires in 2 minutes</p>
             </div>
 
             <p style="text-align: center; font-size: 15px; color: #475569;">
@@ -125,8 +125,8 @@
         </div>
 
         <!-- Footer -->
-        <div class="footer">
-            &copy; {{ now|date:"Y" }} MAC Technologies Ltd.<br>
+        <div class="footer" style="text-align: center; padding: 30px; color: #64748b; font-size: 13px;">
+            &copy; {{ current_year }} MAC Technologies Ltd.<br>
             Professional Financial Systems • Kampala, Uganda
         </div>
     </div>

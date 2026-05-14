@@ -205,7 +205,17 @@ class SystemSettingAdmin(admin.ModelAdmin):
         obj.id = 1
         super().save_model(request, obj, form, change)
 
+from django.contrib import admin
+from .models import GlobalSettings
 
+@admin.register(GlobalSettings)
+class GlobalSettingsAdmin(admin.ModelAdmin):
+    # Prevent users from adding more than one configuration
+    def has_add_permission(self, request):
+        return not GlobalSettings.objects.exists()
+        
+    def has_delete_permission(self, request, obj=None):
+        return False 
 @admin.register(Repayment)
 class RepaymentAdmin(admin.ModelAdmin):
     list_display = ('receipt_number', 'loan', 'amount_paid', 'date_paid')

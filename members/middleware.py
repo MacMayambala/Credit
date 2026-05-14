@@ -41,3 +41,40 @@ class LoginRequiredMiddleware:
 
         # 5. Otherwise, redirect to login
         return redirect(settings.LOGIN_URL)
+    
+
+
+from django import forms
+from django.contrib.auth.models import User
+from .models import UserProfile, Module
+
+class StaffRegistrationForm(forms.ModelForm):
+    # We manually add the modules field since it's not in the User model
+    allowed_modules = forms.ModelMultipleChoiceField(
+        queryset=Module.objects.all(),
+        required=False,
+        label="Feature Modules",
+        help_text="Hold Ctrl (Cmd) to select multiple"
+    )
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email', 'groups', 'is_staff']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # If we are editing an existing user, load their current modules
+        if self.instance and self.instance.pk:
+            try:
+                self.fields['allowed_modules'].initial = self.instance.profile.allowed_modules.all()
+            except UserProfile.DoesNotExist:
+                pass
+
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+        # This part handles saving the modules to the Profile
+        if commit:
+            # Ensure profile exists
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            profile.allowed_modules.set(self.cleaned_data['allowed_modules'])
+        return user

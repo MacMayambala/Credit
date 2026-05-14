@@ -44,6 +44,27 @@ class SystemSetting(models.Model):
     def is_backdate_allowed(cls):
         setting, _ = cls.objects.get_or_create(id=1)
         return setting.enable_back_dating
+from django.db import models
+
+class GlobalSettings(models.Model):
+    enable_global_2fa = models.BooleanField(
+        default=True, 
+        verbose_name="Enable Global 2FA",
+        help_text="If checked, all users must verify via 2FA. If unchecked, 2FA is skipped."
+    )
+
+    class Meta:
+        verbose_name = "Global Setting"
+        verbose_name_plural = "Global Settings"
+
+    def __str__(self):
+        return "System Configuration"
+
+    def save(self, *args, **kwargs):
+        # Ensures only one instance exists
+        if not self.pk and GlobalSettings.objects.exists():
+            return 
+        super().save(*args, **kwargs)
 
 from django.db import models
 from django.utils import timezone
