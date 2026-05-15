@@ -142,8 +142,8 @@ class Loan(models.Model):
     product_type = models.CharField(max_length=20, choices=PRODUCT_CHOICES, default='personal', verbose_name="Loan Product")
     purpose = models.TextField(blank=True, null=True, verbose_name="Loan Purpose / Description")
 
-    guarantor_1_name = models.CharField(max_length=255, verbose_name="Guarantor 1 Name")
-    guarantor_1_phone = models.CharField(max_length=20, verbose_name="Guarantor 1 Phone")
+    guarantor_1_name = models.CharField(max_length=255, null=True, blank=True, verbose_name="Guarantor 1 Name")
+    guarantor_1_phone = models.CharField(max_length=20, null=True, blank=True, verbose_name="Guarantor 1 Phone")
     guarantor_2_name = models.CharField(max_length=255, null=True, blank=True, verbose_name="Guarantor 2 Name")
     guarantor_2_phone = models.CharField(max_length=20, null=True, blank=True, verbose_name="Guarantor 2 Phone")
 
