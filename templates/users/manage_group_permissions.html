@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Group Rights Management | MAC Technologies{% endblock %}
+
+{% block content %}
+<!-- Top Header and Action bar -->
+<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+    <div>
+        <h2 class="h4 mb-1 fw-bold" style="color: var(--text-primary);">Group Rights Management</h2>
+        <p class="text-muted small mb-0">Configure role-based operational capabilities across modules.</p>
+    </div>
+    <span class="badge px-3 py-2 bg-primary bg-opacity-10 text-primary rounded-pill small fw-semibold">
+        Access Control Matrix
+    </span>
+</div>
+
+<div class="row g-4">
+    <!-- LEFT PANEL: Group Selection List -->
+    <div class="col-xl-3 col-lg-4">
+        <div class="card border shadow-sm rounded-4 overflow-hidden" style="background: var(--sidebar-bg); border-color: var(--border-color) !important;">
+            <div class="px-4 py-3 border-bottom font-monospace text-uppercase" style="background: var(--hover-bg); border-color: var(--border-color) !important; font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.05em;">
+                System Roles / Groups
+            </div>
+            <div class="list-group list-group-flush p-2">
+                {% for g in groups %}
+                    <a href="{% url 'manage_group_permissions_detail' g.id %}" 
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center border-0 rounded-3 px-3 py-2-5 mb-1 small fw-medium transition-all"
+                       style="
+                            {% if selected_group.id == g.id %}
+                                background: var(--brand-cobalt); color: white !important; box-shadow: 0 4px 12px rgba(22, 50, 175, 0.15);
+                            {% else %}
+                                background: transparent; color: var(--text-secondary);
+                            {% endif %}
+                       ">
+                        <span class="d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-lock{% if selected_group.id == g.id %}-fill{% endif %}"></i>
+                            {{ g.name }}
+                        </span>
+                        <span class="badge rounded-pill {% if selected_group.id == g.id %}bg-white text-dark bg-opacity-90{% else %}bg-secondary text-white bg-opacity-20{% endif %}" style="font-size: 0.65rem;">
+                            {{ g.permissions.count }} rights
+                        </span>
+                    </a>
+                {% empty %}
+                    <div class="text-center p-4 text-muted small">No structural system groups found.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: Rights Selection Checklist -->
+    <div class="col-xl-9 col-lg-8">
+        {% if selected_group %}
+            <form method="POST" action="{% url 'manage_group_permissions' %}" class="card border shadow-sm rounded-4 overflow-hidden" style="background: var(--sidebar-bg); border-color: var(--border-color) !important;">
+                {% csrf_token %}
+                <input type="hidden" name="group_id" value="{{ selected_group.id }}">
+                
+                <!-- Inner Sticky Header inside the workspace -->
+                <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-center" style="background: var(--hover-bg); border-color: var(--border-color) !important;">
+                    <div>
+                        <span class="text-muted small text-uppercase font-monospace d-block" style="font-size: 0.65rem; letter-spacing: 0.5px;">Editing Permissions For:</span>
+                        <h5 class="mb-0 fw-bold h6" style="color: var(--brand-cobalt);">{{ selected_group.name }}</h5>
+                    </div>
+                    <button type="submit" class="btn text-white btn-sm px-4 py-2 rounded-3 fw-semibold border-0 transition-all shadow-sm" style="background: var(--brand-cobalt-light);">
+                        <i class="bi bi-cloud-check-fill me-1"></i> Save Changes
+                    </button>
+                </div>
+                
+                <!-- Body Area containing Checkboxes Matrix -->
+                <div class="card-body p-4" style="max-height: 65vh; overflow-y: auto;">
+                    <div class="alert bg-primary bg-opacity-5 border border-primary border-opacity-10 rounded-3 p-3 mb-4 d-flex align-items-start gap-2">
+                        <i class="bi bi-info-circle text-primary fs-5 mt-0-5"></i>
+                        <p class="text-muted small mb-0" style="line-height: 1.5;">
+                            Toggling these application switches allows or restricts the <strong>{{ selected_group.name }}</strong> group from running specific processes inside the Core Banking engine.
+                        </p>
+                    </div>
+                    
+                    {% for model_heading, perms in grouped_permissions.items %}
+                        <div class="mb-4 pb-4 border-bottom" style="border-color: var(--border-color) !important;">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2" style="color: var(--text-primary); font-size: 0.9rem;">
+                                <span class="bg-primary rounded-circle" style="width: 6px; height: 6px; display: inline-block;"></span>
+                                {{ model_heading }}
+                            </h6>
+                            <div class="row g-3">
+                                {% for perm in perms %}
+                                    <div class="col-xl-6 col-md-12">
+                                        <div class="p-3 rounded-3 border d-flex align-items-center justify-content-between transition-all" style="background: var(--bg); border-color: var(--border-color) !important;">
+                                            <div style="max-width: 80%;">
+                                                <label class="form-check-label fw-semibold text-dark small d-block mb-0" for="perm-{{ perm.id }}" style="cursor: pointer;">
+                                                    {{ perm.name }}
+                                                </label>
+                                                <span class="text-muted font-monospace d-block mt-0-5" style="font-size: 0.65rem; letter-spacing: 0.3px;">
+                                                    {{ perm.content_type.app_label }}.{{ perm.codename }}
+                                                </span>
+                                            </div>
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input form-switch-cobalt" 
+                                                       type="checkbox" 
+                                                       name="permissions" 
+                                                       value="{{ perm.id }}" 
+                                                       id="perm-{{ perm.id }}"
+                                                       {% if perm in current_group_permissions %}checked{% endif %}
+                                                       style="cursor: pointer; transform: scale(1.15);">
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Sticky Bottom Action Footer -->
+                <div class="px-4 py-3 bg-light border-top text-end" style="background: var(--hover-bg) !important; border-color: var(--border-color) !important;">
+                    <button type="submit" class="btn text-white btn-sm px-4 py-2 rounded-3 fw-semibold border-0 transition-all shadow-sm" style="background: var(--brand-cobalt);">
+                        Save Group Rights
+                    </button>
+                </div>
+            </form>
+        {% else %}
+            <!-- Unselected Group State Dashboard View Placeholder -->
+            <div class="card text-center py-5 rounded-4 border shadow-sm" style="background: var(--sidebar-bg); border-color: var(--border-color) !important;">
+                <div class="card-body py-5 my-3">
+                    <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 64px; height: 64px;">
+                        <i class="bi bi-shield-check fs-2 text-primary"></i>
+                    </div>
+                    <h5 class="fw-bold h6 mb-1" style="color: var(--text-primary);">No Group Selected</h5>
+                    <p class="text-muted small mx-auto" style="max-width: 380px;">
+                        Please choose an administrative system role from the left configuration panel to view and adjust database tracking switches.
+                    </p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* Clean micro-interactions matching MAC Tech styles */
+    .transition-all { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    .py-2-5 { padding-top: 0.65rem !important; padding-bottom: 0.65rem !important; }
+    .mt-0-5 { margin-top: 0.15rem !important; }
+    .x-small { font-size: 0.68rem; }
+    
+    .list-group-item:hover:not(.active) {
+        background: var(--hover-bg) !important;
+        color: var(--brand-cobalt) !important;
+        transform: translateX(4px);
+    }
+    
+    /* Change standard Bootstrap switch color to match system Cobalt theme */
+    .form-switch .form-check-input:checked {
+        background-color: var(--brand-cobalt);
+        border-color: var(--brand-cobalt);
+    }
+</style>
+{% endblock %}

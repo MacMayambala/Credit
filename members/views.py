@@ -13,12 +13,18 @@ from django.db import transaction  # Import for data integrity
 from .models import Member
 from finance.models import SavingsAccount
 
+from django.shortcuts import render, redirect
+from django.db import transaction
+from django.contrib import messages
+from .models import Member  # Adjust import based on your app structure
+from finance.models import SavingsAccount  # Adjust import based on your app structure
+
 def register_member(request):
     if request.method == "POST":
         try:
             # Use atomic transaction to ensure both Member and Account are created together
             with transaction.atomic():
-                # 1. Create the Member
+                # 1. Create the Member (Generates KALxxxxx via its save() method)
                 new_member = Member.objects.create(
                     first_name=request.POST.get('first_name'),
                     last_name=request.POST.get('last_name'),
@@ -43,17 +49,16 @@ def register_member(request):
                 )
 
                 # 2. Create the Savings Account automatically
-                # We use the generated member_number to create a unique account number
+                # No account_number needed here anymore because it maps directly to member_number
                 SavingsAccount.objects.create(
                     member=new_member,
-                    balance=0.00,
-                    account_number=f"ACC-{new_member.member_number}"
+                    balance=0.00
                 )
 
             # 3. Success Feedback
             messages.success(
                 request, 
-                f"Registration Successful! Member ID: {new_member.member_number} | Account: ACC-{new_member.member_number}"
+                f"Registration Successful! Member ID / Account No: {new_member.member_number}"
             )
             return redirect('dashboard')
 
@@ -748,3 +753,105 @@ def setup_authenticator(request):
         "secret_key": user_profile.otp_base32,
     }
     return render(request, 'account/setup_authenticator.html', context)
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.models import Group
+from django.contrib.auth import get_user_model
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib import messages
+from django.db import transaction
+
+User = get_user_model()
+
+@staff_member_required
+def manage_user_rights(request):
+    """Dashboard to view users and update their assigned security groups/roles."""
+    if request.method == "POST":
+        user_id = request.POST.get('user_id')
+        # Get the list of group IDs selected for this user (defaults to empty list if none checked)
+        selected_group_ids = request.POST.getlist('groups')
+        
+        user_to_update = get_object_or_404(User, id=user_id)
+        
+        try:
+            with transaction.atomic():
+                # Clear existing groups and set the new ones
+                user_to_update.groups.set(selected_group_ids)
+                messages.success(request, f"Permissions updated successfully for {user_to_update.get_full_name() or user_to_update.username}.")
+        except Exception as e:
+            messages.error(request, f"Failed to update permissions: {str(e)}")
+            
+        return redirect('manage_user_rights')
+
+    # GET request: Fetch all active users and all available system groups
+    users = User.objects.filter(is_active=True).prefetch_related('groups').order_by('username')
+    groups = Group.objects.all().order_by('name')
+    
+    context = {
+        'users': users,
+        'groups': groups,
+    }
+    return render(request, 'users/manage_rights.html', context)
+
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib import messages
+from django.db import transaction
+
+@staff_member_required
+def manage_group_permissions(request, group_id=None):
+    """Dashboard to assign specific model permissions/rights to Groups."""
+    
+    # Fetch all groups so the user can switch between them
+    groups = Group.objects.all().order_by('name')
+    selected_group = None
+    
+    if group_id:
+        selected_group = get_object_or_404(Group, id=group_id)
+
+    if request.method == "POST":
+        target_group_id = request.POST.get('group_id')
+        selected_group = get_object_or_404(Group, id=target_group_id)
+        
+        # Get list of permission IDs checked in the form
+        permission_ids = request.POST.getlist('permissions')
+        
+        try:
+            with transaction.atomic():
+                # Sync the group's permissions directly
+                selected_group.permissions.set(permission_ids)
+                messages.success(request, f"Successfully updated rights for the '{selected_group.name}' group!")
+        except Exception as e:
+            messages.error(request, f"Error updating group rights: {str(e)}")
+            
+        return redirect('manage_group_permissions_detail', group_id=selected_group.id)
+
+    # Fetch permissions only for your custom functional apps to keep the UI clean
+    target_apps = ['finance', 'members']
+    available_permissions = Permission.objects.filter(
+        content_type__app_label__in=target_apps
+    ).select_related('content_type').order_by('content_type__app_label', 'content_type__model', 'codename')
+
+    # Structure permissions by app/model dynamically for beautiful template grouping
+    grouped_permissions = {}
+    for perm in available_permissions:
+        app_label = perm.content_type.app_label.upper()
+        model_name = perm.content_type.model.title()
+        group_key = f"{app_label} — {model_name}"
+        
+        if group_key not in grouped_permissions:
+            grouped_permissions[group_key] = []
+        grouped_permissions[group_key].append(perm)
+
+    context = {
+        'groups': groups,
+        'selected_group': selected_group,
+        'grouped_permissions': grouped_permissions,
+        'current_group_permissions': selected_group.permissions.all() if selected_group else []
+    }
+    return render(request, 'users/manage_group_permissions.html', context)

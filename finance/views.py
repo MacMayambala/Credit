@@ -1036,7 +1036,7 @@ from django.shortcuts import render
 from django.db.models import Sum, F
 from django.utils import timezone
 from decimal import Decimal
-from .models import Loan, Installment, User # Ensure User is imported if using for officers
+from .models import Loan, Installment # Ensure User is imported if using for officers
 
 from decimal import Decimal
 from django.shortcuts import render
@@ -1046,7 +1046,7 @@ from django.db.models.functions import Coalesce
 
 def portfolio_status_report(request):
     """
-    Comprehensive Portfolio Status Report - ZIROBWE SACCO Format
+    Comprehensive Portfolio Status Report - Format
     """
     today = timezone.now().date()
 

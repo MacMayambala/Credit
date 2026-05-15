@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}User Access Control | MAC Technologies{% endblock %}
+
+{% block content %}
+<!-- Top Header and Action Bar -->
+<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+    <div>
+        <h2 class="h4 mb-1 fw-bold" style="color: var(--text-primary);">User Access Control</h2>
+        <p class="text-muted small mb-0">Assign organizational security groups and roles directly to staff members.</p>
+    </div>
+    <span class="badge px-3 py-2 bg-secondary bg-opacity-10 text-secondary rounded-pill small fw-semibold">
+        Role-Based Access Control (RBAC)
+    </span>
+</div>
+
+<!-- Main Workspace Table -->
+<div class="card border shadow-sm rounded-4 overflow-hidden" style="background: var(--sidebar-bg); border-color: var(--border-color) !important;">
+    <div class="px-4 py-3 border-bottom font-monospace text-uppercase" style="background: var(--hover-bg); border-color: var(--border-color) !important; font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.05em;">
+        Staff Directory & Role Assignments
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light" style="--bs-table-bg: var(--hover-bg); color: var(--text-secondary);">
+                <tr>
+                    <th class="px-4 py-3 small fw-bold" style="width: 25%; border-color: var(--border-color);">User Details</th>
+                    <th class="px-4 py-3 small fw-bold" style="width: 55%; border-color: var(--border-color);">Assigned Roles / Groups</th>
+                    <th class="px-4 py-3 small fw-bold text-center" style="width: 20%; border-color: var(--border-color);">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                    <tr style="border-color: var(--border-color) !important;">
+                        <!-- User Identity Column -->
+                        <td class="px-4 py-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-bold text-white small shadow-sm" 
+                                     style="width: 38px; height: 38px; background: var(--brand-cobalt); font-size: 0.85rem;">
+                                    {{ user.username|slice:":2"|upper }}
+                                </div>
+                                <div>
+                                    <strong class="text-dark d-block" style="font-size: 0.92rem;">{{ user.get_full_name|default:user.username }}</strong>
+                                    <span class="text-muted small font-monospace" style="font-size: 0.75rem;">@{{ user.username }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <!-- Role Assignment Matrix Checkboxes -->
+                        <td class="px-4 py-3">
+                            <form id="form-user-{{ user.id }}" method="POST" action="{% url 'manage_user_rights' %}" class="d-flex flex-wrap gap-2 align-items-center mb-0">
+                                {% csrf_token %}
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                
+                                {% for group in groups %}
+                                    <div class="custom-role-badge">
+                                        <input class="btn-check" 
+                                               type="checkbox" 
+                                               name="groups" 
+                                               value="{{ group.id }}" 
+                                               id="group-{{ user.id }}-{{ group.id }}"
+                                               {% if group in user.groups.all %}checked{% endif %}>
+                                        <label class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 text-nowrap transition-all" 
+                                               for="group-{{ user.id }}-{{ group.id }}" 
+                                               style="font-size: 0.78rem; font-weight: 500;">
+                                            <i class="bi {% if group in user.groups.all %}bi-shield-check-fill{% else %}bi-shield{% endif %} me-1"></i>
+                                            {{ group.name }}
+                                        </label>
+                                    </div>
+                                {% empty %}
+                                    <span class="text-danger small bg-danger bg-opacity-10 border border-danger border-opacity-10 rounded-2 p-2">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> No system groups initialized. Configure them in Django Admin first.
+                                    </span>
+                                {% endfor %}
+                            </form>
+                        </td>
+                        
+                        <!-- Row Action Button -->
+                        <td class="px-4 py-3 text-center">
+                            <button type="submit" 
+                                    form="form-user-{{ user.id }}" 
+                                    class="btn text-white btn-sm px-4 py-2 rounded-3 fw-semibold border-0 shadow-sm transition-all shadow-hover" 
+                                    style="background: var(--brand-cobalt); font-size: 0.8rem;">
+                                <i class="bi bi-save2 me-1"></i> Save Rights
+                            </button>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center py-5 text-muted border-0">
+                            <div class="my-3">
+                                <i class="bi bi-people text-secondary display-6 bg-light rounded-circle p-3 mb-2 d-inline-block"></i>
+                                <h6 class="fw-bold mt-2 text-dark">No Active Personnel Found</h6>
+                                <p class="text-muted small mb-0">There are currently no active user profiles registered to modify rights metrics.</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    /* Scope internal transitions and responsive behaviors */
+    .transition-all { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    
+    /* Turn unchecked checkboxes into subtle outlines, and checked items into bright Cobalt identifiers */
+    .custom-role-badge .btn-check + .btn-outline-secondary {
+        border-color: var(--border-color);
+        background: transparent;
+        color: var(--text-secondary);
+    }
+    
+    .custom-role-badge .btn-check + .btn-outline-secondary:hover {
+        background: var(--hover-bg);
+        border-color: var(--text-secondary);
+        color: var(--text-primary);
+    }
+
+    .custom-role-badge .btn-check:checked + .btn-outline-secondary {
+        background-color: var(--brand-cobalt) !important;
+        border-color: var(--brand-cobalt) !important;
+        color: white !important;
+        box-shadow: 0 4px 10px rgba(22, 50, 175, 0.15);
+    }
+
+    /* Change icons inside the button pills dynamically upon selection change via CSS */
+    .custom-role-badge .btn-check:checked + .btn-outline-secondary i::before {
+        content: "\f533"; /* bootstrap-icons code for shield-check-fill */
+    }
+
+    /* Primary save button pop physics */
+    .shadow-hover:hover {
+        background: var(--brand-cobalt-light) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 5px 12px rgba(22, 50, 175, 0.2) !important;
+    }
+</style>
+{% endblock %}

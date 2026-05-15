@@ -55,5 +55,8 @@ urlpatterns = [
         name='verify_2fa'
     ),
     path('setup-authenticator/', views.setup_authenticator, name='setup_authenticator'),
+    path('management/rights/', views.manage_user_rights, name='manage_user_rights'),
+    path('management/group-rights/', views.manage_group_permissions, name='manage_group_permissions'),
+    path('management/group-rights/<int:group_id>/', views.manage_group_permissions, name='manage_group_permissions_detail'),
     
 ]
