@@ -232,7 +232,6 @@
                                         </a>
                                     </div>
                                 {% else %}
-                                    <!-- Use loan_reference for URL if defined in your urls.py -->
                                     <a href="{% url 'loan_detail' loan.id %}" class="btn btn-outline-ledger btn-sm px-4 rounded-2">
                                         VIEW LEDGER <i class="bi bi-chevron-right ms-1"></i>
                                     </a>
@@ -285,14 +284,14 @@
                                 <td class="text-center">
                                     <span class="badge rounded-pill px-3 py-2 extra-small fw-bold 
                                         {% if t.is_reversed %}bg-danger text-white
-                                        {% elif t.type == 'deposit' %}bg-success-subtle text-success
+                                        {% elif t.type == 'deposit' or t.type == 'disbursement' %}bg-success-subtle text-success
                                         {% else %}bg-danger-subtle text-danger{% endif %}">
                                         {{ t.get_type_display|upper }}{% if t.is_reversed %} (REVERSED){% endif %}
                                     </span>
                                 </td>
                                 <td class="text-end">
-                                    <span class="fw-bold {% if t.type == 'deposit' %}text-success{% else %}text-danger{% endif %}">
-                                        {% if t.type == 'deposit' %}+{% else %}-{% endif %} {{ t.amount|floatformat:0|intcomma }}
+                                    <span class="fw-bold {% if t.type == 'deposit' or t.type == 'disbursement' %}text-success{% else %}text-danger{% endif %}">
+                                        {% if t.type == 'deposit' or t.type == 'disbursement' %}+{% else %}-{% endif %} {{ t.amount|floatformat:0|intcomma }}
                                     </span>
                                 </td>
                                 <td class="text-center pe-4 d-print-none">

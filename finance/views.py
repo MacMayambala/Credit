@@ -155,19 +155,87 @@ def dashboard(request):
 
 
 
-def approve_loan(request, loan_id):
-    """
-    Approves a loan and generates the repayment schedule.
-    """
-    loan = get_object_or_404(Loan, id=loan_id)
-    if loan.status == 'pending':
-        loan.status = 'approved'
-        loan.is_active = True
-        loan.save()
-        generate_schedule(loan)
-        messages.success(request, f"Loan for {loan.member.first_name} approved successfully.")
-    return redirect('dashboard')
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.utils import timezone
+from decimal import Decimal
 
+@transaction.atomic
+def approve_loan(request, pk, action):
+    """
+    Handles approval/disbursement or rejection of a loan safely.
+    """
+    # 1. Fetch loan and lock it for the duration of this transaction
+    loan = get_object_or_404(Loan.objects.select_for_update(), pk=pk)
+    
+    if action == 'approve':
+        # CRITICAL: Prevent double disbursement
+        if loan.status == 'approved' or loan.is_active:
+            messages.info(request, "This loan has already been approved and disbursed.")
+            return redirect('loan_detail', pk=loan.id)
+
+        try:
+            # 2. Fetch and lock the member's savings account to prevent race conditions
+            # This assumes your Member model has a OneToOne or ForeignKey to Savings
+            # Adjust 'savings' if your related_name is different
+            savings = loan.member.savings  
+            
+            # Lock the savings row for update
+            savings = type(savings).objects.select_for_update().get(id=savings.id)
+
+            principal = Decimal(str(loan.principal_amount))
+
+            # 3. Update Loan Status
+            loan.status = 'approved'
+            loan.is_active = True
+            if not loan.disbursed_date:
+                loan.disbursed_date = timezone.now().date()
+            loan.save()
+
+            # 4. Generate Repayment Schedule
+            generate_schedule(loan)
+
+            # 5. Credit the member's savings account
+            savings.balance += principal
+            savings.save()
+
+            # 6. Record disbursement transaction with UNIQUE REFERENCE
+            ref = generate_transaction_ref("DSB")
+            Transaction.objects.create(
+                member=loan.member,
+                amount=principal,
+                type='disbursement',  # Ensure 'disbursement' or 'deposit' matches your choices
+                reference=ref
+            )
+
+            messages.success(
+                request, 
+                f"Loan {loan.id} approved successfully. "
+                f"Reference {ref}: UGX {principal:,.0f} disbursed to savings."
+            )
+
+        except AttributeError:
+            messages.error(request, "Approval failed: Member has no active savings account.")
+            return redirect('loan_detail', pk=loan.id)
+
+        except Exception as e:
+            # Because of @transaction.atomic, if anything fails here, 
+            # the loan status won't change and money won't be credited.
+            messages.error(request, f"Error during approval and disbursement: {str(e)}")
+            return redirect('loan_detail', pk=loan.id)
+
+    elif action == 'reject':
+        if loan.status != 'pending':
+            messages.error(request, "Only pending loans can be rejected.")
+            return redirect('loan_detail', pk=loan.id)
+            
+        loan.status = 'rejected'
+        loan.is_active = False
+        loan.save()
+        messages.warning(request, f"Loan {loan.id} has been rejected.")
+
+    return redirect('loan_detail', pk=loan.id)
 
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from django.shortcuts import render, get_object_or_404, redirect
