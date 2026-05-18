@@ -6,7 +6,6 @@
         <h2 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -1px;">User Management</h2>
         <p class="text-muted small mb-0">Manage staff access levels and system permissions</p>
     </div>
-    <!-- Clean, grouped administrative control panel -->
     <div class="col-md-auto mt-3 mt-md-0 d-flex gap-2 flex-wrap">
         <div class="btn-group shadow-sm rounded-3 overflow-hidden border" style="border-color: var(--border-color) !important;">
             <a href="{% url 'manage_user_rights' %}" class="btn btn-white px-3 py-2 small fw-semibold" style="font-size: 0.85rem;">
@@ -14,6 +13,9 @@
             </a>
             <a href="{% url 'manage_group_permissions' %}" class="btn btn-white px-3 py-2 small fw-semibold" style="font-size: 0.85rem;">
                 <i class="bi bi-sliders me-1 text-secondary"></i> Configure Group Rights
+            </a>
+            <a href="{% url 'auto_repayment_dashboard' %}" class="btn btn-white px-3 py-2 small fw-semibold" style="font-size: 0.85rem;">
+                <i class="bi bi-clock-history me-1 text-info"></i> Auto-Repayments Engine
             </a>
         </div>
 
@@ -24,7 +26,7 @@
     </div>
 </div>
 
-<div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background: var(--sidebar-bg);">
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background: var(--sidebar-bg); border: 1px solid var(--border-color) !important;">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead style="background-color: var(--hover-bg); border-bottom: 2px solid var(--border-color);">
@@ -46,7 +48,7 @@
                                 {{ user.username|slice:":1"|upper }}
                             </div>
                             <div>
-                                <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="fw-bold" style="font-size: 0.95rem; color: var(--text-primary);">{{ user.get_full_name|default:user.username }}</div>
                                 <div class="text-muted" style="font-size: 0.82rem;">{{ user.email }}</div>
                             </div>
                         </div>
@@ -77,7 +79,7 @@
                     </td>
                     <td class="text-muted small" style="font-size: 0.82rem;">
                         {% if user.last_login %}
-                            <span class="text-dark fw-medium">{{ user.last_login|date:"M d, Y" }}</span><br>
+                            <span class="fw-medium" style="color: var(--text-primary);">{{ user.last_login|date:"M d, Y" }}</span><br>
                             <span class="text-muted font-monospace">{{ user.last_login|time:"H:i" }}</span>
                         {% else %}
                             <span class="fst-italic text-secondary">Never Logged In</span>
@@ -114,15 +116,15 @@
     .transition-all { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
     .table-hover tbody tr:hover { background-color: var(--hover-bg) !important; }
     
-    .btn-white { background-color: #fff; border: none; color: var(--text-secondary); }
+    .btn-white { background-color: var(--card-bg); border: none; color: var(--text-secondary); }
     .btn-white:hover { background-color: var(--hover-bg); color: var(--text-primary); }
     .btn-white:not(:last-child) { border-right: 1px solid var(--border-color) !important; }
 
     .hover-danger:hover i { color: #ef4444 !important; }
-    .hover-danger:hover { background-color: #fff1f2 !important; }
+    .hover-danger:hover { background-color: rgba(239, 68, 68, 0.05) !important; }
     
     .hover-success:hover i { color: #10b981 !important; }
-    .hover-success:hover { background-color: #f0fdf4 !important; }
+    .hover-success:hover { background-color: rgba(16, 185, 129, 0.05) !important; }
 
     .shadow-hover:hover {
         background-color: var(--brand-cobalt-light) !important;

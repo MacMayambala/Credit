@@ -2,7 +2,6 @@
 {% load humanize %}
 
 {% block content %}
-<!-- Professional Typography Import -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
@@ -76,7 +75,6 @@
     }
     
     .id-badge {
-        
         font-size: 0.75rem;
         background: #eff6ff;
         color: var(--ms-primary);
@@ -113,30 +111,47 @@
         border-radius: 10px;
         box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
     }
+
+    /* Bulk Upload Button Interactivity */
+    .btn-outline-primary-custom {
+        color: var(--ms-primary);
+        background-color: transparent;
+        border: 1px solid var(--ms-primary);
+        font-weight: 600;
+        font-size: 0.875rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+    }
+    .btn-outline-primary-custom:hover {
+        background-color: var(--ms-primary);
+        color: #ffffff;
+        box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.15);
+    }
 </style>
 
 <div class="container-fluid py-5 px-lg-5">
-    <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-end mb-4">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-end gap-3 mb-4">
         <div>
             <h4 class="fw-bold text-dark mb-1">Client Registry</h4>
             <ul class="nav nav-tabs border-0 custom-main-tabs">
                 <li class="nav-item">
-                     <a class="nav-link text-uppercase" href="#">All Members</a>
+                     <a class="nav-link text-uppercase active" href="#">All Customers</a>
                 </li>
             </ul>
         </div>
         
-        <div class="pb-2">
-            <a href="{% url 'register_member' %}" class="btn btn-primary d-flex align-items-center gap-2">
-                <i class="bi bi-person-plus-fill"></i> REGISTER NEW MEMBER
+        <div class="pb-2 d-flex flex-wrap align-items-center gap-2">
+            <a href="{% url 'import_dashboard' %}" class="btn btn-outline-primary-custom d-inline-flex align-items-center gap-2">
+                <i class="bi bi-cloud-arrow-up-fill"></i> BULK UPLOAD DATA
+            </a>
+            <a href="{% url 'register_member' %}" class="btn btn-primary d-inline-flex align-items-center gap-2">
+                <i class="bi bi-person-plus-fill"></i> REGISTER NEW CUSTOMER
             </a>
         </div>
     </div>
 
-    <!-- Registry Card -->
     <div class="card ms-registry-card">
-        <!-- Utility Bar -->
         <div class="card-header bg-white border-bottom py-3 px-4">
             <div class="row align-items-center">
                 <div class="col-md-5">
@@ -156,13 +171,11 @@
             </div>
         </div>
 
-        <!-- Member List -->
         <div class="card-body p-0">
             <div class="list-group list-group-flush" id="memberList">
                 {% for member in members %}
                 <div class="list-group-item px-4 py-4 member-row border-bottom">
                     <div class="row align-items-center">
-                        <!-- Identity Column -->
                         <div class="col-md-4">
                             <div class="d-flex align-items-center">
                                 {% if member.photo %}
@@ -183,7 +196,6 @@
                             </div>
                         </div>
 
-                        <!-- Demographics -->
                         <div class="col-md-3">
                             <div class="d-flex flex-column">
                                 <span class="text-dark fw-600 mb-1" style="font-size: 0.9rem;">{{ member.gender|default:"Male" }}</span>
@@ -191,7 +203,6 @@
                             </div>
                         </div>
 
-                        <!-- Contacts -->
                         <div class="col-md-5">
                             <div class="row g-0">
                                 <div class="col-6">
@@ -217,7 +228,6 @@
             </div>
         </div>
 
-        <!-- Pagination -->
         <div class="card-footer bg-white py-4 px-4 border-top">
             <div class="d-flex justify-content-between align-items-center">
                 <div class="text-muted uppercase-tracking extra-small opacity-75">

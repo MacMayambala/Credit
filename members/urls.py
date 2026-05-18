@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from django.urls import path
 from django.contrib.auth import views as auth_views
+from .views import TemplateDownloadView, MigrationPreviewView, MigrationImportExecutionView
 
 urlpatterns = [
     path('register/', views.register_member, name='register_member'),
@@ -58,5 +59,9 @@ urlpatterns = [
     path('management/rights/', views.manage_user_rights, name='manage_user_rights'),
     path('management/group-rights/', views.manage_group_permissions, name='manage_group_permissions'),
     path('management/group-rights/<int:group_id>/', views.manage_group_permissions, name='manage_group_permissions_detail'),
+    path('template/download/', TemplateDownloadView.as_view(), name='template_download'),
+    path('import/preview/', MigrationPreviewView.as_view(), name='import_preview'),
+    path('import/execute/', MigrationImportExecutionView.as_view(), name='import_execute'),
+    path('import/dashboard/', views.MigrationDashboardView.as_view(), name='import_dashboard'),
     
 ]

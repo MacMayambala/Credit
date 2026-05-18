@@ -855,3 +855,68 @@ def manage_group_permissions(request, group_id=None):
         'current_group_permissions': selected_group.permissions.all() if selected_group else []
     }
     return render(request, 'users/manage_group_permissions.html', context)
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status, permissions
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.http import HttpResponse
+from .utils import generate_migration_template_http
+from .services import DataMigrationService
+
+class TemplateDownloadView(APIView):
+    """API Endpoint to retrieve the formatted Excel template."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+        return generate_migration_template_http()
+
+
+class MigrationPreviewView(APIView):
+    """
+    Parses the upload data structures for a frontend validation preview
+    without committing data to the database.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, *args, **kwargs) -> Response:
+        file_obj = request.data.get('file')
+        if not file_obj:
+            return Response({"error": "No file submitted under payload key 'file'."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        preview_data = DataMigrationService.preview_file(file_obj)
+        if preview_data["errors"]:
+            return Response(preview_data, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+            
+        return Response(preview_data, status=status.HTTP_200_OK)
+
+
+class MigrationImportExecutionView(APIView):
+    """Executes the row-by-row production import process."""
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, *args, **kwargs) -> Response:
+        file_obj = request.data.get('file')
+        if not file_obj:
+            return Response({"error": "No file submitted under payload key 'file'."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Run row-by-row transactional data migration
+        import_report = DataMigrationService.execute_import(file_obj, request.user)
+        
+        if not import_report["success"]:
+            return Response(import_report, status=status.HTTP_400_BAD_REQUEST)
+            
+        return Response(import_report, status=status.HTTP_201_CREATED)
+
+
+
+from django.views.generic import TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+class MigrationDashboardView(LoginRequiredMixin, TemplateView):
+    """Renders the HTML workspace interface for data migration operations."""
+    template_name = "members/migration_dashboard.html"

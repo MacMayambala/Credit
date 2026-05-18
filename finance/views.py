@@ -1719,3 +1719,49 @@ def accounts_hub(request):
         'net_profit': total_inflow - total_outflow,
     }
     return render(request, 'accounting/accounts_hub.html', context)
+
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django_celery_beat.models import PeriodicTask
+from finance.models import AutoRepaymentSetting, AutoRepaymentLog, DailyRepaymentSummary
+from finance.forms import AutoRepaymentSettingForm
+from finance.services import LoanRepaymentEngineService
+
+@login_required
+def auto_repayment_dashboard(request):
+    config, _ = AutoRepaymentSetting.objects.get_or_create(id=1)
+    
+    if request.method == 'POST':
+        if 'save_settings' in request.POST:
+            form = AutoRepaymentSettingForm(request.POST, instance=config)
+            if form.is_valid():
+                form.instance.updated_by = request.user
+                form.save()
+                messages.success(request, "Scheduler settings synchronized successfully.")
+                return redirect('auto_repayment_dashboard')
+        
+        elif 'manual_execution_trigger' in request.POST:
+            # Trigger manual overrides directly inline safely
+            res = LoanRepaymentEngineService.execute_bulk_auto_repayments()
+            messages.success(request, f"Manual repayment routine complete. Summary output parsed.")
+            return redirect('auto_repayment_dashboard')
+
+    else:
+        form = AutoRepaymentSettingForm(instance=config)
+
+    # Fetch status tracking data for dashboards
+    celery_task = PeriodicTask.objects.filter(task='finance.tasks.run_automated_loan_repayments').first()
+    logs = AutoRepaymentLog.objects.all()[:15]
+    summaries = DailyRepaymentSummary.objects.all()[:7]
+
+    context = {
+        'form': form,
+        'config': config,
+        'celery_task': celery_task,
+        'logs': logs,
+        'summaries': summaries
+    }
+    return render(request, 'finance/auto_repayment_dashboard.html', context)

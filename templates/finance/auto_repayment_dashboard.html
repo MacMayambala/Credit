@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="p-1">
+    
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center pb-4 mb-4 border-bottom" style="border-color: var(--border-color) !important;">
+        <div class="mb-3 mb-sm-0">
+            <h4 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -0.02em;">Automated Loan Repayment Dashboard</h4>
+            <p class="mb-0 small" style="color: var(--text-secondary);">
+                <i class="bi bi-shield-check me-1" style="color: var(--brand-cobalt);"></i> Manage dynamic periodic schedules and monitor collection ledgers.
+            </p>
+        </div>
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" name="manual_execution_trigger" class="btn fw-bold shadow-sm d-flex align-items-center gap-2 px-4 py-2 border-0 rounded-3 text-white" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); transition: transform 0.2s ease;">
+                <i class="bi bi-lightning-charge-fill animate-flash"></i> FORCE RUN SYSTEM REPAYMENTS NOW
+            </button>
+        </form>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-4 col-lg-5">
+            <div class="card border-0 shadow-sm overflow-hidden" style="background: var(--card-bg); border: 1px solid var(--border-color) !important; border-radius: 16px;">
+                <div class="p-4 border-bottom" style="border-color: var(--border-color) !important; background: var(--hover-bg);">
+                    <h6 class="fw-bold mb-0 d-flex align-items-center" style="color: var(--text-primary);">
+                        <i class="bi bi-sliders2-vertical me-2" style="color: var(--brand-cobalt);"></i>Scheduler Controls
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="p-3 rounded-3 mb-4 d-flex align-items-center justify-content-between border" style="background: var(--bg); border-color: var(--border-color) !important;">
+                            <label class="form-check-label fw-bold small" for="id_is_enabled" style="color: var(--text-primary);">
+                                <i class="bi bi-power me-1 {% if form.is_enabled.value %}text-success{% else %}text-danger{% endif %}"></i> Engine Execution State
+                            </label>
+                            <div class="form-check form-switch p-0 m-0 d-flex align-items-center">
+                                <input class="form-check-input m-0 float-none" type="checkbox" name="is_enabled" id="id_is_enabled" style="transform: scale(1.25); cursor: pointer;" {% if form.is_enabled.value %}checked{% endif %}>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small text-uppercase fw-bold" style="color: var(--text-secondary); letter-spacing: 0.5px;">Daily Reference Time Mark</label>
+                            <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                                <span class="input-group-text border-end-0" style="background: var(--card-bg); border-color: var(--border-color); color: var(--text-secondary);"><i class="bi bi-clock"></i></span>
+                                {{ form.execution_time }}
+                            </div>
+                            <span class="text-muted extra-small d-block mt-1">Determines execution minute mark under hourly intervals.</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small text-uppercase fw-bold" style="color: var(--text-secondary); letter-spacing: 0.5px;">Billing Recurrence Interval</label>
+                            <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                                <span class="input-group-text border-end-0" style="background: var(--card-bg); border-color: var(--border-color); color: var(--text-secondary);"><i class="bi bi-calendar-event"></i></span>
+                                {{ form.frequency }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label small text-uppercase fw-bold" style="color: var(--text-secondary); letter-spacing: 0.5px;">Overdue Grace Margins (Days)</label>
+                            <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                                <span class="input-group-text border-end-0" style="background: var(--card-bg); border-color: var(--border-color); color: var(--text-secondary);"><i class="bi bi-exclamation-octagon"></i></span>
+                                {{ form.grace_period_days }}
+                            </div>
+                        </div>
+                        
+                        <button type="submit" name="save_settings" class="btn w-100 fw-bold py-2.5 shadow-sm rounded-3 d-flex align-items-center justify-content-center gap-2 text-white border-0" style="background: var(--brand-cobalt); transition: background-color 0.2s ease;">
+                            <i class="bi bi-check-circle-fill"></i> COMMIT ENGINE CHANGES
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="card-footer p-4 border-0 text-white" style="background: var(--brand-cobalt);">
+                    <div class="d-flex justify-content-between align-items-center mb-2 small" style="opacity: 0.85;">
+                        <span><i class="bi bi-calendar2-check me-1"></i>Last Beat Signal:</span>
+                        <span class="fw-semibold font-monospace">{{ celery_task.last_run_at|default:"No Record Logged" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span style="opacity: 0.85;"><i class="bi bi-activity me-1"></i>Runtime Core Health:</span>
+                        <span class="badge px-3 py-2 fw-bold text-uppercase border shadow-sm" style="background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.25) !important;">
+                            {% if config.is_enabled %}<i class="bi bi-circle-fill text-success me-1 small"></i>Active Engine{% else %}<i class="bi bi-circle-fill text-warning me-1 small"></i>Stopped{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-8 col-lg-7">
+            <div class="card border-0 shadow-sm mb-4" style="background: var(--card-bg); border: 1px solid var(--border-color) !important; border-radius: 16px;">
+                <div class="p-4 border-bottom d-flex justify-content-between align-items-center" style="border-color: var(--border-color) !important;">
+                    <h6 class="fw-bold mb-0 d-flex align-items-center" style="color: var(--text-primary);">
+                        <i class="bi bi-graph-up-arrow text-success me-2"></i>Daily Ingestion Summaries (7-Day Range)
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                            <thead class="text-uppercase small border-bottom fw-bold" style="background: var(--hover-bg); color: var(--text-secondary);">
+                                <tr>
+                                    <th class="ps-4 py-3 border-0">Execution Date</th>
+                                    <th class="text-center border-0">Processed</th>
+                                    <th class="text-end border-0">Recovered Balance</th>
+                                    <th class="text-center border-0">Partial</th>
+                                    <th class="text-center border-0">Failed Accounts</th>
+                                    <th class="text-center pe-4 border-0">Closed Loans</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sum in summaries %}
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td class="ps-4 fw-bold" style="color: var(--text-primary);"><i class="bi bi-calendar3 me-2 text-muted"></i>{{ sum.date }}</td>
+                                    <td class="text-center fw-semibold text-secondary">{{ sum.total_processed }}</td>
+                                    <td class="text-end fw-bold text-success text-nowrap">Shs {{ sum.total_recovered|floatformat:0 }}</td>
+                                    <td class="text-center fw-bold text-warning">{{ sum.partial_payments }}</td>
+                                    <td class="text-center fw-bold text-danger">{{ sum.failed_deductions }}</td>
+                                    <td class="text-center pe-4">
+                                        <span class="badge bg-opacity-10 text-primary fw-bold rounded-pill px-2.5" style="background-color: var(--brand-cobalt);">{{ sum.closed_loans }}</span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-4 d-block mb-1"></i>No historical aggregation summaries stored.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm" style="background: var(--card-bg); border: 1px solid var(--border-color) !important; border-radius: 16px;">
+                <div class="p-4 border-bottom" style="border-color: var(--border-color) !important;">
+                    <h6 class="fw-bold mb-0 d-flex align-items-center" style="color: var(--text-primary);">
+                        <i class="bi bi-receipt-cutoff me-2" style="color: var(--brand-cobalt);"></i>Live Account Collection Logs
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+                            <thead class="small border-bottom fw-bold" style="background: var(--hover-bg); color: var(--text-secondary);">
+                                <tr>
+                                    <th class="ps-4 py-3 border-0">Timestamp</th>
+                                    <th class="border-0">Loan Reference ID</th>
+                                    <th class="text-end border-0">Deducted Amount</th>
+                                    <th class="text-center pe-4 border-0">Deduction Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td class="ps-4 text-muted font-monospace text-nowrap"><i class="bi bi-clock me-1.5 small"></i>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                                    <td class="fw-semibold" style="color: var(--text-primary);">{{ log.loan.loan_reference }}</td>
+                                    <td class="text-end fw-bold text-nowrap" style="color: var(--text-primary);">Shs {{ log.amount_recovered|floatformat:0 }}</td>
+                                    <td class="text-center pe-4">
+                                        <span class="badge w-70 py-2 fw-semibold border rounded-pill shadow-sm text-uppercase font-monospace extra-small
+                                            {% if log.status == 'success' %}bg-success-subtle text-success border-success-subtle
+                                            {% elif log.status == 'partial' %}bg-warning-subtle text-warning-dark border-warning-subtle
+                                            {% else %}bg-danger-subtle text-danger border-danger-subtle{% endif %}">
+                                            {% if log.status == 'success' %}<i class="bi bi-check-circle-fill me-1"></i>Full Paid
+                                            {% elif log.status == 'partial' %}<i class="bi bi-exclamation-circle-fill me-1"></i>Partial
+                                            {% else %}<i class="bi bi-x-circle-fill me-1"></i>Declined{% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center py-4 text-muted"><i class="bi bi-activity fs-4 d-block mb-1"></i>No collection run streams discovered.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Framework Context Sync Formatting Styles */
+    .extra-small { font-size: 0.75rem; }
+    .w-70 { min-width: 125px; }
+    .bg-success-subtle { background-color: rgba(16, 185, 129, 0.1) !important; }
+    .bg-warning-subtle { background-color: rgba(245, 158, 11, 0.1) !important; }
+    .bg-danger-subtle { background-color: rgba(239, 68, 68, 0.1) !important; }
+    .text-warning-dark { color: #d97706 !important; }
+    .border-success-subtle { border-color: rgba(16, 185, 129, 0.2) !important; }
+    .border-warning-subtle { border-color: rgba(245, 158, 11, 0.2) !important; }
+    .border-danger-subtle { border-color: rgba(239, 68, 68, 0.2) !important; }
+    
+    @keyframes flashAnimation {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.95); }
+    }
+    .animate-flash { animation: flashAnimation 2.5s infinite ease-in-out; }
+    
+    /* Input Form Custom Control Normalization */
+    .input-group > .form-control, .input-group > .form-select {
+        border-left: 0 !important;
+        background: var(--card-bg) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border-color) !important;
+        padding-top: 0.55rem;
+        padding-bottom: 0.55rem;
+    }
+    .input-group > .input-group-text {
+        border-right: 0 !important;
+        background: var(--card-bg) !important;
+        border-color: var(--border-color) !important;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: var(--brand-cobalt) !important;
+        box-shadow: none !important;
+    }
+    .form-check-input:checked {
+        background-color: var(--brand-cobalt) !important;
+        border-color: var(--brand-cobalt) !important;
+    }
+</style>
+{% endblock %}

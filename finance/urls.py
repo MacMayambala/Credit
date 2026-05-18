@@ -38,6 +38,8 @@ urlpatterns = [
     path('expense/add/', views.record_expense, name='record_expense'),
     path('ledger/inflow/', views.record_inflow, name='record_inflow'),
     path('accounts/hub/', views.accounts_hub, name='accounts_hub'),
+    path('auto-repayment-dashboard/', views.auto_repayment_dashboard, name='auto_repayment_dashboard'),
+    
 
     
 ]

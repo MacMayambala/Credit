@@ -497,3 +497,74 @@ def process_repayment(loan_id):
         return True
             
     return False
+
+
+
+from django.db import models
+from django.core.validators import MinValueValidator
+from django.contrib.auth.models import User
+from members.models import Member
+
+class AutoRepaymentSetting(models.Model):
+    FREQUENCY_CHOICES = [
+        ('hourly', 'Hourly'),
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+    ]
+
+    is_enabled = models.BooleanField(default=False, verbose_name="Enable Auto Repayments")
+    execution_time = models.TimeField(default="22:00:00", verbose_name="Execution Time")
+    frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES, default='daily')
+    grace_period_days = models.PositiveIntegerField(default=0, verbose_name="Grace Period (Days)")
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Auto Repayment Setting"
+        verbose_name_plural = "Auto Repayment Settings"
+
+    def save(self, *args, **kwargs):
+        # Enforce singleton pattern instance restriction
+        if not self.pk and AutoRepaymentSetting.objects.exists():
+            raise ValueError("Only one global AutoRepaymentSetting configuration instance can exist.")
+        super().save(*args, **kwargs)
+        # Dynamic Celery Beat Periodic Task Sync Hook
+        from finance.tasks import sync_scheduler_to_celery_beat
+        sync_scheduler_to_celery_beat(self)
+
+    def __str__(self):
+        return f"Auto-Repayment Config [Status: {self.is_enabled} | {self.execution_time}]"
+
+
+class AutoRepaymentLog(models.Model):
+    STATUS_CHOICES = [
+        ('success', 'Full Success'),
+        ('partial', 'Partial Payment'),
+        ('failed', 'Failed / Insufficient Funds'),
+        ('error', 'System Execution Exception')
+    ]
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    loan = models.ForeignKey('finance.Loan', on_delete=models.CASCADE, related_name="repayment_logs")
+    installment = models.ForeignKey('finance.Installment', on_delete=models.SET_NULL, null=True, blank=True)
+    savings_balance_before = models.DecimalField(max_digits=12, decimal_places=2)
+    amount_attempted = models.DecimalField(max_digits=12, decimal_places=2)
+    amount_recovered = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, db_index=True)
+    error_message = models.TextField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+
+class DailyRepaymentSummary(models.Model):
+    date = models.DateField(unique=True, db_index=True)
+    total_processed = models.PositiveIntegerField(default=0)
+    total_recovered = models.DecimalField(max_digits=14, decimal_places=2, default=0.00)
+    failed_deductions = models.PositiveIntegerField(default=0)
+    partial_payments = models.PositiveIntegerField(default=0)
+    closed_loans = models.PositiveIntegerField(default=0)
+    execution_duration_seconds = models.FloatField(default=0.0)
+
+    class Meta:
+        ordering = ['-date']
