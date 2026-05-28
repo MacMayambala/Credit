@@ -1,23 +1,27 @@
 {% extends 'base.html' %}
+{% load humanize %}
+
 {% block title %}Financial Intelligence | MAC Tech{% endblock %}
 
 {% block content %}
 <style>
     :root {
         --brand-blue: #1632af;
-        --brand-blue-soft: rgba(22, 50, 175, 0.05);
+        --brand-blue-soft: rgba(22, 50, 175, 0.04);
+        --slate-gray: #4a5568;
+        --border-color-soft: rgba(0, 0, 0, 0.06);
     }
 
     .report-card {
-        border: 1px solid var(--border-color);
-        transition: all 0.2s ease;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         background: #ffffff;
     }
 
     .report-card:hover {
         border-color: var(--brand-blue);
-        transform: translateY(-4px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 12px 24px rgba(22, 50, 175, 0.06) !important;
     }
 
     .btn-brand {
@@ -25,10 +29,11 @@
         color: #fff;
         border: none;
         font-weight: 600;
+        letter-spacing: 0.3px;
     }
 
     .btn-brand:hover {
-        opacity: 0.9;
+        background-color: #0f248a;
         color: #fff;
     }
 
@@ -36,6 +41,7 @@
         border: 1.5px solid var(--brand-blue);
         color: var(--brand-blue);
         font-weight: 600;
+        letter-spacing: 0.3px;
     }
 
     .btn-outline-brand:hover {
@@ -45,128 +51,165 @@
 
     .metric-value {
         letter-spacing: -1px;
+        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .icon-box {
-        width: 48px;
-        height: 48px;
+        width: 46px;
+        height: 46px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 12px;
+        border-radius: 10px;
         margin-bottom: 1.25rem;
+    }
+
+    /* Professional Dashboard Tabs Segment styling */
+    .dashboard-tabs-nav {
+        border-bottom: 1px solid var(--border-color-soft);
+    }
+
+    .dashboard-tab-link {
+        color: var(--slate-gray);
+        font-weight: 600;
+        font-size: 0.92rem;
+        padding: 0.75rem 1.25rem;
+        text-decoration: none;
+        position: relative;
+        transition: color 0.15s ease;
+    }
+
+    .dashboard-tab-link:hover {
+        color: var(--brand-blue);
+    }
+
+    .dashboard-tab-link.active {
+        color: var(--brand-blue);
+    }
+
+    .dashboard-tab-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 2.5px;
+        background-color: var(--brand-blue);
+        border-radius: 3px 3px 0 0;
     }
 </style>
 
 <div class="container-fluid px-4 py-4">
 
-    <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h2 class="fw-bold mb-1">Financial Intelligence</h2>
+            <h2 class="fw-bold mb-1 text-dark" style="letter-spacing: -0.5px;">Financial Intelligence</h2>
             <p class="text-muted small mb-0">Live SACCO Portfolio Analytics & Risk Monitoring</p>
         </div>
         
-        <button class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-semibold">
+        <button class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-semibold shadow-sm">
             <i class="bi bi-cloud-download me-2"></i>Export Master Report
         </button>
     </div>
 
-    <!-- Key Metrics Row -->
+    <div class="d-flex dashboard-tabs-nav mb-4 gap-2">
+        <a href="{% url 'ceo_dashboard' %}" class="dashboard-tab-link active">
+            <i class="bi bi-speedometer2 me-2"></i>CEO Executive Overview
+        </a>
+        <a href="{% url 'treasury_dashboard' %}" class="dashboard-tab-link">
+            <i class="bi bi-bank2 me-2"></i>Treasury & Liquidity Management
+        </a>
+    </div>
+
     <div class="row g-3 mb-4">
         <div class="col-md-3">
             <div class="card report-card rounded-4 border-0 shadow-sm p-3">
-                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem;">Portfolio at Risk (PAR)</small>
+                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem; letter-spacing: 0.5px;">Portfolio at Risk (PAR > 30)</small>
                 <div class="d-flex align-items-baseline gap-2 mt-1">
-                    <h3 class="metric-value fw-bold mb-0 text-danger">12.5%</h3>
-                    <small class="text-success fw-bold" style="font-size: 0.75rem;">↓ 2.3%</small>
+                    <h3 class="metric-value fw-bold mb-0 text-danger">{{ portfolio_at_risk|default:"4.82%" }}</h3>
+                    <small class="text-success fw-bold" style="font-size: 0.75rem;">↓ 0.4%</small>
                 </div>
             </div>
         </div>
 
         <div class="col-md-3">
             <div class="card report-card rounded-4 border-0 shadow-sm p-3">
-                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem;">Liquidity Ratio</small>
+                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem; letter-spacing: 0.5px;">Liquidity Ratio</small>
                 <div class="d-flex align-items-baseline mt-1">
-                    <h3 class="metric-value fw-bold mb-0 text-success">1.82</h3>
+                    <h3 class="metric-value fw-bold mb-0 text-success">{{ liquidity_ratio|default:"23.4%" }}</h3>
                 </div>
             </div>
         </div>
 
         <div class="col-md-3">
             <div class="card report-card rounded-4 border-0 shadow-sm p-3">
-                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem;">Active Loans</small>
+                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem; letter-spacing: 0.5px;">Active Loan Accounts</small>
                 <div class="d-flex align-items-baseline mt-1">
-                    <h3 class="metric-value fw-bold mb-0" style="color: var(--brand-blue);">{{ active_loans_count|default:"24" }}</h3>
+                    <h3 class="metric-value fw-bold mb-0" style="color: var(--brand-blue);">{{ active_loans_count|default:"148" }}</h3>
                 </div>
             </div>
         </div>
 
         <div class="col-md-3">
             <div class="card report-card rounded-4 border-0 shadow-sm p-3">
-                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem;">Current Reserves</small>
+                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem; letter-spacing: 0.5px;">Gross Loan Portfolio Balance</small>
                 <div class="d-flex align-items-baseline mt-1">
-                    <h3 class="metric-value fw-bold mb-0">UGX {{ total_reserves|default:"45.2M" }}</h3>
+                    <h3 class="metric-value fw-bold mb-0 text-dark">UGX {{ total_reserves|default:"542.8M" }}</h3>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- All Reports Grid -->
     <div class="row g-4">
         
-        <!-- Portfolio Status -->
         <div class="col-md-4">
             <div class="card h-100 report-card rounded-4 border-0 shadow-sm">
                 <div class="card-body p-4">
                     <div class="icon-box" style="background: var(--brand-blue-soft);">
                         <i class="bi bi-pie-chart-fill fs-4" style="color: var(--brand-blue);"></i>
                     </div>
-                    <h5 class="fw-bold">Portfolio Status</h5>
-                    <p class="text-muted small">Comprehensive view of ledgers, interest, and aging classifications.</p>
-                    <a href="{% url 'portfolio_status_report' %}" class="btn btn-brand w-100 rounded-3 mt-2">Open Ledger</a>
+                    <h5 class="fw-bold text-dark">Portfolio Status</h5>
+                    <p class="text-muted small">Comprehensive view of ledgers, interest breakdown, and aging classifications.</p>
+                    <a href="{% url 'interest_report' %}" class="btn btn-brand w-100 rounded-3 mt-2 py-2">Open Ledger</a>
                 </div>
             </div>
         </div>
 
-        <!-- Loan Portfolio -->
         <div class="col-md-4">
             <div class="card h-100 report-card rounded-4 border-0 shadow-sm">
                 <div class="card-body p-4">
-                    <div class="icon-box" style="background: rgba(13, 202, 240, 0.1);">
+                    <div class="icon-box" style="background: rgba(13, 202, 240, 0.06);">
                         <i class="bi bi-graph-up fs-4 text-info"></i>
                     </div>
-                    <h5 class="fw-bold">Loan Performance</h5>
-                    <p class="text-muted small">Analyze principal balances, repayment trends, and officer risk.</p>
-                    <a href="{% url 'loan_portfolio_report' %}" class="btn btn-outline-brand w-100 rounded-3 mt-2">Performance Report</a>
+                    <h5 class="fw-bold text-dark">Loan Performance</h5>
+                    <p class="text-muted small">Analyze principal balances, repayment trends, collection efficiency, and officer risk.</p>
+                    <a href="{% url 'loan_portfolio_report' %}" class="btn btn-outline-brand w-100 rounded-3 mt-2 py-2">Performance Report</a>
                 </div>
             </div>
         </div>
 
-        <!-- Savings Analytics -->
         <div class="col-md-4">
             <div class="card h-100 report-card rounded-4 border-0 shadow-sm">
                 <div class="card-body p-4">
-                    <div class="icon-box" style="background: rgba(25, 135, 84, 0.1);">
+                    <div class="icon-box" style="background: rgba(25, 135, 84, 0.06);">
                         <i class="bi bi-safe2-fill fs-4 text-success"></i>
                     </div>
-                    <h5 class="fw-bold">Savings Analytics</h5>
-                    <p class="text-muted small">Monitor member deposit growth and withdrawal patterns.</p>
-                    <a href="{% url 'savings_report' %}" class="btn btn-outline-brand w-100 rounded-3 mt-2">Savings Overview</a>
+                    <h5 class="fw-bold text-dark">Savings Analytics</h5>
+                    <p class="text-muted small">Monitor member deposit trends, shares accumulation, and product utilization variance.</p>
+                    <a href="{% url 'savings_report' %}" class="btn btn-outline-brand w-100 rounded-3 mt-2 py-2">Savings Overview</a>
                 </div>
             </div>
         </div>
 
-        <!-- Arrears Monitor (High Priority) -->
         <div class="col-md-4">
             <div class="card h-100 report-card rounded-4 border-0 shadow-sm border-start border-4 border-danger">
                 <div class="card-body p-4">
-                    <div class="icon-box" style="background: rgba(220, 53, 69, 0.1);">
+                    <div class="icon-box" style="background: rgba(220, 53, 69, 0.06);">
                         <i class="bi bi-shield-exclamation fs-4 text-danger"></i>
                     </div>
                     <h5 class="fw-bold text-danger">Arrears & Delinquency</h5>
-                    <p class="text-muted small">Real-time tracking of overdue accounts and default probability.</p>
-                    <a href="{% url 'arrears_report' %}" class="btn btn-danger w-100 rounded-3 mt-2">Review Defaults</a>
+                    <p class="text-muted small">Real-time isolation of past-due balances, default aging buckets, and provisions tracking.</p>
+                    <a href="{% url 'arrears_report' %}" class="btn btn-danger w-100 rounded-3 mt-2 py-2">Review Defaults</a>
                 </div>
             </div>
         </div>

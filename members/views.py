@@ -193,57 +193,166 @@ from .models import Member
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from datetime import date
 
-def customer_list(request):
-    """
-    Registry view for MAC FinTech Member Directory with Pagination
-    """
-    # Fetch all members
-    all_members = Member.objects.all().order_by('last_name')
+from django.db.models import Q
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from datetime import date
+from django.shortcuts import render
+
+from django.db.models import Q
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.shortcuts import render
+from datetime import date
+from .models import Member
+
+import json
+from datetime import date
+
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.template.loader import render_to_string
+
+from .models import Member
+
+from datetime import date
+
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.template import Context, Template
+
+from .models import Member
+
+from datetime import date
+
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.urls import reverse
+
+from .models import Member
+
+ROWS_TEMPLATE = """
+{% load humanize %}
+{% for member in members %}
+<li class="member-row">
+    <div class="avatar">
+        {% if member.photo %}<img src="{{ member.photo.url }}" alt="{{ member.first_name }}">
+        {% else %}{{ member.first_name|slice:":1" }}{{ member.last_name|slice:":1" }}{% endif %}
+    </div>
+    <div class="member-info">
+        <a href="{{ member.profile_url }}" class="member-name">{{ member.first_name }} {{ member.last_name }}</a>
+        <span class="member-id">{{ member.member_number }}</span>
+    </div>
+    <div class="member-meta">
+        <div class="meta-col">
+            <span class="meta-label">Gender / Age</span>
+            <span class="meta-value">{{ member.gender|default:"—" }} · {{ member.age }} yrs</span>
+        </div>
+        <div class="meta-col">
+            <span class="meta-label">Contact</span>
+            <span class="meta-value">{{ member.phone_number }}</span>
+        </div>
+        <div class="meta-col">
+            <span class="meta-label">Address</span>
+            <span class="meta-value">{{ member.village }}, {{ member.district }}</span>
+        </div>
+    </div>
+</li>
+{% empty %}
+<li class="empty-state">
+    <div class="empty-icon"><i class="bi bi-person-exclamation"></i></div>
+    <p>{% if search_query %}No customers match "{{ search_query }}".{% else %}No registered customers found.{% endif %}</p>
+</li>
+{% endfor %}
+"""
+
+PAGINATION_TEMPLATE = """
+{% if members.has_previous %}<li><button class="page-link nav" data-page="{{ members.previous_page_number }}">← Prev</button></li>{% endif %}
+{% for i in members.paginator.page_range %}
+    {% if members.number == i %}<li><span class="page-link active">{{ i }}</span></li>
+    {% elif i > members.number|add:'-3' and i < members.number|add:'3' %}<li><button class="page-link" data-page="{{ i }}">{{ i }}</button></li>
+    {% endif %}
+{% endfor %}
+{% if members.has_next %}<li><button class="page-link nav" data-page="{{ members.next_page_number }}">Next →</button></li>{% endif %}
+"""
+
+ENTRY_COUNT_TEMPLATE = """
+{% load humanize %}
+{% if members.paginator.count %}
+    Showing {{ members.start_index }}–{{ members.end_index }} of {{ total_count }} entr{{ total_count|pluralize:"y,ies" }}
+{% else %}No results{% endif %}
+"""
+
+
+def _annotate_age(members_page):
     today = date.today()
+    for member in members_page:
+        if getattr(member, 'dob', None):
+            member.age = (
+                today.year - member.dob.year
+                - ((today.month, today.day) < (member.dob.month, member.dob.day))
+            )
+        else:
+            member.age = 'N/A'
 
-    # 1. Safe Gender Distribution
-    has_gender_field = 'gender' in [f.name for f in Member._meta.get_fields()]
-    if has_gender_field:
-        male_count = all_members.filter(gender='Male').count()
-        female_count = all_members.filter(gender='Female').count()
-    else:
-        male_count = 0
-        female_count = 0
 
-    # 2. Pagination Logic
-    items_per_page = 5
-    paginator = Paginator(all_members, items_per_page)
-    page_number = request.GET.get('page')
-    
+def _render_inline(template_str, context_dict):
+    from django.template import engines
+    engine = engines['django']
+    t = engine.from_string(template_str)
+    return t.render(context_dict)
+
+
+def customer_list(request):
+    search_query = request.GET.get('q', '').strip()
+    page_number  = request.GET.get('page', 1)
+    is_partial   = request.GET.get('partial') == '1'
+
+    qs = Member.objects.all().order_by('last_name')
+    if search_query:
+        qs = qs.filter(
+            Q(first_name__icontains=search_query)    |
+            Q(last_name__icontains=search_query)     |
+            Q(member_number__icontains=search_query) |
+            Q(phone_number__icontains=search_query)
+        )
+
+    total_count = qs.count()
+    paginator   = Paginator(qs, 5)
+
     try:
         members_page = paginator.page(page_number)
     except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
         members_page = paginator.page(1)
     except EmptyPage:
-        # If page is out of range, deliver last page of results.
         members_page = paginator.page(paginator.num_pages)
 
-    # 3. Enrich Member objects on the current page with Age
-    for member in members_page:
-        if hasattr(member, 'dob') and member.dob:
-            member.age = today.year - member.dob.year - (
-                (today.month, today.day) < (member.dob.month, member.dob.day)
-            )
-        else:
-            member.age = "N/A"
+    _annotate_age(members_page)
 
-    # 4. Context dictionary
+    # Annotate the correct profile URL using reverse() so inline templates
+    # never have to guess the URL pattern or hardcode paths.
+    for member in members_page:
+        member.profile_url = reverse('member_profile', args=[member.id])
+
     context = {
-        'members': members_page, # This is now a Page object
-        'male_count': male_count,
-        'female_count': female_count,
-        'total_count': all_members.count(),
+        'members':      members_page,
+        'search_query': search_query,
+        'total_count':  total_count,
     }
 
+    if is_partial:
+        return JsonResponse({
+            'rows_html':       _render_inline(ROWS_TEMPLATE, context),
+            'pagination_html': _render_inline(PAGINATION_TEMPLATE, context),
+            'entry_count_html':_render_inline(ENTRY_COUNT_TEMPLATE, context),
+            'total_count':     total_count,
+        })
+
     return render(request, 'members/customer_list.html', context)
-
-
 
 # accounts/views.py
 

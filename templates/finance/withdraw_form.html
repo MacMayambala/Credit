@@ -2,66 +2,200 @@
 {% load humanize %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                            <i class="bi bi-dash-circle fs-1"></i>
-                        </div>
-                        <h3 class="fw-bold">Savings Withdrawal</h3>
-                        <p class="text-muted">Member: {{ member.first_name }} {{ member.last_name }}</p>
-                    </div>
 
-                    <div class="alert alert-light border d-flex justify-content-between align-items-center mb-4">
-                        <span class="small text-muted fw-bold text-uppercase">Available Balance</span>
-                        <span class="fw-bold text-dark">UGX {{ savings.balance|floatformat:0|intcomma }}</span>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    --brand-cobalt: #1632af;
+}
+
+.container-fluid {
+    background: var(--bg);
+    min-height: 100vh;
+}
+
+.card-main {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+}
+
+.header-danger {
+    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+    padding: 3rem 2rem;
+    text-align: center;
+    color: white;
+}
+
+.form-section {
+    padding: 3rem;
+}
+
+.tracking-widest {
+    letter-spacing: 0.08em;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.input-group-lg .input-group-text {
+    background: #f8fafc;
+    border: none;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.form-control {
+    border: none;
+    font-size: 1.1rem;
+    font-weight: 500;
+    padding: 1rem 1.25rem;
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 4px rgba(185, 28, 28, 0.15);
+    border-color: #b91c1c;
+}
+
+.btn-withdraw {
+    background-color: #b91c1c;
+    border: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 1rem;
+    border-radius: 9999px;
+    transition: all 0.3s ease;
+}
+
+.btn-withdraw:hover {
+    background-color: #991b1b;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 25px rgba(185, 28, 28, 0.35);
+}
+
+.balance-box {
+    background: var(--hover-bg);
+    border: 1px solid var(--border-color);
+}
+</style>
+
+<div class="container-fluid py-5 px-4">
+
+    <div class="row justify-content-center">
+        <div class="col-xl-6 col-lg-7 col-md-9">
+
+            <!-- Page Title -->
+            <div class="text-center mb-4">
+                <h1 class="h3 fw-bold mb-1 text-danger">Savings Withdrawal</h1>
+                <p class="text-muted">Process cash withdrawal from member savings</p>
+            </div>
+
+            <div class="card-main">
+
+                <!-- Header -->
+                <div class="header-danger">
+                    <div class="mx-auto bg-white bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center mb-4" 
+                         style="width: 80px; height: 80px;">
+                        <i class="bi bi-dash-circle text-white fs-1"></i>
                     </div>
+                    <h4 class="fw-bold mb-2">Savings Withdrawal</h4>
+                    <p class="mb-0 opacity-75">Member ID: <strong>{{ member.member_number|default:member.id }}</strong></p>
+                </div>
+
+                <div class="form-section">
 
                     <form method="POST">
                         {% csrf_token %}
-                        
-                        <!-- Withdrawal Amount -->
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Amount to Withdraw (UGX)</label>
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-white border-end-0 text-muted">UGX</span>
-                                <input type="number" name="amount" class="form-control border-start-0 ps-0" placeholder="0.00" required>
+
+                        <!-- Account Holder -->
+                        <div class="mb-5">
+                            <label class="tracking-widest text-muted mb-2 d-block">Account Holder</label>
+                            <div class="d-flex align-items-center p-4 rounded-3 balance-box">
+                                <div class="bg-white rounded-circle p-3 me-4 shadow-sm">
+                                    <i class="bi bi-person-fill text-danger fs-2"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold fs-5">{{ member.first_name }} {{ member.last_name }}</div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Back-date Section (Admin Only) -->
+                        <!-- Available Balance -->
+                        <div class="alert border-0 mb-5" style="background: #fef3f2;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small fw-semibold text-danger tracking-widest">AVAILABLE BALANCE</span>
+                                <span class="fw-bold fs-4 text-danger">
+                                    UGX {{ savings.balance|default:0|floatformat:0|intcomma }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Withdrawal Amount -->
+                        <div class="mb-5">
+                            <label class="tracking-widest text-muted mb-2 d-block">Withdrawal Amount</label>
+                            <div class="input-group input-group-lg shadow-sm rounded-3">
+                                <span class="input-group-text fw-bold px-4">UGX</span>
+                                <input type="number" 
+                                       name="amount" 
+                                       class="form-control fw-bold" 
+                                       placeholder="0.00" 
+                                       min="1000" 
+                                       required 
+                                       autofocus>
+                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                Minimum withdrawal: UGX 1,000
+                            </small>
+                        </div>
+
+                        <!-- Back-date (Admin) -->
                         {% if backdate_allowed %}
-                        <div class="card border-warning bg-warning bg-opacity-10 mb-3">
-                            <div class="card-body p-3">
-                                <label class="form-label small fw-bold text-warning-emphasis">
-                                    <i class="bi bi-calendar-event me-1"></i> Admin: Back-date Withdrawal
-                                </label>
-                                <input type="datetime-local" name="back_date" class="form-control border-warning-subtle">
-                                <div class="form-text text-muted small">
-                                    Leave blank to use current system time.
-                                </div>
+                        <div class="mb-5">
+                            <label class="tracking-widest text-warning mb-2 d-block">
+                                <i class="bi bi-calendar-event me-1"></i> Admin: Back-date Withdrawal
+                            </label>
+                            <div class="p-4 rounded-3 border border-warning bg-warning bg-opacity-10">
+                                <input type="datetime-local" 
+                                       name="back_date" 
+                                       class="form-control">
+                                <small class="text-muted mt-2 d-block">
+                                    Leave blank to use current system time
+                                </small>
                             </div>
                         </div>
                         {% endif %}
 
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold">Reference / Reason</label>
-                            <input type="text" name="notes" class="form-control" placeholder="e.g. Personal Use, Medical bill">
+                        <!-- Reason / Notes -->
+                        <div class="mb-5">
+                            <label class="tracking-widest text-muted mb-2 d-block">Reference / Reason</label>
+                            <input type="text" 
+                                   name="notes" 
+                                   class="form-control" 
+                                   placeholder="e.g. School fees, Medical expenses, Business capital" 
+                                   required>
                         </div>
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-danger btn-lg rounded-pill py-3 fw-bold shadow-sm">
-                                Confirm Withdrawal
-                            </button>
-                            <a href="{% url 'member_profile' member.id %}" class="btn btn-link text-muted text-decoration-none">Cancel</a>
+                        <!-- Submit -->
+                        <button type="submit" class="btn btn-withdraw w-100 py-3 shadow">
+                            <i class="bi bi-dash-circle me-2"></i>
+                            Confirm Withdrawal
+                        </button>
+
+                        <div class="text-center mt-4">
+                            <a href="{% url 'member_profile' member.id %}" 
+                               class="text-muted text-decoration-none small">
+                                ← Cancel and Return to Profile
+                            </a>
                         </div>
                     </form>
                 </div>
             </div>
+
         </div>
     </div>
 </div>
+
 {% endblock %}

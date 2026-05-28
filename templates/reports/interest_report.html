@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Interest Income & Yield Ledger - MAC Technologies{% endblock %}
+
+{% block content %}
+<style>
+    /* Professional Calendar Input Styling Overrides */
+    input[type="date"] {
+        position: relative;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: var(--text-primary);
+        font-weight: 500;
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        padding: 0.45rem 0.75rem;
+        border-radius: 10px;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    input[type="date"]:focus {
+        border-color: var(--brand-cobalt) !important;
+        box-shadow: 0 0 0 3px rgba(22, 50, 175, 0.12) !important;
+        outline: none;
+    }
+
+    /* Custom Calendar Picker Icon Styling matching Cobalt theme */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%231632af' class='bi bi-calendar3'%3E%3Cpath d='M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857V3.857z'/%3E%3Cpath d='M6.5 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'/%3E%3C/svg%3E");
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+        background-color: var(--hover-bg);
+    }
+
+    /* Keep design clean when parameters are applied active */
+    .filter-toggle-btn[aria-expanded="true"] {
+        background-color: var(--brand-cobalt) !important;
+        color: #ffffff !important;
+        border-color: var(--brand-cobalt) !important;
+    }
+</style>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-2 border-bottom border-light-subtle">
+    <div>
+        <h2 class="h4 fw-bold mb-1 tracking-tight text-gradient">
+            Interest Income & Effective Yield Book
+        </h2>
+        <p class="small text-muted mb-0">Sub-ledger verification matrix for auditable balance positions.</p>
+    </div>
+    
+    <div class="d-flex gap-2 mt-3 mt-md-0">
+        <button class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2 px-3 rounded-3 shadow-sm filter-toggle-btn" 
+                type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#ledgerFilterCollapse" 
+                aria-expanded="false" 
+                aria-controls="ledgerFilterCollapse">
+            <i class="bi bi-funnel-fill"></i> Show Filters
+            {% if request.GET.start_date or request.GET.product or request.GET.risk_category %}
+                <span class="badge bg-danger rounded-circle p-1 ms-1"><span class="visually-hidden">Active filters</span></span>
+            {% endif %}
+        </button>
+
+        <a href="?{% for key, val in request.GET.items %}{% if key != 'format' %}{{ key }}={{ val }}&{% endif %}{% endfor %}format=excel" 
+           class="btn btn-success btn-sm d-inline-flex align-items-center gap-2 px-3 rounded-3 shadow-sm">
+            <i class="bi bi-file-earmark-excel"></i> Export Worksheets
+        </a>
+        
+        <a href="?{% for key, val in request.GET.items %}{% if key != 'format' %}{{ key }}={{ val }}&{% endif %}{% endfor %}format=pdf" 
+           class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2 px-3 rounded-3 shadow-sm">
+            <i class="bi bi-file-earmark-pdf"></i> Generate Certified PDF
+        </a>
+    </div>
+</div>
+
+<div class="collapse {% if request.GET.start_date or request.GET.product or request.GET.risk_category %}show{% endif %} mb-4" id="ledgerFilterCollapse">
+    <div class="card p-4 border rounded-4 shadow-sm" style="background: var(--card-bg);">
+        <h6 class="fw-bold mb-3 text-secondary small text-uppercase tracking-wider"><i class="bi bi-sliders me-2"></i> Ledger Parameter Specification</h6>
+        
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-12 col-sm-6 col-md-3 col-xl-2">
+                <label class="form-label text-uppercase tracking-wider fw-bold text-muted small mb-1" style="font-size: 0.68rem;">Start Date</label>
+                {% if filter_form.start_date.errors %}
+                    <div class="text-danger small mb-1">{{ filter_form.start_date.errors.0 }}</div>
+                {% endif %}
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-calendar-event small"></i></span>
+                    {{ filter_form.start_date }}
+                </div>
+            </div>
+            
+            <div class="col-12 col-sm-6 col-md-3 col-xl-2">
+                <label class="form-label text-uppercase tracking-wider fw-bold text-muted small mb-1" style="font-size: 0.68rem;">End Date</label>
+                {% if filter_form.end_date.errors %}
+                    <div class="text-danger small mb-1">{{ filter_form.end_date.errors.0 }}</div>
+                {% endif %}
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-calendar-check small"></i></span>
+                    {{ filter_form.end_date }}
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3 col-xl-3">
+                <label class="form-label text-uppercase tracking-wider fw-bold text-muted small mb-1" style="font-size: 0.68rem;">Loan Product</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-wallet2 small"></i></span>
+                    {{ filter_form.product }}
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3 col-xl-3">
+                <label class="form-label text-uppercase tracking-wider fw-bold text-muted small mb-1" style="font-size: 0.68rem;">Risk Category</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-shield-exclamation small"></i></span>
+                    {{ filter_form.risk_category }}
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-2">
+                <button type="submit" class="btn btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2 rounded-3 shadow-sm fw-semibold" style="height: 38px; background-color: var(--brand-cobalt); border-color: var(--brand-cobalt);">
+                    <i class="bi bi-play-circle-fill"></i> Run Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border rounded-4 shadow-sm overflow-hidden" style="background: var(--card-bg);">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <thead>
+                <tr class="table-light border-bottom text-uppercase tracking-wider font-sans fw-bold text-muted small" style="font-size: 0.68rem;">
+                    <th class="ps-4 py-3">Disbursed Date</th>
+                    <th class="py-3">Member ID</th>
+                    <th class="py-3">Borrower Legal Entity</th>
+                    <th class="py-3">Loan Reference</th>
+                    <th class="py-3">Product Category</th>
+                    <th class="py-3 text-end">Principal Recv.</th>
+                    <th class="py-3 text-end">Interest Recv.</th>
+                    <th class="py-3 text-end pe-4">Outstanding Position</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider font-mono">
+                {% for record in records %}
+                <tr>
+                    <td class="ps-4 py-3 text-muted">{{ record.disbursed_date|date:"Y-m-d" }}</td>
+                    <td class="py-3 text-secondary fw-semibold">{{ record.member.member_number }}</td>
+                    <td class="py-3 font-sans fw-semibold text-dark">
+                        {{ record.member.first_name }} {{ record.member.last_name }}
+                    </td>
+                    <td class="py-3 text-secondary">{{ record.loan_reference }}</td>
+                    <td class="py-3">
+                        <span class="badge bg-light text-secondary border px-2 py-1 font-sans fw-medium" style="font-size: 0.68rem;">
+                            {{ record.product_type|upper }}
+                        </span>
+                    </td>
+                    <td class="py-3 text-end text-muted">
+                        UGX {{ record.principal_receivable|intcomma }}
+                    </td>
+                    <td class="py-3 text-end text-success fw-medium">
+                        +UGX {{ record.interest_receivable|intcomma }}
+                    </td>
+                    <td class="py-3 text-end pe-4 fw-bold text-dark">
+                        UGX {{ record.total_remaining_balance|intcomma }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted font-sans">
+                        <i class="bi bi-folder-x display-6 d-block mb-3 text-light-emphasis"></i>
+                        No matching financial records located in the specified ledger scope entries.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if records %}
+            <tfoot class="table-light font-mono border-top border-secondary-subtle fw-bold" style="font-size: 0.85rem;">
+                <tr class="align-middle">
+                    <td colspan="5" class="ps-4 py-3 font-sans text-muted fw-semibold">
+                        Aggregated Reporting Summary Balance Block
+                    </td>
+                    <td class="py-3 text-end text-secondary border-start">
+                        UGX {{ totals.total_principal_remaining|intcomma }}
+                    </td>
+                    <td class="py-3 text-end text-success border-start">
+                        UGX {{ totals.total_interest_remaining|intcomma }}
+                    </td>
+                    <td class="py-3 text-end pe-4 text-primary border-start fw-bolder" style="color: var(--brand-cobalt) !important;">
+                        UGX {{ totals.total_outstanding|intcomma }}
+                    </td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endblock %}

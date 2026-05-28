@@ -2,280 +2,271 @@
 {% load humanize %}
 
 {% block content %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
 
 <style>
     :root {
-        --ms-primary: #1e40af;        
-        --ms-border: #e2e8f0;
-        --ms-text-main: #1e293b;
-        --ms-text-muted: #64748b;
-        --ms-bg: #f8fafc;
+        --cobalt: #0047AB;
+        --cobalt-dark: #003380;
+        --cobalt-light: #e8f0fe;
+        --cobalt-glow: rgba(0, 71, 171, 0.12);
+        --border: #dce4f0;
+        --text: #0d1f3c;
+        --muted: #6b7fa3;
+        --bg: #f2f5fb;
     }
+    body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
 
-    body { 
-        background-color: var(--ms-bg); 
-        font-family: 'Inter', sans-serif; 
-        -webkit-font-smoothing: antialiased;
-        color: var(--ms-text-main);
-    }
-    
-    /* Typography Overrides */
-    h4 { font-size: 1.5rem; letter-spacing: -0.025em; }
-    .extra-small { font-size: 0.7rem; }
-    .uppercase-tracking { 
-        text-transform: uppercase; 
-        letter-spacing: 0.05em; 
-        font-weight: 700;
-    }
-    
-    /* Premium Tab Styling */
-    .custom-main-tabs .nav-link {
-        font-weight: 600;
-        font-size: 0.85rem;
-        border: none;
-        padding: 0.8rem 0;
-        margin-right: 2rem;
-        color: var(--ms-text-muted);
-        position: relative;
-    }
-    .custom-main-tabs .nav-link.active {
-        background: transparent;
-        color: var(--ms-primary) !important;
-    }
-    .custom-main-tabs .nav-link.active::after {
-        content: "";
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 3px;
-        background: var(--ms-primary);
-        border-radius: 10px 10px 0 0;
-    }
+    .page-header { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem; }
+    .page-header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.03em; color: var(--text); margin: 0 0 0.25rem; }
+    .page-header .subtitle { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+    .header-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
 
-    /* Member Row Refinement */
-    .member-row {
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        border-left: 4px solid transparent;
-        background: white;
-    }
-    .member-row:hover {
-        background-color: #fcfdfe;
-        border-left: 4px solid var(--ms-primary);
-        transform: translateX(4px);
-        z-index: 2;
-    }
-    
-    /* Avatar & Badge */
-    .avatar-placeholder {
-        background: #f1f5f9;
-        color: #94a3b8;
-        border: 1px solid var(--ms-border);
-    }
-    
-    .id-badge {
-        font-size: 0.75rem;
-        background: #eff6ff;
-        color: var(--ms-primary);
-        padding: 2px 8px;
-        border-radius: 4px;
-        border: 1px solid #dbeafe;
-    }
+    .btn-cobalt { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.6rem 1.25rem; background: var(--cobalt); color: #fff; border: none; border-radius: 8px; font-family: inherit; font-size: 0.83rem; font-weight: 600; letter-spacing: 0.03em; cursor: pointer; text-decoration: none; box-shadow: 0 4px 14px rgba(0,71,171,0.28); transition: all 0.18s ease; }
+    .btn-cobalt:hover { background: var(--cobalt-dark); box-shadow: 0 6px 20px rgba(0,71,171,0.38); transform: translateY(-1px); color: #fff; text-decoration: none; }
+    .btn-cobalt-outline { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.6rem 1.25rem; background: #fff; color: var(--cobalt); border: 1.5px solid var(--cobalt); border-radius: 8px; font-family: inherit; font-size: 0.83rem; font-weight: 600; letter-spacing: 0.03em; cursor: pointer; text-decoration: none; transition: all 0.18s ease; }
+    .btn-cobalt-outline:hover { background: var(--cobalt-light); color: var(--cobalt); text-decoration: none; }
 
-    /* Search Bar */
-    .search-container {
-        border-radius: 10px;
-        background: #f1f5f9;
-        border: 1px solid transparent;
-        transition: all 0.2s ease;
-    }
-    .search-container:focus-within {
-        background: #fff;
-        border-color: var(--ms-primary);
-        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.05);
-    }
+    .registry-card { background: #fff; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 2px 16px rgba(0,0,0,0.05); overflow: hidden; }
 
-    .ms-registry-card {
-        border-radius: 16px;
-        border: 1px solid var(--ms-border);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
+    .card-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border); background: #fff; }
+    .search-wrap { display: flex; align-items: center; gap: 0.5rem; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 0.45rem 0.9rem; flex: 1; min-width: 220px; max-width: 420px; transition: all 0.2s; }
+    .search-wrap:focus-within { background: #fff; border-color: var(--cobalt); box-shadow: 0 0 0 3px var(--cobalt-glow); }
+    .search-wrap i { color: var(--muted); font-size: 0.875rem; flex-shrink: 0; }
+    .search-wrap input { border: none; background: transparent; font-family: inherit; font-size: 0.875rem; color: var(--text); outline: none; width: 100%; }
+    .search-wrap input::placeholder { color: var(--muted); }
 
-    /* Global Button Polish */
-    .btn-primary {
-        background-color: var(--ms-primary);
-        font-weight: 600;
-        font-size: 0.875rem;
-        padding: 0.75rem 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.2);
-    }
+    .search-spinner { width: 14px; height: 14px; flex-shrink: 0; border: 2px solid var(--cobalt-light); border-top-color: var(--cobalt); border-radius: 50%; animation: spin 0.6s linear infinite; display: none; }
+    .search-spinner.active { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Bulk Upload Button Interactivity */
-    .btn-outline-primary-custom {
-        color: var(--ms-primary);
-        background-color: transparent;
-        border: 1px solid var(--ms-primary);
-        font-weight: 600;
-        font-size: 0.875rem;
-        padding: 0.75rem 1.5rem;
-        border-radius: 10px;
-        transition: all 0.2s ease;
-    }
-    .btn-outline-primary-custom:hover {
-        background-color: var(--ms-primary);
-        color: #ffffff;
-        box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.15);
-    }
+    .search-clear { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1rem; line-height: 1; padding: 0 2px; display: none; flex-shrink: 0; }
+    .search-clear:hover { color: var(--cobalt); }
+    .search-clear.visible { display: block; }
+
+    .result-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.32rem 0.8rem; background: var(--cobalt-light); color: var(--cobalt); border-radius: 20px; font-size: 0.78rem; font-weight: 600; border: 1px solid rgba(0,71,171,0.15); }
+
+    .toolbar-right { display: flex; gap: 0.4rem; margin-left: auto; }
+    .icon-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border-radius: 7px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); background: transparent; border: none; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .icon-btn:hover { background: var(--bg); color: var(--cobalt); }
+
+    .member-list { list-style: none; padding: 0; margin: 0; transition: opacity 0.15s; }
+    .member-list.loading { opacity: 0.4; pointer-events: none; }
+
+    .member-row { display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border); border-left: 3px solid transparent; background: #fff; transition: all 0.18s cubic-bezier(0.4,0,0.2,1); animation: rowIn 0.18s ease both; }
+    @keyframes rowIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .member-row:last-child { border-bottom: none; }
+    .member-row:hover { background: #fafcff; border-left-color: var(--cobalt); }
+    .member-row:hover .member-name { color: var(--cobalt); }
+
+    .avatar { width: 46px; height: 46px; border-radius: 50%; background: var(--cobalt-light); color: var(--cobalt); display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; flex-shrink: 0; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,71,171,0.13); overflow: hidden; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .member-info { flex: 1; min-width: 0; }
+    .member-name { display: block; font-size: 0.975rem; font-weight: 700; color: var(--text); text-decoration: none; transition: color 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .member-id { display: inline-block; margin-top: 0.28rem; font-size: 0.72rem; font-weight: 600; color: var(--cobalt); background: var(--cobalt-light); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0,71,171,0.15); }
+
+    .member-meta { display: flex; gap: 0; flex-shrink: 0; align-items: stretch; }
+    .meta-col { display: flex; flex-direction: column; padding: 0 1.5rem; border-left: 1px solid var(--border); min-width: 100px; }
+    .meta-label { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); opacity: 0.75; margin-bottom: 0.22rem; }
+    .meta-value { font-size: 0.875rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+
+    .empty-state { padding: 4rem 2rem; text-align: center; color: var(--muted); }
+    .empty-icon { font-size: 2.5rem; opacity: 0.2; margin-bottom: 0.75rem; }
+    .empty-state p { font-weight: 500; }
+
+    .card-footer-bar { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-top: 1px solid var(--border); background: #fff; flex-wrap: wrap; gap: 0.75rem; }
+    .entry-count { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+    .pagination { display: flex; gap: 0.3rem; list-style: none; margin: 0; padding: 0; }
+    .page-link { display: flex; align-items: center; justify-content: center; min-width: 34px; height: 34px; padding: 0 0.6rem; border-radius: 8px; font-size: 0.83rem; font-weight: 600; color: var(--muted); text-decoration: none; background: transparent; border: 1.5px solid transparent; transition: all 0.15s; cursor: pointer; font-family: inherit; }
+    .page-link:hover { background: var(--cobalt-light); color: var(--cobalt); border-color: rgba(0,71,171,0.15); }
+    .page-link.active { background: var(--cobalt); color: #fff; box-shadow: 0 3px 10px rgba(0,71,171,0.3); pointer-events: none; }
+    .page-link.nav { background: var(--bg); color: var(--text); border-color: var(--border); }
+    .page-link.nav:hover { background: var(--cobalt-light); color: var(--cobalt); border-color: var(--cobalt); }
 </style>
 
 <div class="container-fluid py-5 px-lg-5">
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-end gap-3 mb-4">
+
+    <div class="page-header">
         <div>
-            <h4 class="fw-bold text-dark mb-1">Client Registry</h4>
-            <ul class="nav nav-tabs border-0 custom-main-tabs">
-                <li class="nav-item">
-                     <a class="nav-link text-uppercase active" href="#">All Customers</a>
-                </li>
-            </ul>
+            <h1>Client Registry</h1>
+            <span class="subtitle" id="headerCount">All Customers &nbsp;·&nbsp; {{ total_count }} Total Record{{ total_count|pluralize }}</span>
         </div>
-        
-        <div class="pb-2 d-flex flex-wrap align-items-center gap-2">
-            <a href="{% url 'import_dashboard' %}" class="btn btn-outline-primary-custom d-inline-flex align-items-center gap-2">
-                <i class="bi bi-cloud-arrow-up-fill"></i> BULK UPLOAD DATA
+        <div class="header-actions">
+            <a href="{% url 'import_dashboard' %}" class="btn-cobalt-outline">
+                <i class="bi bi-cloud-arrow-up-fill"></i> Bulk Upload Data
             </a>
-            <a href="{% url 'register_member' %}" class="btn btn-primary d-inline-flex align-items-center gap-2">
-                <i class="bi bi-person-plus-fill"></i> REGISTER NEW CUSTOMER
+            <a href="{% url 'register_member' %}" class="btn-cobalt">
+                <i class="bi bi-person-plus-fill"></i> Register New Customer
             </a>
         </div>
     </div>
 
-    <div class="card ms-registry-card">
-        <div class="card-header bg-white border-bottom py-3 px-4">
-            <div class="row align-items-center">
-                <div class="col-md-5">
-                    <div class="d-flex align-items-center search-container px-3 py-2">
-                        <i class="bi bi-search text-muted me-2"></i>
-                        <input type="text" id="memberSearch" class="form-control border-0 bg-transparent shadow-none" placeholder="Search by name, ID or phone...">
-                    </div>
-                </div>
-                <div class="col-md-7 text-end d-none d-md-block">
-                    <button class="btn btn-link text-muted text-decoration-none extra-small uppercase-tracking me-3">
-                        <i class="bi bi-sliders2 me-1"></i> ADVANCED FILTERS
-                    </button>
-                    <button class="btn btn-link text-muted text-decoration-none extra-small uppercase-tracking">
-                        <i class="bi bi-file-earmark-arrow-down me-1"></i> DOWNLOAD RECORDS
-                    </button>
-                </div>
+    <div class="registry-card">
+
+        <div class="card-toolbar">
+            <div class="search-wrap">
+                <i class="bi bi-search"></i>
+                <input type="text" id="searchInput" placeholder="Search name, ID or phone across all records…"
+                       value="{{ search_query }}" autocomplete="off">
+                <div class="search-spinner" id="searchSpinner"></div>
+                <button class="search-clear {% if search_query %}visible{% endif %}" id="searchClear" title="Clear">✕</button>
+            </div>
+
+            <span class="result-badge" id="resultBadge" {% if not search_query %}style="display:none"{% endif %}>
+                <i class="bi bi-funnel-fill" style="font-size:0.7rem;"></i>
+                <span id="badgeText">{{ total_count }} result{{ total_count|pluralize }}</span>
+            </span>
+
+            <div class="toolbar-right d-none d-md-flex">
+                <button class="icon-btn"><i class="bi bi-sliders2 me-1"></i> Filters</button>
+                <button class="icon-btn"><i class="bi bi-file-earmark-arrow-down me-1"></i> Export</button>
             </div>
         </div>
 
-        <div class="card-body p-0">
-            <div class="list-group list-group-flush" id="memberList">
-                {% for member in members %}
-                <div class="list-group-item px-4 py-4 member-row border-bottom">
-                    <div class="row align-items-center">
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center">
-                                {% if member.photo %}
-                                    <img src="{{ member.photo.url }}" class="rounded-circle me-3 border border-2 border-white shadow-sm" style="width: 52px; height: 52px; object-fit: cover;">
-                                {% else %}
-                                    <div class="rounded-circle avatar-placeholder d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 52px; height: 52px;">
-                                        <i class="bi bi-person text-muted fs-4"></i>
-                                    </div>
-                                {% endif %}
-                                <div>
-                                    <a href="{% url 'member_profile' member.id %}" class="text-decoration-none">
-                                        <h6 class="fw-bold mb-0 text-dark" style="font-size: 1.05rem;">{{ member.first_name }} {{ member.last_name }}</h6>
-                                    </a>
-                                    <div class="mt-1">
-                                        <span class="id-badge fw-bold">{{ member.member_number }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-3">
-                            <div class="d-flex flex-column">
-                                <span class="text-dark fw-600 mb-1" style="font-size: 0.9rem;">{{ member.gender|default:"Male" }}</span>
-                                <span class="text-muted extra-small uppercase-tracking">{{ member.age }} Years</span>
-                            </div>
-                        </div>
-
-                        <div class="col-md-5">
-                            <div class="row g-0">
-                                <div class="col-6">
-                                    <div class="extra-small text-muted mb-1 uppercase-tracking opacity-75">Contact</div>
-                                    <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ member.phone_number }}</div>
-                                </div>
-                                <div class="col-6 border-start ps-4">
-                                    <div class="extra-small text-muted mb-1 uppercase-tracking opacity-75">Address</div>
-                                    <div class="fw-bold text-dark" style="font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                        {{ member.village }}, {{ member.parish}}, {{ member.district}}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+        <ul class="member-list" id="memberList">
+            {% for member in members %}
+            <li class="member-row">
+                <div class="avatar">
+                    {% if member.photo %}
+                        <img src="{{ member.photo.url }}" alt="{{ member.first_name }}">
+                    {% else %}
+                        {{ member.first_name|slice:":1" }}{{ member.last_name|slice:":1" }}
+                    {% endif %}
+                </div>
+                <div class="member-info">
+                    <a href="{% url 'member_profile' member.id %}" class="member-name">{{ member.first_name }} {{ member.last_name }}</a>
+                    <span class="member-id">{{ member.member_number }}</span>
+                </div>
+                <div class="member-meta">
+                    <div class="meta-col">
+                        <span class="meta-label">Gender / Age</span>
+                        <span class="meta-value">{{ member.gender|default:"—" }} · {{ member.age }} yrs</span>
+                    </div>
+                    <div class="meta-col">
+                        <span class="meta-label">Contact</span>
+                        <span class="meta-value">{{ member.phone_number }}</span>
+                    </div>
+                    <div class="meta-col">
+                        <span class="meta-label">Address</span>
+                        <span class="meta-value">{{ member.village }}, {{ member.district }}</span>
                     </div>
                 </div>
-                {% empty %}
-                <div class="text-center py-5">
-                    <i class="bi bi-person-exclamation fs-1 text-muted opacity-25"></i>
-                    <p class="text-muted mt-3 fw-medium">No registered members found.</p>
-                </div>
+            </li>
+            {% empty %}
+            <li class="empty-state">
+                <div class="empty-icon"><i class="bi bi-person-exclamation"></i></div>
+                <p>{% if search_query %}No customers match "{{ search_query }}".{% else %}No registered customers found.{% endif %}</p>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="card-footer-bar" id="footerBar">
+            <div class="entry-count" id="entryCount">
+                {% if members.paginator.count %}
+                    Showing {{ members.start_index }}–{{ members.end_index }} of {{ total_count }} entr{{ total_count|pluralize:"y,ies" }}
+                {% else %}
+                    No results
+                {% endif %}
+            </div>
+            <nav><ul class="pagination" id="paginationList">
+                {% if members.has_previous %}
+                <li><button class="page-link nav" data-page="{{ members.previous_page_number }}">← Prev</button></li>
+                {% endif %}
+                {% for i in members.paginator.page_range %}
+                    {% if members.number == i %}
+                        <li><span class="page-link active">{{ i }}</span></li>
+                    {% elif i > members.number|add:'-3' and i < members.number|add:'3' %}
+                        <li><button class="page-link" data-page="{{ i }}">{{ i }}</button></li>
+                    {% endif %}
                 {% endfor %}
-            </div>
+                {% if members.has_next %}
+                <li><button class="page-link nav" data-page="{{ members.next_page_number }}">Next →</button></li>
+                {% endif %}
+            </ul></nav>
         </div>
 
-        <div class="card-footer bg-white py-4 px-4 border-top">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="text-muted uppercase-tracking extra-small opacity-75">
-                    Entry {{ members.start_index }} to {{ members.end_index }} of {{ total_count }}
-                </div>
-                
-                <nav>
-                    <ul class="pagination pagination-sm mb-0 gap-2">
-                        {% if members.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link border-0 rounded-3 text-dark bg-light px-3" href="?page={{ members.previous_page_number }}">Previous</a>
-                            </li>
-                        {% endif %}
-
-                        {% for i in members.paginator.page_range %}
-                            {% if members.number == i %}
-                                <li class="page-item active">
-                                    <span class="page-link border-0 rounded-3 bg-primary fw-bold text-white px-3 shadow-sm">{{ i }}</span>
-                                </li>
-                            {% elif i > members.number|add:'-3' and i < members.number|add:'3' %}
-                                <li class="page-item">
-                                    <a class="page-link border-0 rounded-3 text-muted bg-transparent px-3" href="?page={{ i }}">{{ i }}</a>
-                                </li>
-                            {% endif %}
-                        {% endfor %}
-
-                        {% if members.has_next %}
-                            <li class="page-item">
-                                <a class="page-link border-0 rounded-3 text-dark bg-light px-3" href="?page={{ members.next_page_number }}">Next</a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
-            </div>
-        </div>
     </div>
 </div>
 
 <script>
-    // Search Filter logic
-    document.getElementById('memberSearch').addEventListener('input', function() {
-        const filter = this.value.toLowerCase();
-        const rows = document.querySelectorAll('.member-row');
+(function () {
+    const searchInput  = document.getElementById('searchInput');
+    const spinner      = document.getElementById('searchSpinner');
+    const clearBtn     = document.getElementById('searchClear');
+    const badge        = document.getElementById('resultBadge');
+    const badgeTxt     = document.getElementById('badgeText');
+    const memberList   = document.getElementById('memberList');
+    const entryCount   = document.getElementById('entryCount');
+    const pagination   = document.getElementById('paginationList');
+    const headerCount  = document.getElementById('headerCount');
 
-        rows.forEach(row => {
-            const text = row.innerText.toLowerCase();
-            row.style.display = text.includes(filter) ? '' : 'none';
-        });
+    let debounceTimer, currentPage = 1;
+
+    /* ── Core fetch ── */
+    async function fetchResults(q, page) {
+        spinner.classList.add('active');
+        memberList.classList.add('loading');
+        history.replaceState(null, '', '?' + new URLSearchParams({ q, page }));
+
+        try {
+            const res  = await fetch('?' + new URLSearchParams({ q, page, partial: 1 }), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await res.json();
+
+            memberList.innerHTML  = data.rows_html;
+            entryCount.innerHTML  = data.entry_count_html;
+            pagination.innerHTML  = data.pagination_html;
+
+            const n = data.total_count;
+            if (q) {
+                headerCount.textContent = `${n} result${n !== 1 ? 's' : ''} for "${q}"`;
+                badgeTxt.textContent    = `${n} result${n !== 1 ? 's' : ''}`;
+                badge.style.display     = 'inline-flex';
+            } else {
+                headerCount.innerHTML = `All Customers &nbsp;·&nbsp; ${n} Total Record${n !== 1 ? 's' : ''}`;
+                badge.style.display   = 'none';
+            }
+
+            bindPagination();
+        } catch (e) {
+            console.error('Search error', e);
+        } finally {
+            spinner.classList.remove('active');
+            memberList.classList.remove('loading');
+        }
+    }
+
+    /* ── Input with debounce ── */
+    searchInput.addEventListener('input', function () {
+        clearBtn.classList.toggle('visible', this.value.length > 0);
+        currentPage = 1;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetchResults(this.value.trim(), 1), 280);
     });
+
+    /* ── Clear ── */
+    clearBtn.addEventListener('click', function () {
+        searchInput.value = '';
+        this.classList.remove('visible');
+        badge.style.display = 'none';
+        currentPage = 1;
+        fetchResults('', 1);
+        searchInput.focus();
+    });
+
+    /* ── Pagination (re-bound after every render) ── */
+    function bindPagination() {
+        pagination.querySelectorAll('[data-page]').forEach(btn => {
+            btn.addEventListener('click', function () {
+                currentPage = parseInt(this.dataset.page, 10);
+                fetchResults(searchInput.value.trim(), currentPage);
+                document.querySelector('.registry-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+    }
+    bindPagination();
+})();
 </script>
 {% endblock %}

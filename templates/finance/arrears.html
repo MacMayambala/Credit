@@ -2,83 +2,224 @@
 {% load humanize %}
 
 {% block content %}
-<!-- Professional Typography Import -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 <style>
+    /* Integrated Enterprise Banking Tokens mapping with App Architecture */
     :root {
-        --ms-danger: #dc2626;
-        --ms-warning: #f59e0b;
-        --ms-primary: #1e40af;
-        --ms-text-main: #1e293b;
-        --ms-bg: #f8fafc;
+        --sacco-primary: #1632af;       
+        --sacco-primary-hover: #2a4ad8; 
+        --sacco-header-bg: #5f748d;     
+        --sacco-text-dark: var(--text-primary, #0f172a);     
+        --sacco-text-muted: var(--text-secondary, #64748b);    
+        --sacco-bg: var(--bg, #f8fafc);            
+        --sacco-border: var(--border-color, #e2e8f0);        
+        --sacco-card-bg: var(--card-bg, #ffffff);
+        
+        /* Financial Risk Aging System Standardized Colors */
+        --risk-watchlist: #f59e0b;
+        --risk-substandard: #3b82f6;
+        --risk-doubtful: #ef4444;
     }
 
     body {
-        background-color: var(--ms-bg);
-        font-family: 'Inter', sans-serif;
-        color: var(--ms-text-main);
+        background-color: var(--sacco-bg);
+        color: var(--sacco-text-dark);
+        -webkit-font-smoothing: antialiased;
     }
 
-    .ls-tight { letter-spacing: -0.025em; }
+    /* Clear Scannability Utility Configurations */
+    .ls-tight { letter-spacing: -0.02em; }
     .uppercase-tracking { 
         text-transform: uppercase; 
         letter-spacing: 0.05em; 
         font-weight: 700;
         font-size: 0.72rem;
     }
-
-    /* Risk Cards */
-    .risk-card {
-        border-radius: 16px;
-        transition: transform 0.2s ease;
-    }
-    .risk-card:hover { transform: translateY(-3px); }
-
     .amount-display {
-        font-family: 'Inter', sans-serif;
-        font-weight: 800;
+        font-weight: 700;
         letter-spacing: -0.03em;
     }
 
-    /* Table Polish */
-    .par-table thead th {
-        background-color: #ffffff;
-        padding: 1.25rem 1rem;
-        border-bottom: 2px solid #f1f5f9;
-    }
-
-    .member-name {
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: var(--ms-text-main);
-    }
-
-    .days-badge {
-        font-weight: 700;
-        padding: 0.5rem 1rem;
-    }
-
-    /* Alert Styling */
-    .custom-alert {
+    /* Enterprise Component Structural Blueprints */
+    .card-enterprise {
+        background: var(--sacco-card-bg);
+        border: 1px solid var(--sacco-border);
         border-radius: 12px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .risk-card:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.04);
+    }
+    
+    .risk-border-danger { border-top: 4px solid var(--risk-doubtful); }
+    .risk-border-warning { border-top: 4px solid var(--risk-watchlist); }
+    .risk-border-primary { border-top: 4px solid var(--sacco-primary); }
+
+    /* Polished Input Form Frameworks */
+    .form-control-banking, .form-select-banking {
+        border: 1px solid var(--sacco-border);
+        background-color: var(--sacco-card-bg);
+        color: var(--sacco-text-dark);
+        border-radius: 6px;
+        font-size: 0.88rem;
+        padding: 0.45rem 0.75rem;
+    }
+    .form-control-banking:focus, .form-select-banking:focus {
+        border-color: var(--sacco-primary);
+        box-shadow: 0 0 0 3px rgba(22, 50, 175, 0.12);
+        outline: none;
+        background-color: var(--sacco-card-bg);
+        color: var(--sacco-text-dark);
+    }
+
+    /* Inline Control Grouping Systems */
+    .date-badge-container {
+        border: 1px solid var(--sacco-border);
+        background: var(--sacco-card-bg);
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.6rem;
+    }
+    .date-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--sacco-text-muted);
+        margin-right: 0.5rem;
+    }
+
+    /* Specialized Scrollable Table Engine with Sticky Matrix Headers */
+    .table-container-sticky {
+        max-height: 550px;
+        overflow-y: auto;
+        overflow-x: auto;
+        position: relative;
+        border: 1px solid var(--sacco-border);
+        border-radius: 8px;
+        background-color: var(--sacco-card-bg);
+    }
+    
+    .par-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        margin-bottom: 0;
+        min-width: 1200px; 
+    }
+
+    /* Dynamic Intersection Fixed Header Processing Layout */
+    .par-table thead th {
+        position: sticky;
+        top: 0;
+        background-color: var(--sacco-header-bg);
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0.85rem 1rem;
+        z-index: 20; 
         border: none;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        box-shadow: inset 0 -1px 0 var(--sacco-border);
+    }
+
+    /* Multi-Dimensional Left-Column Sticky Coordinates */
+    .par-table thead th.sticky-col-1,
+    .par-table tbody td.sticky-col-1 {
+        position: sticky;
+        left: 0;
+        z-index: 15;
+    }
+    .par-table thead th.sticky-col-2,
+    .par-table tbody td.sticky-col-2 {
+        position: sticky;
+        left: 45px; 
+        z-index: 15;
+    }
+
+    /* Intersection Cell Background Override Compilations */
+    .par-table thead th.sticky-col-1,
+    .par-table thead th.sticky-col-2 {
+        z-index: 30 !important; 
+        background-color: var(--sacco-header-bg) !important;
+    }
+    .par-table tbody td.sticky-col-1 {
+        background-color: var(--sacco-card-bg) !important;
+        box-shadow: inset -1px -1px 0 var(--sacco-border);
+    }
+    .par-table tbody td.sticky-col-2 {
+        background-color: var(--sacco-card-bg) !important;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.03), inset -1px -1px 0 var(--sacco-border); 
+    }
+
+    /* Table Row Alternate Contrast Configurations */
+    .par-table tbody tr:nth-of-type(even) td {
+        background-color: rgba(0, 0, 0, 0.015);
+    }
+    .par-table tbody tr:nth-of-type(even) td.sticky-col-1,
+    .par-table tbody tr:nth-of-type(even) td.sticky-col-2 {
+        background-color: var(--sacco-bg) !important;
+    }
+    .par-table tbody tr:hover td {
+        background-color: var(--hover-bg, #f1f5f9) !important;
+    }
+    .par-table tbody tr:hover td.sticky-col-1,
+    .par-table tbody tr:hover td.sticky-col-2 {
+        background-color: var(--hover-bg, #f1f5f9) !important;
+    }
+
+    .par-table tbody td {
+        padding: 0.85rem 1rem;
+        font-size: 0.88rem;
+        color: var(--sacco-text-dark);
+        border-bottom: 1px solid var(--sacco-border);
+    }
+
+    .member-link {
+        color: var(--sacco-primary);
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .member-link:hover {
+        text-decoration: underline;
+        color: var(--sacco-primary-hover);
+    }
+
+    .custom-alert {
+        border-radius: 8px;
+        border: none;
+    }
+
+    .fullscreen-mode {
+        position: fixed !important;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        z-index: 9999; background: var(--sacco-bg);
+        overflow-y: auto; padding: 2rem;
+    }
+
+    @media print {
+        body { background: #ffffff; color: #000000; }
+        .no-print { display: none !important; }
+        .table-container-sticky { max-height: none !important; overflow: visible !important; border: none !important; }
+        .par-table { min-width: 100% !important; }
+        .par-table thead th { position: static !important; background-color: var(--sacco-header-bg) !important; color: #ffffff !important; }
+        .par-table thead th.sticky-col-1, .par-table thead th.sticky-col-2,
+        .par-table tbody td.sticky-col-1, .par-table tbody td.sticky-col-2 { position: static !important; background-color: transparent !important; box-shadow: none !important; }
     }
 </style>
 
-<div class="container-fluid py-4 px-lg-5">
+<div class="container-fluid py-3 px-lg-4" id="reportDashboardContainer">
 
-    <!-- Notifications -->
     {% if messages %}
-    <div class="row mb-4">
+    <div class="row mb-3 no-print">
         <div class="col-12">
             {% for message in messages %}
             <div class="alert custom-alert {% if message.tags == 'success' %}bg-success text-white{% else %}bg-danger text-white{% endif %} alert-dismissible fade show" role="alert">
                 <div class="d-flex align-items-center">
-                    <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% else %}bi-exclamation-triangle-fill{% endif %} fs-4 me-3"></i>
+                    <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% else %}bi-exclamation-triangle-fill{% endif %} fs-5 me-2"></i>
                     <div>
-                        <span class="fw-bold">System:</span> {{ message }}
+                        <span class="fw-bold">System Telemetry:</span> {{ message }}
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
@@ -88,145 +229,241 @@
     </div>
     {% endif %}
 
-    <!-- Header & Total Risk -->
-    <div class="row align-items-end mb-5 g-4">
-        <div class="col-md-7">
-            <h2 class="fw-bold text-dark ls-tight mb-1">Portfolio at Risk</h2>
-            <p class="text-muted mb-0">Arrears Analysis & Delinquency Tracking as of <span class="fw-bold text-dark">{% now "d M Y" %}</span></p>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-2 border-bottom pb-3">
+        <div>
+            <h4 class="fw-bold text-dark ls-tight mb-0">
+                <span class="text-muted fw-normal">Reports /</span> Loans In Arrears
+            </h4>
         </div>
-        
-        <div class="col-md-5">
-            <div class="card border-0 shadow-sm bg-danger text-white risk-card overflow-hidden">
-                <div class="card-body p-4 position-relative" style="z-index: 1;">
-                    <div class="uppercase-tracking opacity-75 mb-1">Total Principal at Risk</div>
-                    <h2 class="amount-display mb-0">UGX {{ total_at_risk|floatformat:0|intcomma }}</h2>
-                    <i class="bi bi-shield-exclamation position-absolute top-50 end-0 translate-middle-y me-4 opacity-25" style="font-size: 4rem;"></i>
-                </div>
-            </div>
+        <div class="no-print">
+            <button class="btn btn-link text-decoration-none text-muted fw-medium p-0 small" data-bs-toggle="modal" data-bs-target="#columnConfigModal">
+                <i class="bi bi-pencil-square me-1"></i> Edit columns
+            </button>
         </div>
     </div>
 
-    <!-- Aging Buckets -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm risk-card border-top border-4 border-warning">
-                <div class="card-body p-4 text-center text-md-start">
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                        <div class="bg-warning bg-opacity-10 p-2 rounded text-warning"><i class="bi bi-clock-history"></i></div>
-                        <span class="uppercase-tracking text-muted">1–30 Days <span class="fw-normal">(Watchlist)</span></span>
+    <form method="GET" action="" id="reportingEngineFilterForm" class="no-print mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 bg-white p-3 rounded border shadow-sm" style="background-color: var(--sacco-card-bg) !important; border-color: var(--sacco-border) !important;">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div style="min-width: 240px;">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search_query" value="{{ request.GET.search_query }}" class="form-control form-control-banking border-start-0 ps-0" placeholder="Search accounts...">
                     </div>
-                    <h3 class="fw-bold text-dark mb-0 amount-display">UGX {{ watchlist_total|default:0|floatformat:0|intcomma }}</h3>
                 </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm risk-card border-top border-4 border-primary">
-                <div class="card-body p-4 text-center text-md-start">
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                        <div class="bg-primary bg-opacity-10 p-2 rounded text-primary"><i class="bi bi-graph-down-arrow"></i></div>
-                        <span class="uppercase-tracking text-muted">31–60 Days <span class="fw-normal">(Substandard)</span></span>
-                    </div>
-                    <h3 class="fw-bold text-dark mb-0 amount-display">UGX {{ substandard_total|default:0|floatformat:0|intcomma }}</h3>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm risk-card border-top border-4 border-danger">
-                <div class="card-body p-4 text-center text-md-start">
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                        <div class="bg-danger bg-opacity-10 p-2 rounded text-danger"><i class="bi bi-exclamation-octagon"></i></div>
-                        <span class="uppercase-tracking text-muted">60+ Days <span class="fw-normal">(Doubtful)</span></span>
-                    </div>
-                    <h3 class="fw-bold text-dark mb-0 amount-display">UGX {{ doubtful_total|default:0|floatformat:0|intcomma }}</h3>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Delinquency Table -->
-    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 16px;">
-        <div class="card-header bg-white py-4 px-4 d-flex justify-content-between align-items-center border-bottom">
+                <div class="date-badge-container">
+                    <span class="date-label">DATE AS AT</span>
+                    <input type="text" name="date_at" value="{% if request.GET.date_at %}{{ request.GET.date_at }}{% else %}{% now 'Y-m-d' %}{% endif %}" class="border-0 p-0 text-dark fw-semibold small bg-transparent" style="width: 95px; outline: none;" placeholder="YYYY-MM-DD">
+                    <button type="button" class="btn-close ms-1 small" style="font-size: 0.6rem;" onclick="this.previousElementSibling.value='';"></button>
+                </div>
+                
+                <button type="button" class="btn btn-sm btn-light border p-2 d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#advancedFilterModal" title="Add Query Metric">
+                    <i class="bi bi-funnel-fill text-muted"></i>
+                </button>
+            </div>
+
             <div>
-                <h5 class="fw-bold mb-0">Delinquent Installments</h5>
-                <p class="small text-muted mb-0">{{ overdue.count }} active arrears detected</p>
-            </div>
-            
-            <div class="d-flex gap-3">
-                <button onclick="window.print()" class="btn btn-outline-secondary btn-sm px-4 rounded-pill fw-bold">
-                    <i class="bi bi-printer me-2"></i> EXPORT REPORT
-                </button>
-                <button type="button" class="btn btn-danger btn-sm px-4 rounded-pill fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#bulkSMSModal">
-                    <i class="bi bi-chat-left-dots-fill me-2"></i> SEND REMINDERS
+                <button type="submit" class="btn btn-sm text-white px-4 fw-semibold tracking-wider text-uppercase" style="background-color: var(--sacco-primary); border-color: var(--sacco-primary); font-size:0.78rem;">
+                    <i class="bi bi-gear-wide-connected me-1"></i> Generate
                 </button>
             </div>
         </div>
-        
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table par-table align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr class="uppercase-tracking text-muted">
-                            <th class="ps-4">Member Account</th>
-                            <th>Loan Ref</th>
-                            <th class="text-center">Aging</th>
-                            <th class="text-end">Balance Due</th>
-                            <th class="text-end pe-4">Manage</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for inst in overdue %}
-                        <tr>
-                            <td class="ps-4 py-3">
-                                <div class="member-name">{{ inst.loan.member.get_full_name }}</div>
-                                <div class="text-muted extra-small fw-bold"><i class="bi bi-phone me-1"></i> {{ inst.loan.member.phone_number }}</div>
-                            </td>
-                            <td>
-                                <span class="badge bg-light text-primary border border-primary border-opacity-25 px-3 py-2 fw-bold">
-                                    #{{ inst.loan.loan_reference|default:inst.loan.id }}
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge days-badge rounded-pill {% if inst.days_overdue > 60 %}bg-danger{% elif inst.days_overdue > 30 %}bg-primary{% else %}bg-warning text-dark{% endif %}">
-                                    {{ inst.days_overdue }} DAYS
-                                </span>
-                                <div class="text-muted extra-small mt-1 fw-bold">DUE {{ inst.due_date|date:"d M Y" }}</div>
-                            </td>
-                            <td class="text-end fw-bold text-dark amount-display">
-                                UGX {{ inst.total_due|floatformat:0|intcomma }}
-                            </td>
-                            <td class="text-end pe-4">
-                                <a href="{% url 'member_profile' inst.loan.member.id %}" class="btn btn-sm btn-light border px-3 rounded-pill fw-bold">
-                                    Profile
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 pt-3 border-top">
+            <div class="d-flex align-items-center gap-2">
+                <select name="group_by" class="form-select form-select-banking form-select-sm" style="width: 150px;">
+                    <option value="">Group by</option>
+                    <option value="branch" {% if request.GET.group_by == 'branch' %}selected{% endif %}>Branch</option>
+                    <option value="officer" {% if request.GET.group_by == 'officer' %}selected{% endif %}>Credit Officer</option>
+                </select>
+
+                <select name="sort_by" class="form-select form-select-banking form-select-sm" style="width: 150px;">
+                    <option value="">Sort by</option>
+                    <option value="days" {% if request.GET.sort_by == 'days' %}selected{% endif %}>Days in Arrears</option>
+                    <option value="amount" {% if request.GET.sort_by == 'amount' %}selected{% endif %}>Total Arrears</option>
+                </select>
+
+                <button type="button" class="btn btn-sm btn-light border text-uppercase px-3 fw-semibold text-dark" style="font-size:0.75rem;" data-bs-toggle="modal" data-bs-target="#exportEngineModal">
+                    <i class="bi bi-download me-1"></i> Download Report
+                </button>
+                
+                <button type="button" class="btn btn-sm btn-light border text-uppercase px-3 fw-semibold text-dark" style="font-size:0.75rem;" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> Print
+                </button>
+            </div>
+
+            <div>
+                <button type="button" class="btn btn-sm btn-light border-0 text-muted" onclick="toggleFullscreenContainer()" title="Toggle Presentation Focus">
+                    <i class="bi bi-fullscreen" id="fullscreenIcon"></i>
+                </button>
             </div>
         </div>
+    </form>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+            <div class="card-enterprise p-3 risk-border-danger risk-card">
+                <div class="uppercase-tracking text-muted mb-1">TOTAL ARREARS</div>
+                <h4 class="amount-display text-dark mb-0">UGX {{ total_at_risk|default:0|floatformat:0|intcomma }}</h4>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+            <div class="card-enterprise p-3 risk-border-warning risk-card">
+                <div class="uppercase-tracking text-muted mb-1">1–30 DAYS ARREARS</div>
+                <h5 class="amount-display text-dark mb-0">UGX {{ watchlist_total|default:0|floatformat:0|intcomma }}</h5>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+            <div class="card-enterprise p-3 risk-border-primary risk-card">
+                <div class="uppercase-tracking text-muted mb-1">31–60 DAYS ARREARS</div>
+                <h5 class="amount-display text-dark mb-0">UGX {{ substandard_total|default:0|floatformat:0|intcomma }}</h5>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+            <div class="card-enterprise p-3 risk-border-danger risk-card">
+                <div class="uppercase-tracking text-muted mb-1">61+ DAYS ARREARS</div>
+                <h5 class="amount-display text-dark mb-0">UGX {{ doubtful_total|default:0|floatformat:0|intcomma }}</h5>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+            <div class="card-enterprise p-3 risk-card" style="border-top: 4px solid #10b981;">
+                <div class="uppercase-tracking text-muted mb-1">PAR % RATE</div>
+                <h5 class="amount-display text-success mb-0">{{ par_rate|default:"0.00" }}%</h5>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+            <div class="card-enterprise p-3 risk-card" style="border-top: 4px solid #64748b;">
+                <div class="uppercase-tracking text-muted mb-1">DELINQUENT MEMB.</div>
+                <h5 class="amount-display text-dark mb-0">{% if is_paginated %}{{ page_obj.paginator.count }}{% else %}{{ overdue|length }}{% endif %} Accs</h5>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white border rounded shadow-sm overflow-hidden" style="background-color: var(--sacco-card-bg); border-color: var(--sacco-border) !important;">
+        <div class="table-container-sticky">
+            <table class="table par-table align-middle">
+                <thead>
+                    <tr>
+                        <th class="ps-3 sticky-col-1" style="width: 50px;">#</th>
+                        <th class="sticky-col-2" style="width: 120px;">Member No</th>
+                        <th>Borrower Name</th>
+                        <th>Phone Node</th>
+                        <th>Loan Reference</th>
+                        <th class="text-end">Principal Portion</th>
+                        <th class="text-end">Interest Portion</th>
+                        <th class="text-end">Outstanding Arrears</th>
+                        <th class="text-center">Days Overdue</th>
+                        <th class="no-print text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inst in overdue %}
+                    <tr>
+                        <td class="ps-3 text-muted small fw-medium sticky-col-1">
+                            {% if is_paginated %}
+                                {{ page_obj.start_index|add:forloop.counter0 }}
+                            {% else %}
+                                {{ forloop.counter }}
+                            {% endif %}
+                        </td>
+                        
+                        <td class="sticky-col-2">
+                            <a href="{% url 'member_profile' inst.loan.member.id %}" class="member-link small">
+                                {{ inst.loan.member.member_number|default:inst.loan.member.id }}
+                            </a>
+                        </td>
+                        
+                        <td class="fw-semibold text-dark">{{ inst.loan.member.get_full_name }}</td>
+                        
+                        <td class="text-muted small">{{ inst.loan.member.phone_number|default:"—" }}</td>
+                        
+                        <td>
+                            <span class="badge bg-light text-dark border px-2 py-1 small fw-normal" style="color: var(--sacco-text-dark) !important; border-color: var(--sacco-border) !important; background-color: var(--sacco-bg) !important;">
+                                {{ inst.loan.loan_reference|default:inst.loan.id }}
+                            </span>
+                        </td>
+                        
+                        <td class="text-end small text-muted">
+                            {{ inst.principal_portion|default:0|floatformat:0|intcomma }}
+                        </td>
+                        <td class="text-end small text-muted">
+                            {{ inst.interest_portion|default:0|floatformat:0|intcomma }}
+                        </td>
+                        <td class="text-end fw-bold text-dark amount-display">
+                            {{ inst.amount_remaining|floatformat:0|intcomma }}
+                        </td>
+
+                        <td class="text-center">
+                            <span class="badge rounded {% if inst.days_overdue > 60 %}bg-danger{% elif inst.days_overdue > 30 %}bg-primary{% else %}bg-warning text-dark{% endif %} px-2 py-1 fw-bold small">
+                                {{ inst.days_overdue|default:0 }} Days
+                            </span>
+                        </td>
+                        
+                        <td class="text-center no-print">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light border py-0 px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                    <li><button type="button" class="dropdown-item small" data-bs-toggle="modal" data-bs-target="#directCommunicationModal" data-phone="{{ inst.loan.member.phone_number }}"><i class="bi bi-chat-left-text text-primary me-2"></i> Send Reminder SMS</button></li>
+                                    <li><a class="dropdown-item small" href="{% url 'member_profile' inst.loan.member.id %}"><i class="bi bi-person-bounding-box text-secondary me-2"></i> View Customer Profile</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center py-5 text-muted fw-medium">
+                            No exception balance parameters match the active processing frame.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if is_paginated %}
+        <div class="border-top px-3 py-2 d-flex align-items-center justify-content-between no-print" style="background-color: var(--sacco-card-bg); border-color: var(--sacco-border) !important;">
+            <div class="text-muted small">
+                Showing rows <span class="fw-bold text-dark">{{ page_obj.start_index }}</span> to <span class="fw-bold text-dark">{{ page_obj.end_index }}</span> of <span class="fw-bold text-dark">{{ page_obj.paginator.count }}</span>
+            </div>
+            <nav aria-label="Table Navigation Engine">
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link border text-dark" href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a></li>
+                    {% endif %}
+                    <li class="page-item active"><a class="page-link border-0 text-white" style="background-color: var(--sacco-primary);" href="#">{{ page_obj.number }}</a></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link border text-dark" href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="mt-4 d-flex justify-content-end no-print">
+        <button type="button" class="btn btn-sm btn-danger px-4 py-2 rounded font-weight-bold" data-bs-toggle="modal" data-bs-target="#bulkSMSModal">
+            <i class="bi bi-chat-left-dots-fill me-2"></i> Trigger Delinquency SMS Reminders
+        </button>
     </div>
 </div>
 
-<!-- Bulk SMS Modal -->
 <div class="modal fade" id="bulkSMSModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
-            <div class="modal-body text-center p-5">
-                <div class="bg-danger bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px;">
-                    <i class="bi bi-chat-right-text-fill text-danger fs-2"></i>
-                </div>
-                <h4 class="fw-bold text-dark mb-2">Execute Bulk Notifications?</h4>
-                <p class="text-muted mb-4">
-                    Send arrears reminders to <strong>{{ overdue.count }}</strong> members. This action will deduct SMS credits from your provider balance.
+        <div class="modal-content border-0 shadow-lg" style="background-color: var(--sacco-card-bg);">
+            <div class="modal-body text-center p-4">
+                <div class="text-danger mb-3"><i class="bi bi-exclamation-triangle-fill fs-1"></i></div>
+                <h5 class="fw-bold text-dark mb-2">Execute Automated Notification Dispatches?</h5>
+                <p class="text-muted small mb-4">
+                    This triggers automated compliance alerts across network protocols directly to all detected loan portfolios currently within exception status boundaries.
                 </p>
                 <div class="d-flex flex-column gap-2">
-                    <a href="{% url 'bulk_sms_reminder' %}" class="btn btn-danger btn-lg rounded-pill fw-bold py-3 shadow-sm">
-                        Confirm & Send SMS
+                    <a href="{% url 'bulk_sms_reminder' %}" class="btn btn-danger rounded fw-bold py-2 shadow-sm">
+                        Confirm Transmission Pipeline
                     </a>
-                    <button type="button" class="btn btn-link text-muted fw-bold text-decoration-none py-2" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-light text-muted fw-semibold py-2 btn-sm border" data-bs-dismiss="modal">
                         Cancel Action
                     </button>
                 </div>
@@ -234,4 +471,130 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="exportEngineModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: var(--sacco-card-bg);">
+            <div class="modal-header" style="border-bottom-color: var(--sacco-border);">
+                <h6 class="modal-title fw-bold text-dark"><i class="bi bi-file-earmark-spreadsheet-fill text-success me-2"></i>Export Core Report Document</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="uppercase-tracking d-block mb-1 text-muted">Data Output Standard</label>
+                    <select class="form-select form-select-banking" id="exportEngineStandard">
+                        <option value="csv">Comma-Separated Flat Values Layer (.csv)</option>
+                        <option value="excel">Mifos / Sacco System Compliant Matrix Layout (.xlsx)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2" style="background-color: var(--sacco-bg) !important; border-top-color: var(--sacco-border);">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-sm btn-success px-3 fw-bold" onclick="executeExportDownloadPipeline()">Download Document Stream</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="columnConfigModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: var(--sacco-card-bg);">
+            <div class="modal-header" style="border-bottom-color: var(--sacco-border);">
+                <h6 class="modal-title fw-bold text-dark"><i class="bi bi-sliders me-2 text-primary"></i>Configure Workspace Field Nodes</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" value="" id="colMembNo" checked disabled>
+                    <label class="form-check-label text-dark small" for="colMembNo">Member Number Reference Key</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" value="" id="colPhone" checked>
+                    <label class="form-check-label text-dark small" for="colPhone">Phone Communication Node</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" value="" id="colArrears" checked>
+                    <label class="form-check-label text-dark small" for="colArrears">Split Balance Ledger Arrays</label>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2" style="background-color: var(--sacco-bg) !important; border-top-color: var(--sacco-border);">
+                <button type="button" class="btn btn-sm btn-dark w-100" data-bs-dismiss="modal">Re-index Views</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="advancedFilterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: var(--sacco-card-bg);">
+            <div class="modal-header" style="border-bottom-color: var(--sacco-border);">
+                <h6 class="modal-title fw-bold text-dark"><i class="bi bi-funnel-fill me-2 text-warning"></i>Deep Query Modifier Stack</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="mb-3">
+                    <label class="uppercase-tracking d-block mb-1 text-muted">Minimal Arrears Amount Threshold (UGX)</label>
+                    <input type="number" name="min_arrears" value="{{ request.GET.min_arrears }}" class="form-control form-control-banking form-control-sm" placeholder="e.g. 500000">
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2" style="background-color: var(--sacco-bg) !important; border-top-color: var(--sacco-border);">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Clear</button>
+                <button type="button" class="btn btn-sm btn-primary" style="background-color: var(--sacco-primary); border-color: var(--sacco-primary);" onclick="applyAdvancedFilterLayer()">Apply Filter Matrix</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleFullscreenContainer() {
+        const dashboard = document.getElementById('reportDashboardContainer');
+        const icon = document.getElementById('fullscreenIcon');
+        
+        if (!document.fullscreenElement) {
+            dashboard.classList.add('fullscreen-mode');
+            icon.classList.replace('bi-fullscreen', 'bi-fullscreen-exit');
+            dashboard.requestFullscreen().catch(() => {});
+        } else {
+            dashboard.classList.remove('fullscreen-mode');
+            icon.classList.replace('bi-fullscreen-exit', 'bi-fullscreen');
+            document.exitFullscreen().catch(() => {});
+        }
+    }
+
+    function applyAdvancedFilterLayer() {
+        const advancedModal = document.getElementById('advancedFilterModal');
+        const minArrearsInput = advancedModal.querySelector('input[name="min_arrears"]');
+        const mainForm = document.getElementById('reportingEngineFilterForm');
+        
+        let hiddenInput = mainForm.querySelector('input[name="min_arrears"]');
+        if (!hiddenInput) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'min_arrears';
+            mainForm.appendChild(hiddenInput);
+        }
+        
+        hiddenInput.value = minArrearsInput.value;
+        mainForm.submit();
+    }
+
+    function executeExportDownloadPipeline() {
+        const formatType = document.getElementById('exportEngineStandard').value;
+        const currentUrlParams = new URLSearchParams(window.location.search);
+        
+        currentUrlParams.set('format', formatType);
+        
+        const modalElement = document.getElementById('exportEngineModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+        
+        window.location.href = `${window.location.pathname}?${currentUrlParams.toString()}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log("Automated FinTech Reporting Interface Context Mounted.");
+    });
+</script>
 {% endblock %}

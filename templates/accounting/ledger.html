@@ -2,115 +2,111 @@
 {% load humanize %}
 
 {% block content %}
-<!-- Header Section -->
-<div class="row mb-4 align-items-center">
-    <div class="col-md-6">
-        <h2 class="fw-bold mb-1" style="color: var(--brand-cobalt); letter-spacing: -1px;">General Ledger</h2>
-        <div class="d-flex align-items-center gap-3">
-            <p class="text-muted small mb-0">Tracking all system inflows and outflows</p>
-            <span class="badge rounded-pill px-3 py-2" style="background-color: rgba(22, 50, 175, 0.1); color: var(--brand-cobalt); border: 1px solid rgba(22, 50, 175, 0.2);">
-                <i class="bi bi-wallet2 me-1"></i> Cash Balance: <strong>UGX {{ net_cash|intcomma }}</strong>
-            </span>
+<div class="container-fluid py-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-6">
+            <h2 class="fw-bold mb-1" style="color: #1632AF; letter-spacing: -1px;">General Ledger</h2>
+            <div class="d-flex align-items-center gap-3">
+                <p class="text-muted small mb-0">Tracking all system inflows and outflows</p>
+                <span class="badge rounded-pill px-3 py-2" style="background-color: rgba(22, 50, 175, 0.1); color: #1632AF; border: 1px solid rgba(22, 50, 175, 0.2);">
+                    <i class="bi bi-wallet2 me-1"></i> Cash Balance: <strong>UGX {{ net_cash|intcomma }}</strong>
+                </span>
+            </div>
+        </div>
+        <div class="col-md-6 text-md-end mt-3 mt-md-0">
+            <div class="btn-group shadow-sm rounded-3 overflow-hidden">
+                <a href="{% url 'record_inflow' %}" class="btn text-white border-0 px-4 py-2 fw-bold" style="background-color: #1632AF; font-size: 0.85rem;">
+                    <i class="bi bi-plus-circle me-2"></i> RECORD INFLOW
+                </a>
+                <a href="{% url 'record_expense' %}" class="btn border-0 px-4 py-2 fw-bold" style="background-color: #e2e8f0; font-size: 0.85rem; color: #1632AF;">
+                    <i class="bi bi-dash-circle me-2"></i> RECORD OUTFLOW
+                </a>
+            </div>
         </div>
     </div>
-    <div class="col-md-6 text-md-end mt-3 mt-md-0">
-        <div class="btn-group shadow-sm rounded-3 overflow-hidden">
-            <!-- Link to Inflow/Income recording -->
-            <a href="{% url 'record_inflow' %}" class="btn btn-success border-0 px-4 py-2 fw-bold" style="font-size: 0.85rem;">
-                <i class="bi bi-plus-circle me-2"></i> RECORD INFLOW
-            </a>
-            
-            <!-- Link to Expense recording -->
-            <a href="{% url 'record_expense' %}" class="btn btn-danger border-0 px-4 py-2 fw-bold" style="font-size: 0.85rem;">
-                <i class="bi bi-dash-circle me-2"></i> RECORD OUTFLOW
-            </a>
-        </div>
-    </div>
-</div>
 
-<!-- Ledger Table Card -->
-<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                <tr style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b;">
-                    <th class="ps-4 py-3">Date</th>
-                    <th class="py-3">Account (COA)</th>
-                    <th class="py-3">Description</th>
-                    <th class="py-3 text-end">Inflow (+)</th>
-                    <th class="py-3 text-end pe-4">Outflow (-)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for tx in transactions %}
-                <tr class="transition-all">
-                    <td class="ps-4 py-3 small text-muted">{{ tx.date|date:"d M, Y" }}</td>
-                    <td>
-                        <span class="fw-bold text-dark">{{ tx.account.name }}</span>
-                        <div class="text-muted" style="font-size: 0.7rem;">Code: {{ tx.account.code }}</div>
-                    </td>
-                    <td class="small">{{ tx.description }}</td>
-                    
-                    <!-- Inflow Logic: Show if Credit has value (Income side) -->
-                    <td class="text-end fw-bold text-success">
-                        {% if tx.credit > 0 %} 
-                            UGX {{ tx.credit|intcomma }} 
-                        {% else %} 
-                            <span class="text-light">-</span> 
-                        {% endif %}
-                    </td>
-                    
-                    <!-- Outflow Logic: Show if Debit has value (Expense side) -->
-                    <td class="text-end pe-4 fw-bold text-danger">
-                        {% if tx.debit > 0 %} 
-                            UGX {{ tx.debit|intcomma }} 
-                        {% else %} 
-                            <span class="text-light">-</span> 
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center py-5">
-                        <i class="bi bi-folder2-open display-4 text-light d-block mb-3"></i>
-                        <span class="text-muted">No ledger entries found for the selected period.</span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            
-            {% if transactions %}
-            <tfoot class="bg-light fw-bold">
-                <tr>
-                    <td colspan="3" class="ps-4 py-3 text-uppercase" style="font-size: 0.75rem;">Total Movement</td>
-                    <td class="text-end text-success h6 mb-0">UGX {{ total_inflow|intcomma }}</td>
-                    <td class="text-end pe-4 text-danger h6 mb-0">UGX {{ total_outflow|intcomma }}</td>
-                </tr>
-            </tfoot>
-            {% endif %}
-        </table>
+    <form method="GET" class="row g-3 mb-4 align-items-end">
+        <div class="col-md-3">
+            <label class="small text-muted fw-bold text-uppercase" style="letter-spacing: 0.5px;">Start Date</label>
+            <input type="date" name="start_date" class="form-control rounded-3 border-2 shadow-none" 
+                   style="border-color: #e2e8f0; padding: 0.6rem 1rem;" value="{{ start_date }}">
+        </div>
+        <div class="col-md-3">
+            <label class="small text-muted fw-bold text-uppercase" style="letter-spacing: 0.5px;">End Date</label>
+            <input type="date" name="end_date" class="form-control rounded-3 border-2 shadow-none" 
+                   style="border-color: #e2e8f0; padding: 0.6rem 1rem;" value="{{ end_date }}">
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn text-white px-4 fw-bold shadow-sm" style="background-color: #1632AF; padding: 0.6rem 1.5rem;">
+                <i class="bi bi-filter me-2"></i> FILTER REPORT
+            </button>
+            <a href="{% url 'general_ledger' %}" class="btn btn-light px-3 fw-bold text-muted border-0 shadow-sm" style="padding: 0.6rem 1rem;">
+                <i class="bi bi-x-circle"></i>
+            </a>
+        </div>
+    </form>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                    <tr style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b;">
+                        <th class="ps-4 py-3">Date</th>
+                        <th class="py-3">Account (COA)</th>
+                        <th class="py-3">Description</th>
+                        <th class="py-3 text-end">Inflow (+)</th>
+                        <th class="py-3 text-end pe-4">Outflow (-)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr class="transition-all">
+                        <td class="ps-4 py-3 small text-muted">{{ tx.date|date:"d M, Y" }}</td>
+                        <td>
+                            <span class="fw-bold text-dark">{{ tx.account.name }}</span>
+                            <div class="text-muted" style="font-size: 0.7rem;">Code: {{ tx.account.code }}</div>
+                        </td>
+                        <td class="small">{{ tx.description }}</td>
+                        
+                        <td class="text-end fw-bold text-success">
+                            {% if tx.credit > 0 %} UGX {{ tx.credit|intcomma }} {% else %} <span class="text-light">-</span> {% endif %}
+                        </td>
+                        <td class="text-end pe-4 fw-bold text-danger">
+                            {% if tx.debit > 0 %} UGX {{ tx.debit|intcomma }} {% else %} <span class="text-light">-</span> {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <i class="bi bi-folder2-open display-4 text-light d-block mb-3"></i>
+                            <span class="text-muted">No ledger entries found for the selected period.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                
+                {% if transactions %}
+                <tfoot style="background-color: #f8fafc; border-top: 2px solid #e2e8f0;">
+                    <tr class="fw-bold">
+                        <td colspan="3" class="ps-4 py-3 text-uppercase" style="font-size: 0.75rem; color: #1632AF;">Total Movement</td>
+                        <td class="text-end text-success h6 mb-0">UGX {{ total_credit|intcomma }}</td>
+                        <td class="text-end pe-4 text-danger h6 mb-0">UGX {{ total_debit|intcomma }}</td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
     </div>
 </div>
 
 <style>
-    /* Professional transitions and hover effects */
-    .transition-all { 
-        transition: all 0.2s ease; 
+    .transition-all { transition: all 0.2s ease; }
+    .table-hover tbody tr:hover { background-color: rgba(22, 50, 175, 0.03) !important; }
+    .text-light { color: #e2e8f0 !important; }
+    input[type="date"]:focus {
+        border-color: #1632AF !important;
+        box-shadow: 0 0 0 0.25rem rgba(22, 50, 175, 0.1) !important;
     }
-    
-    .table-hover tbody tr:hover { 
-        background-color: rgba(22, 50, 175, 0.03) !important; 
-        transform: scale(1.002);
-    }
-    
-    tfoot { 
-        border-top: 2px solid #e2e8f0; 
-        background-color: #f8fafc !important; 
-    }
-
-    /* Text-light helper for empty values */
-    .text-light {
-        color: #e2e8f0 !important;
-    }
+    .form-control { height: 45px; }
 </style>
 {% endblock %}

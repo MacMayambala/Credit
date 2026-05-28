@@ -345,30 +345,42 @@
         {% endif %}
 
 
-        {# IMPROVED: Use the show_stat_bar flag from context processor #}
-        {% if show_stat_bar %}
-        <div class="stat-command-bar">
-            <div class="glass-stats">
-                <div class="stat-item">
-                    <div class="stat-label">Arrears</div>
-                    <div class="stat-val text-danger">{{ total_arrears|intcomma }}</div>
-                </div>
-                <div class="stat-item border-start ps-5">
-                    <div class="stat-label">Earnings</div>
-                    <div class="stat-val text-success">{{ total_profit|intcomma }}</div>
-                </div>
-                <div class="stat-item border-start ps-5">
-                    <div class="stat-label">Cash Position</div>
-                    <div class="stat-val text-primary">UGX {{ net_cash|intcomma }}</div>
-                </div>
-                <div class="stat-item border-start ps-5">
-                    <div class="stat-label">SMS Credits</div>
-                    <div class="stat-val text-info">{{ sms_credits|intcomma }}</div>
+        {# STAT BAR - BANKING DASHBOARD #}
+            {% if show_stat_bar %}
+            <div class="stat-command-bar">
+                <div class="glass-stats">
+
+                    <div class="stat-item">
+                        <div class="stat-label">Outstanding Loans</div>
+                        <div class="stat-val text-danger">
+                            UGX {{ total_outstanding_loans|intcomma }}
+                        </div>
+                    </div>
+
+                    <div class="stat-item border-start ps-5">
+                        <div class="stat-label">Expected Interest</div>
+                        <div class="stat-val text-success">
+                            UGX {{ expected_interest_income|intcomma }}
+                        </div>
+                    </div>
+
+                    <div class="stat-item border-start ps-5">
+                        <div class="stat-label">Cash Position</div>
+                        <div class="stat-val text-primary">
+                            UGX {{ cash_on_hand|intcomma }}
+                        </div>
+                    </div>
+
+                    <div class="stat-item border-start ps-5">
+                        <div class="stat-label">SMS Credits</div>
+                        <div class="stat-val text-info">
+                            {{ sms_credits|intcomma }}
+                        </div>
+                    </div>
+
                 </div>
             </div>
-        </div>
         {% endif %}
-
         <!-- Main Content -->
         <main class="py-4">
             <div class="{% if user.is_authenticated and request.session.2fa_verified %}content-card{% else %}container{% endif %}">

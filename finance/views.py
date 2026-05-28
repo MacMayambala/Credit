@@ -77,7 +77,37 @@ from .utils import send_bulk_arrears_reminders
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 
+import string
+import random
+import json
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from datetime import date
+from dateutil.relativedelta import relativedelta
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.db import transaction
+from django.db.models import Sum, F, Q, DecimalField
+from django.db.models.functions import ExtractMonth, Cast
+from django.utils import timezone
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied, ValidationError
+
+from .models import (
+    Installment, Loan, Member, SavingsAccount, Transaction, 
+    Repayment, TransactionReversal, SystemSetting,
+    process_repayment, generate_schedule
+)
+from .utils import send_bulk_arrears_reminders, generate_transaction_ref
+
+# ========================
+# UTILITIES & DECORATORS
+# ========================
+
 def allowed_users(allowed_roles=[]):
+    """
+    RBAC View Decorator to check user groups.
+    """
     def decorator(view_func):
         def wrapper_func(request, *args, **kwargs):
             group = None
@@ -87,9 +117,20 @@ def allowed_users(allowed_roles=[]):
             if group in allowed_roles or request.user.is_superuser:
                 return view_func(request, *args, **kwargs)
             else:
-                raise PermissionDenied # Shows 403 Forbidden
+                raise PermissionDenied  # Shows 403 Forbidden
         return wrapper_func
     return decorator
+
+
+def generate_loan_ref(length=10):
+    """Generates a random uppercase alphanumeric string for loans"""
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(random.choices(chars, k=length))
+
+
+# ========================
+# CORE CORE SACCO VIEWS
+# ========================
 
 @login_required
 def dashboard(request):
@@ -97,9 +138,7 @@ def dashboard(request):
     Main SACCO Dashboard with updated split-balance aggregation
     """
     # 1. SUMMARY WIDGETS
-    # Total Savings Pool
-    total_savings = SavingsAccount.objects.aggregate(
-        total=Sum('balance'))['total'] or 0
+    total_savings = SavingsAccount.objects.aggregate(total=Sum('balance'))['total'] or 0
 
     # Total Active Loans (Summing principal_balance and interest_balance)
     loan_stats = Loan.objects.filter(is_active=True).aggregate(
@@ -117,25 +156,25 @@ def dashboard(request):
     active_loans_count = Loan.objects.filter(is_active=True).count()
     recent_loans = Loan.objects.select_related('member').order_by('-start_date')[:10]
 
-    # 2. CHART DATA (Logic remains the same, ensure it uses correct fields)
+    # 2. CHART DATA 
     labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     savings_trend = [0] * 12
     loan_trend = [0] * 12
 
     savings_data = Transaction.objects.filter(type='deposit')\
-            .annotate(month=ExtractMonth('timestamp'))\
-            .values('month').annotate(total=Sum('amount'))
+        .annotate(month=ExtractMonth('timestamp'))\
+        .values('month').annotate(total=Sum('amount'))
     
     for entry in savings_data:
-        if 1 <= entry['month'] <= 12:
+        if entry['month'] and 1 <= entry['month'] <= 12:
             savings_trend[entry['month'] - 1] = float(entry['total'])
 
     loan_data = Loan.objects.filter(status='approved')\
-            .annotate(month=ExtractMonth('start_date'))\
-            .values('month').annotate(total=Sum('principal_amount'))
+        .annotate(month=ExtractMonth('start_date'))\
+        .values('month').annotate(total=Sum('principal_amount'))
 
     for entry in loan_data:
-        if 1 <= entry['month'] <= 12:
+        if entry['month'] and 1 <= entry['month'] <= 12:
             loan_trend[entry['month'] - 1] = float(entry['total'])
 
     # 3. PREPARE CONTEXT
@@ -150,78 +189,224 @@ def dashboard(request):
         'chart_savings': savings_trend,
         'chart_loans': loan_trend,
     }
-
     return render(request, 'finance/dashboard.html', context)
 
 
+@login_required
+def loan_list(request):
+    """Master Loan Registry with split-balance analytics"""
+    loans = Loan.objects.select_related('member').all().order_by('-id')
+    total_disbursed = loans.aggregate(Sum('principal_amount'))['principal_amount__sum'] or 0
+    
+    portfolio_stats = loans.aggregate(
+        p_total=Sum('principal_balance'),
+        i_total=Sum('interest_balance')
+    )
+    total_outstanding = (portfolio_stats['p_total'] or 0) + (portfolio_stats['i_total'] or 0)
+    active_count = loans.filter(is_active=True).count()
 
-from django.db import transaction
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
-from django.utils import timezone
-from decimal import Decimal
+    context = {
+        'loans': loans,
+        'total_disbursed': total_disbursed,
+        'total_outstanding': total_outstanding,
+        'active_count': active_count,
+    }
+    return render(request, 'finance/loan_list.html', context)
 
+
+@login_required
+def loan_detail(request, pk):
+    """Detailed profile analytics for a singular loan instance"""
+    loan = get_object_or_404(Loan, pk=pk)
+    member = loan.member
+
+    try:
+        savings_balance = loan.member.savings.balance
+    except Exception:
+        savings_balance = Decimal('0.00')
+
+    schedule = loan.installments.all().order_by('due_date')
+    repayments = loan.repayments.all().order_by('-date_paid')
+    today = timezone.now().date()
+
+    # Unpaid overdue installments
+    unpaid_installments = loan.installments.filter(paid=False, due_date__lte=today)
+
+    try:
+        principal_amount = Decimal(str(loan.principal_amount or 0))
+        total_payable = Decimal(str(getattr(loan, 'total_payable', 0) or 0))
+
+        if loan.period_months and loan.period_months > 0:
+            monthly_principal = principal_amount / loan.period_months
+            total_interest = total_payable - principal_amount
+            monthly_interest = total_interest / loan.period_months
+        else:
+            monthly_principal = Decimal('0')
+            monthly_interest = Decimal('0')
+    except (TypeError, ZeroDivisionError, InvalidOperation):
+        monthly_principal = Decimal('0')
+        monthly_interest = Decimal('0')
+
+    unpaid_count = unpaid_installments.count()
+    interest_due = (unpaid_count * monthly_interest).quantize(Decimal('0.01'))
+    principal_due = (unpaid_count * monthly_principal).quantize(Decimal('0.01'))
+    total_due_now = (interest_due + principal_due).quantize(Decimal('0.01'))
+
+    total_paid = loan.repayments.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0')
+    officer = getattr(loan, 'officer', None)
+
+    disbursement_date = getattr(loan, 'disbursement_date', getattr(loan, 'start_date', None))
+    period_months = getattr(loan, 'period_months', 0)
+
+    if disbursement_date and period_months:
+        end_date = disbursement_date + relativedelta(months=+period_months)
+    else:
+        end_date = None
+
+    context = {
+        'loan': loan,
+        'savings_balance': savings_balance,
+        'schedule': schedule,
+        'repayments': repayments,
+        'officer': officer,
+        'member_address': f"{member.village}, {member.parish}, {member.district}",
+        'principal_balance': getattr(loan, 'principal_balance', principal_amount),
+        'interest_balance': getattr(loan, 'interest_balance', interest_due),
+        'total_penalty': getattr(loan, 'total_penalty', Decimal('0')),
+        'total_payable': total_payable,
+        'interest_due': interest_due,
+        'principal_due': principal_due,
+        'total_due_now': total_due_now,
+        'total_paid': total_paid.quantize(Decimal('0.01')),
+        'disbursement_date': disbursement_date,
+        'period_months': period_months,
+        'end_date': end_date,
+        'today': today,
+    }
+    return render(request, 'finance/loan_detail.html', context)
+
+
+@login_required
+def apply_loan(request, member_id=None):
+    """
+    Handles formal processing of prospective loan forms
+    """
+    members = Member.objects.all().order_by('first_name')
+    selected_member = None
+    
+    if member_id:
+        selected_member = get_object_or_404(Member, id=member_id)
+    
+    if request.method == "POST":
+        try:
+            posted_member_id = request.POST.get('member') or member_id
+            member = get_object_or_404(Member, id=posted_member_id)
+
+            principal = Decimal(request.POST.get('principal_amount') or '0')
+            interest_rate = Decimal(request.POST.get('interest_rate') or '0')
+            months_raw = request.POST.get('period_months')
+
+            if not months_raw:
+                messages.error(request, "Error: Period (Months) is required.")
+                return render(request, 'finance/apply_loan.html', {
+                    'members': members, 
+                    'selected_member': selected_member
+                })
+
+            months = int(months_raw)
+
+            with transaction.atomic():
+                ref_code = generate_loan_ref()
+                total_interest = (principal * (interest_rate / 100) * months).quantize(Decimal('0.01'))
+                calc_total_payable = principal + total_interest
+
+                loan = Loan(
+                    member=member,
+                    officer=request.user,
+                    loan_reference=ref_code,
+                    principal_amount=principal,
+                    interest_rate=interest_rate,
+                    period_months=months,
+                    total_payable=calc_total_payable,
+                    principal_balance=principal,
+                    interest_balance=total_interest,
+                    status='pending',
+                    product_type=request.POST.get('product_type', 'personal'),
+                    purpose=request.POST.get('purpose', ''),
+                    guarantor_1_name=request.POST.get('guarantor_1_name', ''),
+                    guarantor_1_phone=request.POST.get('guarantor_1_phone', ''),
+                    guarantor_2_name=request.POST.get('guarantor_2_name') or None,
+                    guarantor_2_phone=request.POST.get('guarantor_2_phone') or None,
+                    collateral_type=request.POST.get('collateral_type', ''),
+                    collateral_value=Decimal(request.POST.get('collateral_value') or '0'),
+                    collateral_description=request.POST.get('collateral_description', ''),
+                    location=request.POST.get('location', ''),
+                    contact_person=request.POST.get('contact_person', ''),
+                    contact_phone=request.POST.get('contact_phone', ''),
+                )
+                loan.save()
+                
+                messages.success(request, f"Loan Application {ref_code} for {member.first_name} submitted.")
+                return redirect('dashboard')
+
+        except Exception as e:
+            messages.error(request, f"Error processing application: {str(e)}")
+            
+    return render(request, 'finance/apply_loan.html', {
+        'members': members,
+        'selected_member': selected_member
+    })
+
+
+@login_required
 @transaction.atomic
 def approve_loan(request, pk, action):
     """
-    Handles approval/disbursement or rejection of a loan safely.
+    Handles atomic execution of loan validation, state transitions, and immediate savings disbursement.
     """
-    # 1. Fetch loan and lock it for the duration of this transaction
     loan = get_object_or_404(Loan.objects.select_for_update(), pk=pk)
     
     if action == 'approve':
-        # CRITICAL: Prevent double disbursement
         if loan.status == 'approved' or loan.is_active:
             messages.info(request, "This loan has already been approved and disbursed.")
             return redirect('loan_detail', pk=loan.id)
 
         try:
-            # 2. Fetch and lock the member's savings account to prevent race conditions
-            # This assumes your Member model has a OneToOne or ForeignKey to Savings
-            # Adjust 'savings' if your related_name is different
             savings = loan.member.savings  
-            
-            # Lock the savings row for update
             savings = type(savings).objects.select_for_update().get(id=savings.id)
-
             principal = Decimal(str(loan.principal_amount))
 
-            # 3. Update Loan Status
+            # Update status safely
             loan.status = 'approved'
             loan.is_active = True
             if not loan.disbursed_date:
                 loan.disbursed_date = timezone.now().date()
             loan.save()
 
-            # 4. Generate Repayment Schedule
+            # Execute underlying calculations
             generate_schedule(loan)
 
-            # 5. Credit the member's savings account
+            # Route currency pool to member portfolio
             savings.balance += principal
             savings.save()
 
-            # 6. Record disbursement transaction with UNIQUE REFERENCE
             ref = generate_transaction_ref("DSB")
             Transaction.objects.create(
                 member=loan.member,
                 amount=principal,
-                type='disbursement',  # Ensure 'disbursement' or 'deposit' matches your choices
+                type='disbursement',  
                 reference=ref
             )
 
             messages.success(
                 request, 
-                f"Loan {loan.id} approved successfully. "
-                f"Reference {ref}: UGX {principal:,.0f} disbursed to savings."
+                f"Loan {loan.id} approved successfully. Reference {ref}: UGX {principal:,.0f} disbursed to savings."
             )
 
         except AttributeError:
             messages.error(request, "Approval failed: Member has no active savings account.")
             return redirect('loan_detail', pk=loan.id)
-
         except Exception as e:
-            # Because of @transaction.atomic, if anything fails here, 
-            # the loan status won't change and money won't be credited.
             messages.error(request, f"Error during approval and disbursement: {str(e)}")
             return redirect('loan_detail', pk=loan.id)
 
@@ -237,25 +422,23 @@ def approve_loan(request, pk, action):
 
     return redirect('loan_detail', pk=loan.id)
 
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
+
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.utils import timezone
-from .models import Member, SavingsAccount, Transaction, SystemSetting, Loan
-# from .utils import generate_transaction_ref, process_repayment
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import Member, SavingsAccount, SystemSetting, Loan
+from .services import FinancialTransactionService # Ensure this is created
+from .utils import generate_transaction_ref
 
 @login_required
 @transaction.atomic
 def deposit_savings(request, member_id):
     """
-    Handles member deposits with high-precision Decimal math and 
-    automated loan recovery (sweep logic).
+    Handles member deposits with high-precision Decimal math,
+    atomic ledger updates, and auto-sweep recovery.
     """
     member = get_object_or_404(Member, id=member_id)
-    
-    # Permission check: Setting must be ON and user must be Staff/Admin
     backdate_allowed = SystemSetting.is_backdate_allowed()
     
     if request.method == "POST":
@@ -263,54 +446,28 @@ def deposit_savings(request, member_id):
         custom_date = request.POST.get('back_date')
         
         try:
-            # CRITICAL: Fix precision error (ensure exact math to 2 decimal places)
             amount = Decimal(amount_raw).quantize(Decimal('1.00'), rounding=ROUND_HALF_UP)
-            
             if amount <= 0:
                 messages.error(request, "Deposit amount must be greater than zero.")
                 return redirect('deposit_savings', member_id=member.id)
             
-            # 1. Update Savings Account using row locking
-            savings, created = SavingsAccount.objects.select_for_update().get_or_create(member=member)
-            
-            # Convert existing balance to string before Decimal to avoid float pollution
-            current_balance = Decimal(str(savings.balance))
-            savings.balance = current_balance + amount
-            savings.save()
-            
-            # 2. Determine Timestamp
-            txn_timestamp = timezone.now()
-            if backdate_allowed and custom_date:
-                # The view expects the template to provide a valid datetime string
-                txn_timestamp = custom_date
-
-            # 3. Log the Transaction
+            # 1. Execute Atomic Transaction via Service Layer
+            # This handles: Savings Balance, Transaction Record, and GL Entries
             ref = generate_transaction_ref("DEP")
-            Transaction.objects.create(
-                member=member,
-                amount=amount,
-                type='deposit',
-                reference=ref,
-                timestamp=txn_timestamp
+            txn_timestamp = custom_date if (backdate_allowed and custom_date) else timezone.now()
+            
+            FinancialTransactionService.record_deposit(
+                member=member, 
+                amount=amount, 
+                receipt_ref=ref, 
+                date=txn_timestamp
             )
             
-            # 4. Loan Link Logic (Auto-sweep for overdue balance)
-            # We look for active loans to see if we should trigger process_repayment
+            # 2. Check for Arrears/Auto-Sweep Recovery
             active_loan = Loan.objects.filter(member=member, is_active=True).first()
-            
-            if active_loan:
-                # Check for overdue installments up to TODAY
-                has_overdue = active_loan.installments.filter(
-                    paid=False, 
-                    due_date__lte=timezone.now().date()
-                ).exists()
-                
-                if has_overdue:
-                    # Trigger the repayment engine
-                    process_repayment(active_loan.id)
-                    messages.info(request, f"Deposit {ref} recorded. Arrears detected and auto-repayment triggered.")
-                else:
-                    messages.success(request, f"Deposit {ref} of UGX {amount:,.0f} successful.")
+            if active_loan and active_loan.installments.filter(paid=False, due_date__lte=timezone.now().date()).exists():
+                process_repayment(active_loan.id)
+                messages.info(request, f"Deposit {ref} recorded. Arrears detected; auto-repayment triggered.")
             else:
                 messages.success(request, f"Deposit {ref} of UGX {amount:,.0f} processed successfully.")
             
@@ -318,22 +475,18 @@ def deposit_savings(request, member_id):
 
         except (ValueError, InvalidOperation):
             messages.error(request, "Please enter a valid deposit amount.")
-            return redirect('deposit_savings', member_id=member.id)
         except Exception as e:
             messages.error(request, f"An unexpected error occurred: {str(e)}")
-            return redirect('deposit_savings', member_id=member.id)
-    
+            
     return render(request, 'finance/deposit.html', {
         'member': member,
         'backdate_allowed': backdate_allowed
     })
+@login_required
 def member_statement(request, member_id):
-    """
-    Detailed financial ledger for a specific member.
-    """
+    """Detailed individual ledger statement"""
     member = get_object_or_404(Member, id=member_id)
     transactions = Transaction.objects.filter(member=member).order_by('-timestamp')
-    # Use direct query to ensure we get the latest balance
     savings = SavingsAccount.objects.filter(member=member).first()
     
     return render(request, 'finance/statement.html', {
@@ -342,20 +495,88 @@ def member_statement(request, member_id):
         'savings': savings
     })
 
-from django.db.models import Sum, F
 
+@login_required
+@transaction.atomic
+def receive_payment(request, loan_id):
+    """
+    Accepts external user payment injections, writes ledger records,
+    and runs the allocation calculation module.
+    """
+    if request.method != "POST":
+        return redirect('loan_detail', pk=loan_id)
+
+    loan = get_object_or_404(Loan.objects.select_for_update(), id=loan_id)
+    backdate_allowed = SystemSetting.is_backdate_allowed()
+
+    if loan.status not in ['approved', 'arrears']:
+        messages.error(request, "Repayments are only accepted for active loans.")
+        return redirect('loan_detail', pk=loan_id)
+
+    try:
+        current_balance = Decimal(str(loan.principal_balance + loan.interest_balance))
+        if current_balance <= 0:
+            messages.warning(request, "This loan is already fully paid.")
+            return redirect('loan_detail', pk=loan_id)
+
+        principal = Decimal(request.POST.get('principal', '0').strip() or '0')
+        interest = Decimal(request.POST.get('interest', '0').strip() or '0')
+        penalty = Decimal(request.POST.get('penalty', '0').strip() or '0')
+        custom_date = request.POST.get('back_date')
+        notes = request.POST.get('notes', '').strip()
+
+        total_payment = principal + interest + penalty
+
+        if total_payment <= 0:
+            messages.error(request, "Total payment must be greater than zero.")
+            return redirect('loan_detail', pk=loan_id)
+
+        txn_timestamp = timezone.now()
+        if backdate_allowed and custom_date:
+            txn_timestamp = custom_date
+
+        ref = generate_transaction_ref("PAY")
+
+        # 1. Instantiation of Repayment tracking model
+        Repayment.objects.create(
+            loan=loan,
+            amount_paid=total_payment,
+            receipt_number=ref,
+            date_paid=txn_timestamp, 
+            notes=notes if notes else None,
+        )
+
+        # 2. Append general financial audit line
+        Transaction.objects.create(
+            member=loan.member,
+            amount=total_payment,
+            type='repayment',
+            reference=ref,
+            timestamp=txn_timestamp
+        )
+
+        # 3. CRITICAL ENGINE TRIGGER: Run split balance allocation calculations 
+        process_repayment(loan.id)
+
+        messages.success(request, f"Payment {ref} recorded and allocated successfully.")
+
+    except (ValueError, InvalidOperation):
+        messages.error(request, "Invalid payment amounts entered.")
+    except Exception as e:
+        messages.error(request, f"Error processing payment execution: {str(e)}")
+
+    return redirect('loan_detail', pk=loan_id)
+
+
+@login_required
 def arrears_report(request):
-    """
-    Portfolio at Risk (PAR) Report.
-    """
+    """Portfolio at Risk (PAR) Report"""
     today = timezone.now().date()
-    # Find all unpaid installments that are past their due date
     overdue_installments = Installment.objects.filter(
         paid=False, 
         due_date__lt=today
     ).select_related('loan__member').order_by('due_date')
 
-    # FIX: Sum the specific component fields because 'amount' does not exist
     total_at_risk = overdue_installments.aggregate(
         total_sum=Sum(F('principal_portion') + F('interest_portion') + F('penalty_amount'))
     )['total_sum'] or 0
@@ -922,15 +1143,10 @@ from .models import Member, SavingsAccount, Transaction, SystemSetting
 @transaction.atomic
 def withdraw_savings(request, member_id):
     """
-    Handles internal withdrawals with exact Decimal precision to prevent 
-    rounding errors (e.g., 40,000 becoming 39,998).
+    Handles member withdrawals with atomic ledger updates.
     """
     member = get_object_or_404(Member, id=member_id)
-    
-    # Use select_for_update() to lock the row and prevent race conditions
-    savings, created = SavingsAccount.objects.select_for_update().get_or_create(member=member)
-    
-    # Permission check: Setting must be enabled AND user must be staff
+    savings = SavingsAccount.objects.select_for_update().get_or_create(member=member)[0]
     backdate_allowed = SystemSetting.is_backdate_allowed()
 
     if request.method == 'POST':
@@ -938,49 +1154,29 @@ def withdraw_savings(request, member_id):
         custom_date = request.POST.get('back_date')
         
         try:
-            # CRITICAL: Convert to string first, then Decimal to maintain exact precision
             amount = Decimal(amount_raw)
-            
-            # Ensure the savings balance is also treated as a Decimal
-            current_balance = Decimal(str(savings.balance))
-            
             if amount <= 0:
                 messages.error(request, "Withdrawal amount must be greater than zero.")
-            elif current_balance < amount:
-                messages.error(request, f"Insufficient funds. Current balance is UGX {current_balance:,.0f}")
+            elif savings.balance < amount:
+                messages.error(request, f"Insufficient funds. Current balance: UGX {savings.balance:,.0f}")
             else:
-                # 1. Determine Timestamp (Back-date logic)
-                # Ensure custom_date is parsed correctly if provided
-                txn_timestamp = timezone.now()
-                if backdate_allowed and custom_date:
-                    try:
-                        txn_timestamp = custom_date
-                    except Exception:
-                        messages.warning(request, "Invalid date format provided. Using current time.")
-
-                # 2. Generate a unique reference
                 ref = generate_transaction_ref("WTH")
+                txn_timestamp = custom_date if (backdate_allowed and custom_date) else timezone.now()
 
-                # 3. Deduct from Savings (Exact math)
-                savings.balance = current_balance - amount
-                savings.save()
-
-                # 4. Create Audit Transaction
-                # Ensure your Transaction model's 'timestamp' field is NOT 'auto_now_add=True'
-                # It should have 'default=timezone.now' to allow manual overrides.
-                Transaction.objects.create(
+                # Delegate to the Service Layer for Ledger integrity
+                from .services import FinancialTransactionService
+                FinancialTransactionService.record_withdrawal(
                     member=member,
                     amount=amount,
-                    type='withdrawal',
-                    reference=ref,
-                    timestamp=txn_timestamp
+                    receipt_ref=ref,
+                    date=txn_timestamp
                 )
 
-                messages.success(request, f"Successfully processed {ref}. UGX {amount:,.0f} withdrawn.")
+                messages.success(request, f"Withdrawal {ref} of UGX {amount:,.0f} successful.")
                 return redirect('member_profile', member_id=member.id)
 
-        except (ValueError, TypeError, InvalidOperation):
-            messages.error(request, "Invalid amount entered. Please enter a valid number.")
+        except Exception as e:
+            messages.error(request, f"Error processing withdrawal: {str(e)}")
 
     return render(request, 'finance/withdraw_form.html', {
         'member': member,
@@ -1473,48 +1669,41 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from .models import GeneralLedger, ChartOfAccount
 
+from django.db.models import Sum
+from datetime import datetime
+
+from django.db.models import Sum
+
 @login_required
 def general_ledger(request):
-    """
-    Main General Ledger View
-    Synchronized with ledger.html to show all movements.
-    """
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
     
-    # 1. Calculate Total Revenue (Inflows) 
-    # In accounting, Income is increased by Credits
-    total_inflow = GeneralLedger.objects.filter(
-        account__account_type='income'
-    ).aggregate(total=Sum('credit'))['total'] or 0
-
-    # 2. Calculate Total Expenses (Outflows)
-    # In accounting, Expenses are increased by Debits
-    total_outflow = GeneralLedger.objects.filter(
-        account__account_type='expense'
-    ).aggregate(total=Sum('debit'))['total'] or 0
-
-    # 3. Calculate Net Cash Position (Account 1001)
-    # For Assets (Cash), Balance = Debits - Credits
+    transactions = GeneralLedger.objects.select_related('account').order_by('-date')
+    
+    if start_date:
+        transactions = transactions.filter(date__gte=start_date)
+    if end_date:
+        transactions = transactions.filter(date__lte=end_date)
+    
+    totals = transactions.aggregate(
+        total_debit=Sum('debit'),
+        total_credit=Sum('credit')
+    )
+    
+    # Net Cash calculation based on Account 1001
     cash_entries = GeneralLedger.objects.filter(account__code='1001')
     cash_in = cash_entries.aggregate(total=Sum('debit'))['total'] or 0
     cash_out = cash_entries.aggregate(total=Sum('credit'))['total'] or 0
-    net_cash = cash_in - cash_out
-
-    # 4. Fetch all entries for the table
-    # We use 'transactions' to match the {% for tx in transactions %} in your HTML
-    # We exclude the '1001' account entries if you only want to see the "Category" side
-    # Or keep them all to see the full double-entry trail:
-    transactions = GeneralLedger.objects.select_related('account', 'transaction').order_by('-date')
-
-    context = {
-        'transactions': transactions, # This matches your template loop
-        'total_inflow': total_inflow,
-        'total_outflow': total_outflow,
-        'net_cash': net_cash,
-        'title': 'General Ledger'
-    }
     
-    return render(request, 'accounting/ledger.html', context)
-
+    return render(request, 'accounting/ledger.html', {
+        'transactions': transactions,
+        'total_debit': totals['total_debit'] or 0,
+        'total_credit': totals['total_credit'] or 0,
+        'net_cash': cash_in - cash_out,
+        'start_date': start_date,
+        'end_date': end_date,
+    })
 
 @login_required
 def chart_of_accounts(request):
@@ -1765,3 +1954,312 @@ def auto_repayment_dashboard(request):
         'summaries': summaries
     }
     return render(request, 'finance/auto_repayment_dashboard.html', context)
+
+
+
+
+
+
+##########################################################################################################################
+
+
+import json
+import datetime
+from django.views.generic import TemplateView, View
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
+from .services import FinancialReportingService
+from .filters import FinancialReportFilterForm
+from .exports import ReportingExportEngine
+
+import json
+import datetime
+from django.views.generic import TemplateView, View
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
+from .services import FinancialReportingService
+from .filters import FinancialReportFilterForm
+from .exports import ReportingExportEngine
+
+class ExecutiveCEODashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    template_name = 'reports/dashboard.html'
+    permission_required = 'reports.view_executive_dashboard'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        ratios = FinancialReportingService.get_regulatory_ratios()
+        aging = FinancialReportingService.get_loan_aging_summary()
+        
+        # Build core system metrics
+        context['kpis'] = ratios
+        context['aging_summary'] = aging
+        context['interest_data'] = FinancialReportingService.get_interest_income_data()
+        
+        # Format metrics into JSON structures for serialization into Chart.js/ApexCharts interfaces
+        context['chart_aging_labels'] = json.dumps([item['bucket'] for item in aging])
+        context['chart_aging_volumes'] = json.dumps([float(item['volume']) for item in aging])
+        return context
+
+
+class InterestIncomeReportView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    template_name = 'reports/interest_report.html'
+    permission_required = 'reports.view_financial_reports'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = FinancialReportFilterForm(self.request.GET or None)
+        filters = {}
+        if form.is_valid():
+            filters = {k: v for k, v in form.cleaned_data.items() if v}
+            
+        report_data = FinancialReportingService.get_interest_income_data(filters)
+        context['records'] = report_data['records']
+        context['totals'] = report_data['totals']
+        context['filter_form'] = form
+        return context
+
+
+class TreasuryDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'reports/treasury_dashboard.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        forecast = FinancialReportingService.get_treasury_liquidity_forecast()
+        context['forecast_raw'] = forecast
+        context['forecast_json'] = json.dumps(forecast)
+        return context
+
+
+import datetime
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import View
+from django.http import HttpResponse
+
+# Ensure proper relative/explicit imports matching your local app structure
+from .services import FinancialReportingService
+
+
+import datetime
+from django.views.generic import View
+from django.shortcuts import render
+from django.http import HttpResponse
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+from .services import FinancialReportingService
+from .forms import InterestIncomeFilterForm
+from .exports import ReportingExportEngine  # Adjust path to your ReportingExportEngine location
+
+import datetime
+from django.views.generic import View
+from django.shortcuts import render
+from django.http import HttpResponse
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+
+
+class InterestIncomeReportView(LoginRequiredMixin, View):
+    """
+    Unified Ledger View Engine. Handles real-time HTML data filtering, 
+    and intercepts format parameters to serve binary Excel/PDF document extensions.
+    """
+    template_name = 'reports/interest_report.html'
+
+    def get(self, request, *args, **kwargs):
+        # 1. Initialize filter framework with query parameters
+        form = InterestIncomeFilterForm(request.GET or None)
+        filters = {}
+        if form.is_valid():
+            filters = {k: v for k, v in form.cleaned_data.items() if v}
+        
+        # 2. Extract calculations dataset matrix from our reporting engine
+        reporting_payload = FinancialReportingService.get_interest_income_data(filters)
+        records = reporting_payload['records']
+        totals = reporting_payload['totals']
+
+        # 3. Intercept binary export requests before rendering HTML templates
+        export_type = request.GET.get('format', '').lower()
+        if export_type in ['excel', 'pdf']:
+            
+            # Unified data verification columns array layout block
+            columns = [
+                'Date', 'Member No', 'Customer Name', 'Loan Ref', 
+                'Product', 'Principal Remaining', 'Interest Remaining', 'Total Outstanding Balance'
+            ]
+            
+            dataset = []
+            for item in records:
+                # Fallback safe date capture framework execution block
+                d_date = getattr(item, 'disbursed_date', None) or getattr(item, 'start_date', None)
+                if isinstance(d_date, (datetime.date, datetime.datetime)):
+                    date_str = d_date.strftime('%Y-%m-%d')
+                else:
+                    date_str = str(d_date) if d_date else "N/A"
+                
+                # Protect computations against Null positions using float-safe fallback operations
+                principal_rem = float(item.principal_receivable) if item.principal_receivable else 0.0
+                interest_rem = float(item.interest_receivable) if item.interest_receivable else 0.0
+                total_outstanding = float(item.total_remaining_balance) if item.total_remaining_balance else 0.0
+                
+                dataset.append([
+                    date_str,
+                    item.member.member_number,
+                    f"{item.member.first_name} {item.member.last_name}",
+                    item.loan_reference or f"LN-{item.id}",
+                    str(item.product_type).upper() if item.product_type else "STANDARD",
+                    principal_rem,
+                    interest_rem,
+                    total_outstanding
+                ])
+            
+            # Forward processed data payloads using the exact engine signatures expected
+            if export_type == 'excel':
+                # Takes exactly 3 positional arguments
+                return ReportingExportEngine.generate_excel('interest', columns, dataset)
+            elif export_type == 'pdf':
+                # Takes exactly 4 positional arguments
+                return ReportingExportEngine.generate_pdf('interest', columns, dataset, request.user)
+
+        # 4. Fallback to serving standard HTML template framework if no valid format parameter intercepted
+        return render(request, self.template_name, {
+            'filter_form': form,
+            'records': records,
+            'totals': totals
+        })
+
+
+
+############################################################################
+import datetime
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q, Sum, F, DecimalField
+from django.db.models.functions import Coalesce
+from django.http import HttpResponse, JsonResponse
+
+# Adjust these imports to match your structural app directory layout
+from finance.models import Loan, Installment  
+
+import datetime
+from django.db.models import Q, Sum, DecimalField
+from django.db.models.functions import Coalesce
+from django.http import HttpResponse
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from finance.models import Installment  # Adjust this import to your actual app structure
+
+import datetime
+from decimal import Decimal  # <-- Added for strict type safety
+from django.db.models import Q, Sum, DecimalField
+from django.db.models.functions import Coalesce
+from django.http import HttpResponse
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from finance.models import Installment 
+
+class LoansInArrearsReportView(LoginRequiredMixin, ListView):
+    """
+    Core Asset Quality Risk Engine. Extracts past-due performance tracking schedules,
+    groups ledger provisions into risk categories, and calculates cumulative PAR metrics.
+    """
+    model = Installment
+    template_name = 'finance/arrears.html'
+    context_object_name = 'overdue'
+    paginate_by = 50  
+
+    def get_queryset(self):
+        search_query = self.request.GET.get('search_query', '').strip()
+        date_at_str = self.request.GET.get('date_at', '').strip()
+        sort_by = self.request.GET.get('sort_by', '')
+
+        try:
+            target_date = datetime.datetime.strptime(date_at_str, '%Y-%m-%d').date() if date_at_str else datetime.date.today()
+        except ValueError:
+            target_date = datetime.date.today()
+
+        # FIXED: Status matching updated to 'approved' to capture live database records cleanly
+        queryset = Installment.objects.filter(
+            due_date__lt=target_date,
+            paid=False,
+            loan__status='approved'
+        ).select_related('loan', 'loan__member', 'loan__officer')
+
+        if search_query:
+            queryset = queryset.filter(
+                Q(loan__member__first_name__icontains=search_query) |
+                Q(loan__member__last_name__icontains=search_query) |
+                Q(loan__member__member_number__icontains=search_query) |
+                Q(loan__loan_reference__icontains=search_query)
+            )
+
+        if sort_by == 'days':
+            queryset = queryset.order_by('due_date')
+        elif sort_by == 'amount':
+            queryset = queryset.order_by('-amount_remaining')
+        else:
+            queryset = queryset.order_by('due_date')  
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        base_queryset = self.get_queryset()
+
+        date_at_str = self.request.GET.get('date_at', '').strip()
+        try:
+            target_date = datetime.datetime.strptime(date_at_str, '%Y-%m-%d').date() if date_at_str else datetime.date.today()
+        except ValueError:
+            target_date = datetime.date.today()
+
+        watchlist_barrier = target_date - datetime.timedelta(days=30)
+        substandard_barrier = target_date - datetime.timedelta(days=60)
+
+        totals = base_queryset.aggregate(
+            total=Coalesce(Sum('amount_remaining'), 0, output_field=DecimalField()),
+            watchlist=Coalesce(Sum('amount_remaining', filter=Q(due_date__gte=watchlist_barrier)), 0, output_field=DecimalField()),
+            substandard=Coalesce(Sum('amount_remaining', filter=Q(due_date__lt=watchlist_barrier, due_date__gte=substandard_barrier)), 0, output_field=DecimalField()),
+            doubtful=Coalesce(Sum('amount_remaining', filter=Q(due_date__lt=substandard_barrier)), 0, output_field=DecimalField())
+        )
+
+        # FIXED: Dynamic portfolio scale query set explicitly matching 'approved' schema status
+        active_portfolio_total = Installment.objects.filter(loan__status='approved').aggregate(
+            gross_bal=Coalesce(Sum('amount_remaining'), 0, output_field=DecimalField())
+        )['gross_bal'] or Decimal('1.0')
+
+        total_at_risk = totals['total']
+        par_rate = (total_at_risk / active_portfolio_total) * Decimal('100.0')
+
+        context['total_at_risk'] = total_at_risk
+        context['watchlist_total'] = totals['watchlist']
+        context['substandard_total'] = totals['substandard']
+        context['doubtful_total'] = totals['doubtful']
+        context['par_rate'] = round(par_rate, 2)
+        
+        return context
+
+    def render_to_response(self, context, **response_kwargs):
+        export_format = self.request.GET.get('format', '').strip().lower()
+        if export_format in ['csv', 'excel']:
+            return self.execute_export_stream(self.get_queryset(), export_format)
+        return super().render_to_response(context, **response_kwargs)
+
+    def execute_export_stream(self, queryset, export_format):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="arrears_report_{datetime.date.today()}.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Member No', 'Borrower Name', 'Phone', 'Loan Ref', 'Principal Portion', 'Interest Portion', 'Total Arrears'])
+        
+        for record in queryset:
+            writer.writerow([
+                record.loan.member.member_number if hasattr(record.loan.member, 'member_number') else record.loan.member.id,
+                record.loan.member.get_full_name(),
+                record.loan.member.phone_number if hasattr(record.loan.member, 'phone_number') else '',
+                record.loan.loan_reference if hasattr(record.loan, 'loan_reference') else record.loan.id,
+                record.principal_portion,
+                record.interest_portion,
+                record.amount_remaining
+            ])
+            
+        return response

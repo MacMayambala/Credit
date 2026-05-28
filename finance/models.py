@@ -4,6 +4,8 @@ from django.db import models, transaction
 from django.utils import timezone
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db.models import Sum, Q
+from django.db.models.functions import Coalesce
 from dateutil.relativedelta import relativedelta
 from members.models import Member
 
@@ -15,13 +17,13 @@ class SystemSetting(models.Model):
     """Global configuration for back-dating actions."""
     enable_back_dating = models.BooleanField(
         default=False, 
-        help_text="If enabled, Manually set dates for deposits and repayments can be used."
+        help_text="If enabled, manually set dates for deposits and repayments can be used."
     )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "System Setting"
-        
+
     def __str__(self):
         return f"Back-Dating: {'Enabled' if self.enable_back_dating else 'Disabled'}"
 
@@ -34,13 +36,13 @@ class SystemSetting(models.Model):
 class GlobalSettings(models.Model):
     """Global security configurations like 2FA enforcement."""
     enable_global_2fa = models.BooleanField(
-        default=True, 
+        default=True,
         verbose_name="Enable Global 2FA",
         help_text="If checked, all users must verify via 2FA. If unchecked, 2FA is skipped."
     )
 
     class Meta:
-        verbose_name = "Global Setting"
+        verbose_name = "System Configuration"
         verbose_name_plural = "Global Settings"
 
     def __str__(self):
@@ -48,12 +50,12 @@ class GlobalSettings(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.pk and GlobalSettings.objects.exists():
-            return 
+            return
         super().save(*args, **kwargs)
 
 
 class ChartOfAccount(models.Model):
-    """Standard structural node for general ledger tracking."""
+    """Standard structural node for general ledger tracking matching IFRS taxonomy."""
     ACCOUNT_TYPES = (
         ('asset', 'Asset'),
         ('liability', 'Liability'),
@@ -61,7 +63,6 @@ class ChartOfAccount(models.Model):
         ('expense', 'Expense'),
         ('equity', 'Equity'),
     )
-
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=100)
     account_type = models.CharField(max_length=20, choices=ACCOUNT_TYPES)
@@ -82,20 +83,25 @@ class ChartOfAccount(models.Model):
 # 2. CORE FINANCIAL WALLET & CORE LOAN ENTITIES
 # =========================================================
 
-# finance/models.py
 class SavingsAccount(models.Model):
     """Primary ledger balance account representing real capital for members."""
     member = models.OneToOneField(Member, on_delete=models.CASCADE, related_name='savings')
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
 
-    # We add a Python property here so you can still call .account_number 
-    # anywhere in your code without storing it twice in the database!
     @property
     def account_number(self):
         return self.member.member_number
 
     def __str__(self):
         return f"{self.member.first_name} - Account: {self.account_number} | Balance: {self.balance}"
+
+
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+from decimal import Decimal
+# Assuming your Member model is in the same app or imported correctly
+from .models import Member 
 
 class Loan(models.Model):
     """Loan issuance ledger containing structural states and tracking parameters."""
@@ -166,12 +172,23 @@ class Loan(models.Model):
         verbose_name = "Loan"
         verbose_name_plural = "Loans"
 
+    def save(self, *args, **kwargs):
+        """Calculate totals and initial balances before saving."""
+        if not self.total_payable or self.total_payable == 0:
+            interest_amount = (self.principal_amount * (self.interest_rate / Decimal('100'))) * (self.period_months / Decimal('12'))
+            self.total_payable = self.principal_amount + interest_amount
+            # Initialize balances to full amount on creation
+            self.principal_balance = self.principal_amount
+            self.interest_balance = interest_amount
+            
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.loan_reference or f'LN-{self.id}'} - {self.member.first_name} {self.member.last_name}"
 
     @property
     def balance(self):
-        return (self.principal_balance or 0) + (self.interest_balance or 0)
+        return (self.principal_balance or Decimal('0')) + (self.interest_balance or Decimal('0'))
 
 
 class Installment(models.Model):
@@ -193,17 +210,17 @@ class Installment(models.Model):
 
 
 # =========================================================
-# 3. TRANSACTION ENGINE LOGS & REVERSALS
+# 3. TRANSACTION ENGINE LOGS, REVERSALS & DOUBLE-ENTRY
 # =========================================================
 
 class Transaction(models.Model):
     """Individual system action tracking financial entry modifications."""
     T_TYPES = (
-        ('deposit', 'Deposit'), 
+        ('deposit', 'Deposit'),
         ('withdrawal', 'Withdrawal'),
         ('disbursement', 'Loan Disbursement'),
         ('repayment', 'Loan Repayment'),
-        ('penalty', 'Penalty')  
+        ('penalty', 'Penalty')
     )
     member = models.ForeignKey(Member, on_delete=models.CASCADE)
     loan = models.ForeignKey(Loan, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
@@ -213,10 +230,7 @@ class Transaction(models.Model):
     reference = models.CharField(max_length=100, blank=True, null=True)
     is_reversed = models.BooleanField(default=False)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        related_name='transactions_created'
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='transactions_created'
     )
 
     def __str__(self):
@@ -226,18 +240,12 @@ class Transaction(models.Model):
 class TransactionReversal(models.Model):
     """Audit footprint logging explicit transaction changes."""
     original_transaction = models.OneToOneField(
-        Transaction, 
-        on_delete=models.CASCADE, 
-        related_name='reversal_details'
+        Transaction, on_delete=models.CASCADE, related_name='reversal_details'
     )
-    reversed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True
-    )
+    reversed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     reversal_time = models.DateTimeField(auto_now_add=True)
     reason = models.TextField()
-    
+
     def __str__(self):
         return f"Reversal of {self.original_transaction.reference}"
 
@@ -245,22 +253,14 @@ class TransactionReversal(models.Model):
 class GeneralLedger(models.Model):
     """Double-entry general tracking node mapped directly to core transactions."""
     date = models.DateField(default=timezone.now)
-    account = models.ForeignKey(
-        ChartOfAccount, 
-        on_delete=models.PROTECT,
-        related_name='ledger_entries'
-    )
+    account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name='ledger_entries')
     description = models.CharField(max_length=200)
     reference = models.CharField(max_length=100, blank=True, null=True)
     debit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     credit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     transaction = models.ForeignKey(
-        Transaction, 
-        null=True, 
-        blank=True, 
-        on_delete=models.SET_NULL,
-        related_name='ledger_entries'
+        Transaction, null=True, blank=True, on_delete=models.SET_NULL, related_name='ledger_entries'
     )
 
     class Meta:
@@ -272,6 +272,36 @@ class GeneralLedger(models.Model):
         return f"{self.date} - {self.account.name} | Dr:{self.debit} Cr:{self.credit}"
 
 
+class AccountingEngine:
+    """Automated operational runtime pipelines handling standard double-entry bookkeeping transactions."""
+    
+    @staticmethod
+    def post_ledger_entry(account_code, description, reference, debit, credit, transaction_obj, date_context=None):
+        try:
+            account = ChartOfAccount.objects.get(code=account_code)
+        except ChartOfAccount.DoesNotExist:
+            raise ValidationError(f"Configuration Critical Failure: ChartOfAccount code {account_code} does not exist.")
+
+        last_entry = GeneralLedger.objects.filter(account=account).order_by('-date', '-id').first()
+        current_running_balance = last_entry.balance if last_entry else Decimal('0.00')
+
+        if account.account_type in ['asset', 'expense']:
+            new_running_balance = current_running_balance + Decimal(str(debit)) - Decimal(str(credit))
+        else: # liability, income, equity
+            new_running_balance = current_running_balance + Decimal(str(credit)) - Decimal(str(debit))
+
+        return GeneralLedger.objects.create(
+            date=date_context or timezone.now().date(),
+            account=account,
+            description=description,
+            reference=reference,
+            debit=debit,
+            credit=credit,
+            balance=new_running_balance,
+            transaction=transaction_obj
+        )
+
+
 class Repayment(models.Model):
     """Explicit wrapper around programmatic waterfall repayments."""
     loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='repayments')
@@ -281,69 +311,108 @@ class Repayment(models.Model):
     notes = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
+        if not self.pk and not self.receipt_number:
+            self.receipt_number = f"RCP-{random.randint(10000, 99999)}"
+
         with transaction.atomic():
+            loan_obj = Loan.objects.select_for_update().get(id=self.loan.id)
             try:
-                savings = self.loan.member.savings 
-            except AttributeError:
-                raise ValidationError("Member does not have an active savings account.")
+                savings = SavingsAccount.objects.select_for_update().get(member=loan_obj.member)
+            except SavingsAccount.DoesNotExist:
+                raise ValidationError("Member does not possess an active savings pocket.")
 
-            repayment_amount = Decimal(str(self.amount_paid))
+            repayment_pool = Decimal(str(self.amount_paid))
+            if savings.balance < repayment_pool:
+                raise ValidationError(f"Insufficient funds inside Savings Account. Balance: UGX {savings.balance:,.0f}")
 
-            if savings.balance < repayment_amount:
-                raise ValidationError(f"Insufficient Savings: UGX {savings.balance:,.0f}")
-
-            savings.balance -= repayment_amount
+            # 1. Deduct from Member Savings
+            savings.balance -= repayment_pool
             savings.save()
 
-            loan_obj = self.loan
-            remaining_to_apply = repayment_amount
+            # 2. Allocate across Interest and Principal Balances
+            allocated_interest = Decimal('0.00')
+            allocated_principal = Decimal('0.00')
 
             if loan_obj.interest_balance > 0:
-                interest_cut = min(remaining_to_apply, loan_obj.interest_balance)
-                loan_obj.interest_balance -= interest_cut
-                remaining_to_apply -= interest_cut
+                allocated_interest = min(repayment_pool, loan_obj.interest_balance)
+                loan_obj.interest_balance -= allocated_interest
+                repayment_pool -= allocated_interest
 
-            if remaining_to_apply > 0:
-                principal_cut = min(remaining_to_apply, loan_obj.principal_balance)
-                loan_obj.principal_balance -= principal_cut
-                remaining_to_apply -= principal_cut
+            if repayment_pool > 0 and loan_obj.principal_balance > 0:
+                allocated_principal = min(repayment_pool, loan_obj.principal_balance)
+                loan_obj.principal_balance -= allocated_principal
+                repayment_pool -= allocated_principal
 
-            unpaid_insts = loan_obj.installments.filter(paid=False).order_by('due_date')
-            temp_payment_pool = repayment_amount
-            
-            for inst in unpaid_insts:
-                if temp_payment_pool <= 0:
+            # 3. Clear off Installment records chronologically
+            temp_pool = Decimal(str(self.amount_paid))
+            unpaid_installments = loan_obj.installments.filter(paid=False).order_by('due_date')
+            for inst in unpaid_installments:
+                if temp_pool <= 0:
                     break
-                
-                payment_to_this_inst = min(temp_payment_pool, inst.amount_remaining)
-                inst.amount_remaining -= payment_to_this_inst
-                temp_payment_pool -= payment_to_this_inst
-                
+                payment_to_inst = min(temp_pool, inst.amount_remaining)
+                inst.amount_remaining -= payment_to_inst
+                temp_pool -= payment_to_inst
                 if inst.amount_remaining <= 0:
                     inst.paid = True
                 inst.save()
 
+            # 4. Status Update Checks
             today = timezone.now().date()
             overdue_exists = loan_obj.installments.filter(due_date__lt=today, paid=False).exists()
             if not overdue_exists and loan_obj.status == 'arrears':
                 loan_obj.status = 'approved'
-
             if loan_obj.principal_balance <= 0 and loan_obj.interest_balance <= 0:
                 loan_obj.status = 'closed'
                 loan_obj.is_active = False
-
             loan_obj.save()
 
-            if not self.receipt_number:
-                self.receipt_number = f"RCP-{random.randint(10000, 99999)}"
-
-            Transaction.objects.create(
-                member=self.loan.member,
-                amount=repayment_amount,
+            # 5. Create core system log transaction
+            tx_log = Transaction.objects.create(
+                member=loan_obj.member,
+                amount=self.amount_paid,
                 type='repayment',
                 reference=f"LOAN-PYMT-#{self.receipt_number}",
-                loan=self.loan
+                loan=loan_obj,
+                timestamp=self.date_paid
             )
+
+            # =========================================================
+            # INTEGRATED SYSTEM DOUBLE-ENTRY LEDGER POSTING
+            # =========================================================
+            # Entry 1: Reduce SACCO liability to the member (Debit Savings account)
+            AccountingEngine.post_ledger_entry(
+                account_code="2000",
+                description=f"Savings withdrawal for Loan Repayment {loan_obj.loan_reference}",
+                reference=self.receipt_number,
+                debit=self.amount_paid,
+                credit=Decimal('0.00'),
+                transaction_obj=tx_log,
+                date_context=self.date_paid.date()
+            )
+
+            # Entry 2: Reduce SACCO loan portfolio outstanding balances (Credit Loan Asset)
+            if allocated_principal > 0:
+                AccountingEngine.post_ledger_entry(
+                    account_code="1200",
+                    description=f"Principal Recovery on Loan {loan_obj.loan_reference}",
+                    reference=self.receipt_number,
+                    debit=Decimal('0.00'),
+                    credit=allocated_principal,
+                    transaction_obj=tx_log,
+                    date_context=self.date_paid.date()
+                )
+
+            # Entry 3: Recognize real income generated from operations (Credit Income Statement)
+            if allocated_interest > 0:
+                AccountingEngine.post_ledger_entry(
+                    account_code="2100",
+                    description=f"Interest Income Recognized on Loan {loan_obj.loan_reference}",
+                    reference=self.receipt_number,
+                    debit=Decimal('0.00'),
+                    credit=allocated_interest,
+                    transaction_obj=tx_log,
+                    date_context=self.date_paid.date()
+                )
 
             super().save(*args, **kwargs)
 
@@ -352,7 +421,102 @@ class Repayment(models.Model):
 
 
 # =========================================================
-# 4. COMMUNICATIONS & NOTIFICATIONS METRICS
+# 4. BATCH PROCESSING ENGINE & UTILITY RECONCILIATION
+# =========================================================
+
+@transaction.atomic
+def process_repayment(loan_id):
+    """Engine to safely deduct money from savings for automated batch processing sweeps."""
+    try:
+        loan = Loan.objects.select_for_update().get(id=loan_id, status__in=['approved', 'arrears'], is_active=True)
+    except Loan.DoesNotExist:
+        return False
+
+    try:
+        savings = SavingsAccount.objects.select_for_update().get(member=loan.member)
+    except SavingsAccount.DoesNotExist:
+        return False
+
+    if savings.balance <= 0:
+        return False
+
+    inst = loan.installments.filter(paid=False).order_by('due_date').first()
+    if not inst:
+        return False
+
+    collectible_amount = min(savings.balance, inst.amount_remaining)
+    if collectible_amount <= 0:
+        return False
+
+    # Execute utilizing the safe transaction wrapper block
+    receipt_ref = f"AUTO-{random.randint(10000, 99999)}"
+    repayment_instance = Repayment(
+        loan=loan,
+        amount_paid=collectible_amount,
+        receipt_number=receipt_ref,
+        notes="Automated system sweep optimization protocol run."
+    )
+    repayment_instance.save()
+    return True
+
+
+# =========================================================
+# 5. IFRS COMPLIANT FINANCIAL REPORTING LAYER ENGINE
+# =========================================================
+
+class FinancialStatementEngine:
+    """Compiles real-time multi-dimensional financial positions balancing to the cent."""
+
+    @staticmethod
+    def get_balance_sheet():
+        """Generates dynamic Statement of Financial Position assets vs liabilities."""
+        assets = GeneralLedger.objects.filter(account__account_type='asset').aggregate(
+            total=Coalesce(Sum('debit') - Sum('credit'), Decimal('0.00'))
+        )['total']
+
+        liabilities = GeneralLedger.objects.filter(account__account_type='liability').aggregate(
+            total=Coalesce(Sum('credit') - Sum('debit'), Decimal('0.00'))
+        )['total']
+
+        income = GeneralLedger.objects.filter(account__account_type='income').aggregate(
+            total=Coalesce(Sum('credit') - Sum('debit'), Decimal('0.00'))
+        )['total']
+
+        expenses = GeneralLedger.objects.filter(account__account_type='expense').aggregate(
+            total=Coalesce(Sum('debit') - Sum('credit'), Decimal('0.00'))
+        )['total']
+
+        retained_earnings = income - expenses
+        total_equity_and_liabilities = liabilities + retained_earnings
+
+        return {
+            "assets": assets,
+            "liabilities": liabilities,
+            "retained_earnings": retained_earnings,
+            "total_equity_and_liabilities": total_equity_and_liabilities,
+            "is_balanced": assets == total_equity_and_liabilities
+        }
+
+    @staticmethod
+    def get_income_statement():
+        """Compiles real profit or loss performance metrics across operational income/expense types."""
+        total_income = GeneralLedger.objects.filter(account__account_type='income').aggregate(
+            total=Coalesce(Sum('credit') - Sum('debit'), Decimal('0.00'))
+        )['total']
+
+        total_expense = GeneralLedger.objects.filter(account__account_type='expense').aggregate(
+            total=Coalesce(Sum('debit') - Sum('credit'), Decimal('0.00'))
+        )['total']
+
+        return {
+            "gross_revenue": total_income,
+            "operating_expenses": total_expense,
+            "net_surplus": total_income - total_expense
+        }
+
+
+# =========================================================
+# 6. COMMUNICATIONS & NOTIFICATIONS METRICS
 # =========================================================
 
 class SMSConfig(models.Model):
@@ -384,29 +548,22 @@ class SMSTransaction(models.Model):
         return f"{self.transaction_type} - UGX {self.amount}"
 
 
-# =========================================================
-# 5. AMORTIZATION & SWEEP CORE UTILITY FUNCTIONS
-# =========================================================
-
 def generate_schedule(loan):
-    """Generates schedule installments and initializes amount_remaining."""
+    """Generates schedule installments and initializes amount_remaining structures."""
     if not loan.total_payable or loan.period_months <= 0:
         return
-
     principal_total = Decimal(str(loan.principal_amount))
     total_payable = Decimal(str(loan.total_payable))
     total_interest = total_payable - principal_total
 
     monthly_p = (principal_total / loan.period_months).quantize(Decimal('0.01'))
     monthly_i = (total_interest / loan.period_months).quantize(Decimal('0.01'))
-
     rem_p = principal_total
 
     for i in range(loan.period_months):
         due_date = loan.start_date + relativedelta(months=i + 1)
         curr_p = rem_p if i == loan.period_months - 1 else monthly_p
         curr_p = min(curr_p, rem_p)
-        
         total_inst_due = curr_p + monthly_i
 
         Installment.objects.create(
@@ -424,86 +581,9 @@ def generate_schedule(loan):
     loan.save()
 
 
-@transaction.atomic
-def process_repayment(loan_id):
-    """Engine to deduct money from savings for automated batch processing sweeps."""
-    try:
-        loan = Loan.objects.select_for_update().get(
-            id=loan_id, 
-            status__in=['approved', 'arrears'], 
-            is_active=True
-        )
-    except Loan.DoesNotExist:
-        return False
-
-    try:
-        savings = SavingsAccount.objects.select_for_update().get(member=loan.member)
-    except SavingsAccount.DoesNotExist:
-        return False
-    
-    if savings.balance <= 0:
-        return False
-
-    inst = loan.installments.filter(paid=False).order_by('due_date').first()
-    
-    if inst:
-        collectible_amount = min(savings.balance, inst.amount_remaining)
-        if collectible_amount <= 0:
-            return False
-
-        savings.balance -= collectible_amount
-        savings.save()
-
-        remaining_to_deduct = collectible_amount
-        
-        if loan.interest_balance > 0:
-            interest_deduction = min(remaining_to_deduct, loan.interest_balance)
-            loan.interest_balance -= interest_deduction
-            remaining_to_deduct -= interest_deduction
-            
-        if remaining_to_deduct > 0:
-            loan.principal_balance -= remaining_to_deduct
-
-        if collectible_amount >= inst.amount_remaining:
-            inst.amount_remaining = 0
-            inst.paid = True
-        else:
-            inst.amount_remaining -= collectible_amount
-        inst.save()
-
-        today = timezone.now().date()
-        still_has_overdue = loan.installments.filter(
-            due_date__lt=today, 
-            paid=False
-        ).exists()
-
-        if not still_has_overdue and loan.status == 'arrears':
-            loan.status = 'approved'
-
-        if loan.principal_balance <= 0 and loan.interest_balance <= 0:
-            loan.principal_balance = 0
-            loan.interest_balance = 0
-            loan.is_active = False
-            loan.status = 'closed'
-        loan.save()
-
-        Transaction.objects.create(
-            member=loan.member, 
-            amount=collectible_amount, 
-            type='repayment',
-            reference=f"Loan Repayment: {loan.loan_reference}",
-            loan=loan
-        )
-        return True
-            
-    return False
-
-
-
-from django.db import models
-from django.core.validators import MinValueValidator
-from django.contrib.auth.models import User
-from members.models import Member
+# =========================================================
+# 7. AUTO-REPAYMENT SYSTEM SETTINGS LOGGERS
+# =========================================================
 
 class AutoRepaymentSetting(models.Model):
     FREQUENCY_CHOICES = [
@@ -512,26 +592,26 @@ class AutoRepaymentSetting(models.Model):
         ('weekly', 'Weekly'),
         ('monthly', 'Monthly'),
     ]
-
     is_enabled = models.BooleanField(default=False, verbose_name="Enable Auto Repayments")
     execution_time = models.TimeField(default="22:00:00", verbose_name="Execution Time")
     frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES, default='daily')
     grace_period_days = models.PositiveIntegerField(default=0, verbose_name="Grace Period (Days)")
     updated_at = models.DateTimeField(auto_now=True)
-    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         verbose_name = "Auto Repayment Setting"
         verbose_name_plural = "Auto Repayment Settings"
 
     def save(self, *args, **kwargs):
-        # Enforce singleton pattern instance restriction
         if not self.pk and AutoRepaymentSetting.objects.exists():
             raise ValueError("Only one global AutoRepaymentSetting configuration instance can exist.")
         super().save(*args, **kwargs)
-        # Dynamic Celery Beat Periodic Task Sync Hook
-        from finance.tasks import sync_scheduler_to_celery_beat
-        sync_scheduler_to_celery_beat(self)
+        try:
+            from finance.tasks import sync_scheduler_to_celery_beat
+            sync_scheduler_to_celery_beat(self)
+        except ImportError:
+            pass
 
     def __str__(self):
         return f"Auto-Repayment Config [Status: {self.is_enabled} | {self.execution_time}]"
@@ -545,8 +625,8 @@ class AutoRepaymentLog(models.Model):
         ('error', 'System Execution Exception')
     ]
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
-    loan = models.ForeignKey('finance.Loan', on_delete=models.CASCADE, related_name="repayment_logs")
-    installment = models.ForeignKey('finance.Installment', on_delete=models.SET_NULL, null=True, blank=True)
+    loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name="repayment_logs")
+    installment = models.ForeignKey(Installment, on_delete=models.SET_NULL, null=True, blank=True)
     savings_balance_before = models.DecimalField(max_digits=12, decimal_places=2)
     amount_attempted = models.DecimalField(max_digits=12, decimal_places=2)
     amount_recovered = models.DecimalField(max_digits=12, decimal_places=2)

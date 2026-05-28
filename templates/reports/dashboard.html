@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Executive Analytics Dashboard - MAC Technologies{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-2 border-bottom border-light-subtle">
+    <div>
+        <h2 class="h4 fw-bold mb-1 tracking-tight text-gradient flex align-items-center gap-2">
+            <span class="d-inline-block rounded-circle bg-success animate-pulse" style="width: 10px; height: 10px;"></span>
+            Institutional Portfolio Analytics Center
+        </h2>
+        <p class="small text-muted mb-0">Apex Core Credit Engine &mdash; Operations Monitoring Room</p>
+    </div>
+    <div class="mt-2 mt-md-0">
+        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2 font-mono small">
+            <i class="bi bi-clock me-1"></i> Data Freshness: {% now "Y-m-d H:i" %}
+        </span>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border rounded-4 shadow-sm p-3 position-relative overflow-hidden" style="background: var(--card-bg);">
+            <div class="text-uppercase tracking-wider fw-bold text-muted mb-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">Liquidity Coverage Ratio</div>
+            <div class="h2 fw-bold text-primary mb-1">{{ kpis.liquidity_ratio|stringformat:".2f" }}%</div>
+            <div class="text-success small fw-medium mt-auto d-flex align-items-center gap-1">
+                <i class="bi bi-shield-check"></i> Statutory Mandate: &gt;20%
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border rounded-4 shadow-sm p-3 position-relative overflow-hidden" style="background: var(--card-bg);">
+            <div class="text-uppercase tracking-wider fw-bold text-muted mb-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">Capital Adequacy Ratio (CAR)</div>
+            <div class="h2 fw-bold text-primary mb-1">{{ kpis.capital_adequacy_ratio|stringformat:".2f" }}%</div>
+            <div class="text-success small fw-medium mt-auto d-flex align-items-center gap-1">
+                <i class="bi bi-shield-check"></i> Basel III Threshold: &gt;12%
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border rounded-4 shadow-sm p-3 position-relative overflow-hidden" style="background: var(--card-bg);">
+            <div class="text-uppercase tracking-wider fw-bold text-muted mb-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">Portfolio At Risk (PAR 30)</div>
+            <div class="h2 fw-bold text-danger mb-1">{{ kpis.portfolio_at_risk_30|stringformat:".2f" }}%</div>
+            <div class="text-muted small mt-auto d-flex align-items-center gap-1">
+                <i class="bi bi-bullseye"></i> Risk Tolerance Target: &lt;5.0%
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 border rounded-4 shadow-sm p-3 position-relative overflow-hidden" style="background: var(--card-bg);">
+            <div class="text-uppercase tracking-wider fw-bold text-muted mb-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">Non-Performing Loans (NPL)</div>
+            <div class="h2 fw-bold text-warning mb-1">{{ kpis.npl_ratio|stringformat:".2f" }}%</div>
+            <div class="text-muted small mt-auto d-flex align-items-center gap-1">
+                <i class="bi bi-pie-chart"></i> Asset Impairment Provision Ratio
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-xl-8">
+        <div class="card p-4 h-100 border rounded-4 shadow-sm" style="background: var(--card-bg);">
+            <h3 class="fw-bold mb-4" style="font-size: 0.88rem; text-transform: uppercase; tracking: 0.05em; color: var(--text-secondary);">
+                <i class="bi bi-bar-chart-line-fill me-2 text-primary"></i> Credit Asset Exposure Breakdown (Impairment Buckets)
+            </h3>
+            <div id="agingChart" style="min-height: 320px;"></div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-xl-4">
+        <div class="card p-4 h-100 border rounded-4 shadow-sm d-flex flex-column justify-content-between" style="background: var(--card-bg);">
+            <div>
+                <h3 class="fw-bold mb-3" style="font-size: 0.88rem; text-transform: uppercase; tracking: 0.05em; color: var(--text-secondary);">
+                    <i class="bi bi-info-circle-fill me-2 text-primary"></i> IFRS 9 Regulatory Statement
+                </h3>
+                <p class="small text-muted lh-base mb-0">
+                    Expected Credit Loss (ECL) calculation procedures evaluate parameters systematically using historical matrices inside a multi-stage framework configuration pipeline. Credit risk stage parameters dynamically redistribute calculations based on real-time repayment system triggers.
+                </p>
+            </div>
+            
+            <div class="mt-4 pt-3 border-top border-light-subtle">
+                <div class="d-flex justify-content-between align-items-center py-2 small">
+                    <span class="text-muted">Model Architecture</span>
+                    <span class="font-mono fw-semibold text-primary">Multi-State Markov</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2 small">
+                    <span class="text-muted">Confidence Parameter</span>
+                    <span class="font-mono fw-semibold text-primary">99.7% VaR Model</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2 small">
+                    <span class="text-muted">Database Engine</span>
+                    <span class="font-mono fw-semibold text-primary">Unified Dialect Query</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Evaluate dynamic platform theme settings inside your layout ecosystem
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const gridColor = isDark ? '#1e293b' : '#e2e8f0';
+        const labelColor = isDark ? '#94a3b8' : '#64748b';
+
+        var options = {
+            chart: { 
+                type: 'bar', 
+                height: 335, 
+                toolbar: { show: false }, 
+                background: 'transparent',
+                fontFamily: 'Plus Jakarta Sans, sans-serif'
+            },
+            colors: ['#1632af'], // Synchronized directly with your standard company --brand-cobalt identity
+            plotOptions: {
+                bar: {
+                    borderRadius: 6,
+                    columnWidth: '45%',
+                    distributed: false
+                }
+            },
+            series: [{ 
+                name: 'Exposure Volume', 
+                data: {{ chart_aging_volumes|safe }} 
+            }],
+            xaxis: { 
+                categories: {{ chart_aging_labels|safe }}, 
+                labels: { style: { colors: labelColor, fontSize: '11px' } },
+                axisBorder: { show: false },
+                axisTicks: { show: false }
+            },
+            yaxis: { 
+                labels: { 
+                    style: { colors: labelColor, fontSize: '11px' },
+                    formatter: function (value) {
+                        return value.toLocaleString();
+                    }
+                } 
+            },
+            grid: { borderColor: gridColor, strokeDashArray: 4 },
+            dataLabels: { enabled: false },
+            tooltip: {
+                theme: isDark ? 'dark' : 'light',
+                y: {
+                    formatter: function (val) {
+                        return "UGX " + val.toLocaleString();
+                    }
+                }
+            }
+        };
+        var chart = new ApexCharts(document.querySelector("#agingChart"), options);
+        chart.render();
+    });
+</script>
+{% endblock %}

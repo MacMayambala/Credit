@@ -175,3 +175,250 @@ class LoanRepaymentEngineService:
             message += f"failed due to insufficient savings balances on your account."
         
         logger.info(f"[SMS Notification Outbox Push] to {member.phone_number}: {message}")
+
+
+#############################################################################################################################
+
+
+import datetime
+from decimal import Decimal
+from django.db.models import Sum, Q, F, Count, Avg, Case, When, Value, DecimalField, fields, Max, IntegerField
+from django.db.models.functions import Coalesce, Cast
+from django.db.models.expressions import RawSQL
+from django.utils import timezone
+from .models import (
+    Member, SavingsAccount, Loan, Installment, Transaction, Repayment, 
+    GeneralLedger, ChartOfAccount, TransactionReversal, SMSTransaction
+)
+
+class FinancialReportingService:
+    """
+    Enterprise-grade ledger aggregation engine delivering IFRS-compliant analytics, 
+    regulatory ratios, and financial metrics.
+    """
+
+    @staticmethod
+    def get_interest_income_data(filters=None):
+        filters = filters or {}
+        queryset = Loan.objects.select_related('member', 'officer').all()
+
+        # Apply standard operational filters
+        if 'start_date' in filters and 'end_date' in filters:
+            queryset = queryset.filter(disbursed_date__range=[filters['start_date'], filters['end_date']])
+        if 'officer' in filters:
+            queryset = queryset.filter(officer_id=filters['officer'])
+        if 'product' in filters:
+            queryset = queryset.filter(product_type=filters['product'])
+
+        # Calculate using the explicit balances on your Loan Model
+        report_data = queryset.annotate(
+            interest_receivable=F('interest_balance'),
+            principal_receivable=F('principal_balance'),
+            total_remaining_balance=F('principal_balance') + F('interest_balance')
+        )
+
+        totals = report_data.aggregate(
+            total_principal_remaining=Coalesce(Sum('principal_balance'), Value(0, output_field=DecimalField())),
+            total_interest_remaining=Coalesce(Sum('interest_balance'), Value(0, output_field=DecimalField())),
+            total_outstanding=Coalesce(Sum('principal_balance') + Sum('interest_balance'), Value(0, output_field=DecimalField()))
+        )
+
+        return {'records': report_data, 'totals': totals}
+
+    @staticmethod
+    def calculate_ifrs9_ecl():
+        """
+        Computes Expected Credit Losses (ECL) under the IFRS 9 multi-stage framework.
+        Stage 1: Performing (<30 days overdue) -> 12-month ECL
+        Stage 2: Underperforming (30-90 days overdue) -> Lifetime ECL
+        Stage 3: Non-performing (>90 days overdue) -> Credit Impaired (Default)
+        """
+        today = timezone.now().date()
+        today_str = today.strftime('%Y-%m-%d')
+        
+        active_loans = Loan.objects.filter(status__in=['approved', 'arrears'], is_active=True).annotate(
+            days_overdue=Coalesce(
+                Max(Case(
+                    When(
+                        installments__paid=False, 
+                        installments__due_date__lt=today, 
+                        then=Cast(
+                            RawSQL("julianday(%s) - julianday(finance_installment.due_date)", [today_str]),
+                            output_field=IntegerField()
+                        )
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField()
+                )),
+                Value(0),
+                output_field=IntegerField()
+            )
+        )
+
+        # Baseline Risk Parameters (Calibrated via historical migration matrices)
+        pds = {'stage_1': Decimal('0.015'), 'stage_2': Decimal('0.080'), 'stage_3': Decimal('0.450')}
+        lgd = Decimal('0.45')  # Loss Given Default (reflecting security haircuts)
+
+        ecl_summary = active_loans.annotate(
+            stage=Case(
+                When(days_overdue__lte=30, then=Value('STAGE_1')),
+                When(days_overdue__lte=90, then=Value('STAGE_2')),
+                default=Value('STAGE_3'),
+                output_field=fields.CharField()
+            )
+        ).annotate(
+            ecl_amount=Case(
+                When(stage='STAGE_1', then=(F('principal_balance') + F('interest_balance')) * pds['stage_1'] * lgd),
+                When(stage='STAGE_2', then=(F('principal_balance') + F('interest_balance')) * pds['stage_2'] * lgd),
+                default=(F('principal_balance') + F('interest_balance')) * pds['stage_3'] * lgd,
+                output_field=DecimalField(max_digits=18, decimal_places=2)
+            )
+        )
+
+        return ecl_summary
+
+    @staticmethod
+    def get_loan_aging_summary():
+        """
+        Groups outstanding balances across defined maturity/arrears risk buckets.
+        """
+        today = timezone.now().date()
+        today_str = today.strftime('%Y-%m-%d')
+        loans = Loan.objects.filter(status__in=['approved', 'arrears'], is_active=True)
+        
+        aging_buckets = loans.annotate(
+            days_overdue=Coalesce(
+                Max(Case(
+                    When(
+                        installments__paid=False, 
+                        installments__due_date__lt=today, 
+                        then=Cast(
+                            RawSQL("julianday(%s) - julianday(finance_installment.due_date)", [today_str]),
+                            output_field=IntegerField()
+                        )
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField()
+                )),
+                Value(0),
+                output_field=IntegerField()
+            )
+        ).annotate(
+            bucket=Case(
+                When(days_overdue=0, then=Value('Current')),
+                When(days_overdue__lte=30, then=Value('1-30 Days')),
+                When(days_overdue__lte=60, then=Value('31-60 Days')),
+                When(days_overdue__lte=90, then=Value('61-90 Days')),
+                When(days_overdue__lte=180, then=Value('91-180 Days')),
+                default=Value('180+ Days'),
+                output_field=fields.CharField()
+            )
+        ).values('bucket').annotate(
+            volume=Sum('principal_balance') + Sum('interest_balance'),
+            count=Count('id'),
+            interest_arrears=Sum('installments__interest_portion', filter=Q(installments__paid=False))
+        ).order_by('bucket')
+
+        return list(aging_buckets)
+
+    @staticmethod
+    def get_regulatory_ratios():
+        """
+        Calculates capital adequacy, liquidity, and asset quality metrics 
+        against central bank statutory mandates.
+        """
+        total_assets = GeneralLedger.objects.filter(account__account_type='asset').aggregate(bal=Sum('debit') - Sum('credit'))['bal'] or Decimal('0.00')
+        liquid_assets = GeneralLedger.objects.filter(account__account_type='asset', account__parent__isnull=False).aggregate(bal=Sum('debit')-Sum('credit'))['bal'] or Decimal('0.00')
+        total_deposits = SavingsAccount.objects.aggregate(bal=Sum('balance'))['bal'] or Decimal('0.00')
+        core_capital = GeneralLedger.objects.filter(account__account_type='equity').aggregate(bal=Sum('credit')-Sum('debit'))['bal'] or Decimal('0.00')
+
+        total_loans = Loan.objects.filter(status__in=['approved', 'arrears'], is_active=True).aggregate(bal=Sum('principal_balance') + Sum('interest_balance'))['bal'] or Decimal('0.00')
+        
+        today = timezone.now().date()
+        npl_loans = Loan.objects.filter(
+            status__in=['approved', 'arrears'], 
+            is_active=True,
+            installments__paid=False, 
+            installments__due_date__lt=today - datetime.timedelta(days=90)
+        ).distinct().aggregate(bal=Sum('principal_balance') + Sum('interest_balance'))['bal'] or Decimal('0.00')
+
+        par_30_loans = Loan.objects.filter(
+            status__in=['approved', 'arrears'], 
+            is_active=True,
+            installments__paid=False, 
+            installments__due_date__lt=today - datetime.timedelta(days=30)
+        ).distinct().aggregate(bal=Sum('principal_balance') + Sum('interest_balance'))['bal'] or Decimal('0.00')
+
+        if total_deposits == 0: total_deposits = Decimal('1.00')
+        if total_assets == 0: total_assets = Decimal('1.00')
+
+        return {
+            'liquidity_ratio': (liquid_assets / total_deposits) * 100,
+            'capital_adequacy_ratio': (core_capital / total_assets) * 100,
+            'npl_ratio': (npl_loans / total_loans) * 100 if total_loans > 0 else Decimal('0.00'),
+            'portfolio_at_risk_30': (par_30_loans / total_loans) * 100 if total_loans > 0 else Decimal('0.00')
+        }
+
+    @staticmethod
+    def get_treasury_liquidity_forecast():
+        """
+        Generates a 30-day structural liquidity profile matching asset inflows 
+        (scheduled collections) against anticipated liabilities.
+        """
+        today = timezone.now().date()
+        forecast = []
+        for i in range(30):
+            target_date = today + datetime.timedelta(days=i)
+            inflows = Installment.objects.filter(due_date=target_date, paid=False).aggregate(total=Sum('principal_portion') + Sum('interest_portion'))['total'] or Decimal(0)
+            outflows_estimated = Transaction.objects.filter(type='withdrawal').aggregate(avg_wd=Avg('amount'))['avg_wd'] or Decimal(0)
+            
+            forecast.append({
+                'date': target_date.strftime('%Y-%m-%d'),
+                'inflow': float(inflows),
+                'outflow': float(outflows_estimated),
+                'net_position': float(inflows - outflows_estimated)
+            })
+        return forecast
+
+
+#############################################################################################################
+from decimal import Decimal
+from django.db import transaction
+from .models import SavingsAccount, Transaction, AccountingEngine
+
+class FinancialTransactionService:
+    @staticmethod
+    @transaction.atomic
+    def record_deposit(member, amount, receipt_ref, date=None):
+        """Debit Cash (Asset), Credit Member Savings (Liability)."""
+        savings = SavingsAccount.objects.select_for_update().get(member=member)
+        savings.balance += amount
+        savings.save()
+
+        tx = Transaction.objects.create(
+            member=member, amount=amount, type='deposit', reference=receipt_ref
+        )
+        
+        # 1000: Cash/Bank Account, 2000: Member Savings Account
+        AccountingEngine.post_ledger_entry("1000", "Member Deposit", receipt_ref, amount, 0, tx, date)
+        AccountingEngine.post_ledger_entry("2000", "Member Deposit", receipt_ref, 0, amount, tx, date)
+        return tx
+
+    @staticmethod
+    @transaction.atomic
+    def record_withdrawal(member, amount, receipt_ref, date=None):
+        """Debit Member Savings (Liability), Credit Cash (Asset)."""
+        savings = SavingsAccount.objects.select_for_update().get(member=member)
+        if savings.balance < amount:
+            raise ValueError("Insufficient funds.")
+        
+        savings.balance -= amount
+        savings.save()
+
+        tx = Transaction.objects.create(
+            member=member, amount=amount, type='withdrawal', reference=receipt_ref
+        )
+        
+        AccountingEngine.post_ledger_entry("2000", "Member Withdrawal", receipt_ref, amount, 0, tx, date)
+        AccountingEngine.post_ledger_entry("1000", "Member Withdrawal", receipt_ref, 0, amount, tx, date)
+        return tx

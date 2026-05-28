@@ -2,45 +2,129 @@
 {% load humanize %}
 
 {% block content %}
-<div class="container-fluid px-0">
 
-    <div class="mb-5">
-        <h1 class="h3 fw-semibold mb-1">Financial Operations</h1>
-        <p class="text-muted mb-0">Securely credit funds to member savings accounts</p>
-    </div>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    --brand-cobalt: #1632af;
+}
+
+.container-fluid {
+    background: var(--bg);
+    min-height: 100vh;
+}
+
+.page-header {
+    margin-bottom: 2.5rem;
+}
+
+.card-main {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+}
+
+.header-gradient {
+    background: linear-gradient(135deg, var(--brand-cobalt) 0%, #11268a 100%);
+    padding: 3rem 2rem;
+    text-align: center;
+    color: white;
+}
+
+.form-section {
+    padding: 3rem;
+}
+
+.input-group-lg .input-group-text {
+    background: #f8fafc;
+    border: none;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.form-control {
+    border: none;
+    font-size: 1.35rem;
+    font-weight: 600;
+    padding: 1rem 1.25rem;
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 4px rgba(22, 50, 175, 0.15);
+    border-color: var(--brand-cobalt);
+}
+
+.tracking-widest {
+    letter-spacing: 0.08em;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.btn-confirm {
+    background-color: var(--brand-cobalt);
+    border: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 1rem;
+    border-radius: 9999px;
+    transition: all 0.3s ease;
+}
+
+.btn-confirm:hover {
+    background-color: #11268a;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 25px rgba(22, 50, 175, 0.35);
+}
+
+.alert-info {
+    background: rgba(22, 50, 175, 0.05);
+    border: 1px solid rgba(22, 50, 175, 0.2);
+}
+</style>
+
+<div class="container-fluid py-5 px-4">
 
     <div class="row justify-content-center">
-        <div class="col-xl-5 col-lg-7 col-md-9">
+        <div class="col-xl-6 col-lg-7 col-md-9">
 
-            <div class="card border-0 shadow-xl overflow-hidden rounded-4">
-                
+            <!-- Page Title -->
+            <div class="page-header text-center text-md-start">
+                <h1 class="h3 fw-bold mb-1">Cash Deposit</h1>
+                <p class="text-muted">Securely credit funds to member savings account</p>
+            </div>
+
+            <div class="card-main">
+
                 <!-- Header -->
-                <div class="bg-gradient p-5 text-center" style="background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);">
+                <div class="header-gradient">
                     <div class="mx-auto bg-white bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center mb-4" 
-                         style="width: 72px; height: 72px;">
-                        <i class="bi bi-shield-check text-white fs-2"></i>
+                         style="width: 80px; height: 80px;">
+                        <i class="bi bi-shield-check text-white fs-1"></i>
                     </div>
-                    <h4 class="text-white fw-bold mb-1">Secure Cash Deposit</h4>
-                    <p class="text-white-50 mb-0">Member ID: <strong>{{ member.member_number }}</strong></p>
+                    <h4 class="fw-bold mb-2">Secure Cash Deposit</h4>
+                    <p class="mb-0 opacity-75">Member ID: <strong>{{ member.member_number|default:member.id }}</strong></p>
                 </div>
 
-                <div class="card-body p-5">
+                <div class="form-section">
+
                     <form method="post" class="needs-validation" novalidate>
                         {% csrf_token %}
 
-                        <!-- Account Holder Info -->
+                        <!-- Account Holder -->
                         <div class="mb-5">
-                            <label class="form-label fw-semibold text-muted text-uppercase small tracking-widest">
-                                Account Holder
-                            </label>
-                            <div class="d-flex align-items-center bg-light p-4 rounded-3 border border-light">
-                                <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-4">
-                                    <i class="bi bi-person-fill text-primary fs-3"></i>
+                            <label class="tracking-widest text-muted mb-2 d-block">Account Holder</label>
+                            <div class="d-flex align-items-center p-4 rounded-3 border" style="background: var(--hover-bg);">
+                                <div class="bg-white rounded-circle p-3 me-4 shadow-sm">
+                                    <i class="bi bi-person-fill text-primary fs-2"></i>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <div class="fw-bold fs-5 text-dark">{{ member.first_name }} {{ member.last_name }}</div>
-                                    <div class="text-muted">
-                                        Current Savings: 
+                                    <div class="fw-bold fs-5">{{ member.first_name }} {{ member.last_name }}</div>
+                                    <div class="text-muted small">
+                                        Current Balance: 
                                         <span class="fw-semibold text-dark">
                                             UGX {{ member.savings.balance|default:0|floatformat:0|intcomma }}
                                         </span>
@@ -52,73 +136,68 @@
 
                         <!-- Deposit Amount -->
                         <div class="mb-5">
-                            <label class="form-label fw-semibold text-muted text-uppercase small tracking-widest">
-                                Deposit Amount
-                            </label>
-                            <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden">
-                                <span class="input-group-text bg-light border-0 fw-bold text-muted px-5 fs-5">
-                                    UGX
-                                </span>
+                            <label class="tracking-widest text-muted mb-2 d-block">Deposit Amount</label>
+                            <div class="input-group input-group-lg shadow-sm rounded-3">
+                                <span class="input-group-text fw-bold px-4">UGX</span>
                                 <input type="number" 
                                        name="amount" 
-                                       class="form-control border-0 shadow-none fw-bold fs-3 text-dark" 
+                                       class="form-control fw-bold" 
                                        placeholder="0.00" 
                                        min="1000" 
                                        step="1000" 
                                        required 
                                        autofocus>
                             </div>
-                            <div class="form-text text-muted mt-2 small ps-1">
-                                Minimum deposit: UGX 1,000 • Multiple of 1,000 recommended
-                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                Minimum: UGX 1,000 • Recommended in multiples of 1,000
+                            </small>
                         </div>
 
-                        <!-- Admin Back-date Section -->
+                        <!-- Backdate Option -->
                         {% if backdate_allowed %}
                         <div class="mb-5">
-                            <label class="form-label fw-semibold text-warning text-uppercase small tracking-widest">
-                                <i class="bi bi-calendar-check me-1"></i> Admin: Override Date
+                            <label class="tracking-widest text-warning mb-2 d-block">
+                                <i class="bi bi-calendar-check me-1"></i> Admin Override Date
                             </label>
-                            <div class="p-3 rounded-3 border border-warning border-opacity-25 bg-warning bg-opacity-10">
+                            <div class="p-4 rounded-3 border border-warning bg-warning bg-opacity-10">
                                 <input type="datetime-local" 
                                        name="back_date" 
-                                       class="form-control border-0 bg-transparent fw-semibold text-dark shadow-none">
-                                <div class="form-text text-dark-50 mt-1 small">
-                                    Leave blank to use current server time.
-                                </div>
+                                       class="form-control">
+                                <small class="text-muted mt-2 d-block">
+                                    Leave empty to use current time
+                                </small>
                             </div>
                         </div>
                         {% endif %}
 
-                        <!-- Info Alert -->
-                        <div class="alert border border-primary border-opacity-25 bg-primary bg-opacity-5 rounded-3 p-4 mb-5">
+                        <!-- Info Box -->
+                        <div class="alert alert-info rounded-3 p-4 mb-5">
                             <div class="d-flex gap-3">
-                                <i class="bi bi-info-circle-fill text-primary fs-5 mt-1"></i>
+                                <i class="bi bi-info-circle-fill fs-4 text-primary mt-1"></i>
                                 <div>
-                                    <div class="fw-semibold text-primary small text-uppercase tracking-widest mb-1">
-                                        Automated Arrears Clearance
+                                    <div class="fw-semibold text-primary small tracking-widest mb-1">
+                                        AUTOMATIC ARREARS CLEARANCE
                                     </div>
-                                    <p class="small text-muted mb-0">
-                                        The system will automatically clear any overdue loan installments before 
-                                        crediting the remaining amount to the member's savings account.
+                                    <p class="small mb-0 text-muted">
+                                        Any outstanding loan installments will be cleared automatically before 
+                                        the remaining amount is credited to savings.
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Submit Button -->
-                        <button type="submit" 
-                                class="btn btn-primary w-100 btn-lg rounded-pill py-3 fw-bold shadow-lg fs-5">
+                        <!-- Submit -->
+                        <button type="submit" class="btn btn-confirm w-100 py-3 shadow">
                             <i class="bi bi-check-circle me-2"></i>
-                            Confirm Deposit
+                            Confirm &amp; Record Deposit
                         </button>
                     </form>
                 </div>
 
                 <!-- Footer -->
-                <div class="card-footer bg-light border-0 py-4 px-5 text-center">
-                    <small class="text-muted d-flex align-items-center justify-content-center gap-2">
-                        <i class="bi bi-lock-fill"></i>
+                <div class="bg-light py-4 px-5 text-center border-top">
+                    <small class="text-muted">
+                        <i class="bi bi-lock-fill me-1"></i>
                         Secured by MAC Technologies • SSL Encrypted
                     </small>
                 </div>
@@ -126,12 +205,10 @@
 
             <!-- Back Links -->
             <div class="text-center mt-5">
-                <a href="{% url 'member_profile' member.id %}" 
-                   class="text-decoration-none text-muted small hover-underline me-4">
+                <a href="{% url 'member_profile' member.id %}" class="text-muted small me-4 text-decoration-none">
                     ← Back to Member Profile
                 </a>
-                <a href="{% url 'dashboard' %}" 
-                   class="text-decoration-none text-muted small hover-underline">
+                <a href="{% url 'dashboard' %}" class="text-muted small text-decoration-none">
                     Back to Dashboard
                 </a>
             </div>
@@ -140,48 +217,4 @@
     </div>
 </div>
 
-<style>
-    :root {
-        --ms-primary: #1e40af;
-    }
-
-    .tracking-widest {
-        letter-spacing: 0.08em;
-    }
-
-    .hover-underline:hover {
-        text-decoration: underline !important;
-        color: var(--ms-primary) !important;
-    }
-
-    .input-group:focus-within {
-        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.15);
-    }
-
-    .form-control:focus {
-        border-color: var(--ms-primary);
-        box-shadow: none;
-    }
-
-    .btn-primary {
-        background-color: var(--ms-primary);
-        border: none;
-        font-weight: 600;
-        transition: all 0.25s ease;
-    }
-
-    .btn-primary:hover {
-        background-color: #1e3a8a;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(30, 64, 175, 0.3) !important;
-    }
-
-    .card {
-        transition: transform 0.3s ease;
-    }
-    
-    .card:hover {
-        transform: translateY(-4px);
-    }
-</style>
 {% endblock %}

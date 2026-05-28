@@ -1,42 +1,62 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
+<div class="row justify-content-center py-5">
+    <div class="col-md-5">
         <div class="d-flex align-items-center mb-4">
-            <a href="{% url 'general_ledger' %}" class="btn btn-light rounded-circle me-3">
+            <a href="{% url 'general_ledger' %}" class="btn btn-light rounded-circle shadow-sm me-3 border-0">
                 <i class="bi bi-arrow-left"></i>
             </a>
-            <h2 class="fw-bold mb-0">Record Inflow</h2>
+            <h3 class="fw-bold mb-0" style="color: #1632AF;">Record Inflow</h3>
         </div>
 
         <div class="card border-0 shadow-sm rounded-4">
             <div class="card-body p-4">
                 <form method="POST">
                     {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary text-uppercase">Income Category</label>
-                        <select name="account" class="form-select form-select-lg" required>
-                            <option value="" selected disabled>Select Income Account</option>
+                    
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px;">Income Category</label>
+                        <select name="account" class="form-select border-2 shadow-none" style="padding: 0.8rem 1rem; border-color: #e2e8f0;" required>
+                            <option value="" selected disabled>Select account...</option>
                             {% for acc in income_accounts %}
                                 <option value="{{ acc.id }}">{{ acc.code }} - {{ acc.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary text-uppercase">Amount (UGX)</label>
-                        <input type="number" name="amount" step="0.01" class="form-control form-control-lg fw-bold text-success" placeholder="0.00" required>
-                    </div>
+
                     <div class="mb-4">
-                        <label class="form-label small fw-bold text-secondary text-uppercase">Description</label>
-                        <textarea name="description" class="form-control" rows="3" required></textarea>
+                        <label class="form-label small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px;">Amount (UGX)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-2 border-end-0 text-muted fw-bold">UGX</span>
+                            <input type="number" name="amount" step="0.01" class="form-control border-2 shadow-none fw-bold text-success" 
+                                   style="padding: 0.8rem 1rem; border-left: 0; border-color: #e2e8f0;" placeholder="0.00" required>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-success w-100 py-3 fw-bold rounded-3">
-                        <i class="bi bi-check-circle me-2"></i> POST INFLOW
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px;">Description</label>
+                        <textarea name="description" class="form-control border-2 shadow-none" rows="3" 
+                                  style="padding: 0.8rem 1rem; border-color: #e2e8f0;" placeholder="Provide transaction details..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn w-100 py-3 fw-bold rounded-3 text-white shadow-sm" 
+                            style="background-color: #1632AF; font-size: 0.95rem;">
+                        <i class="bi bi-check-circle me-2"></i> POST TRANSACTION
                     </button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* Premium Input Focus States */
+    .form-select:focus, .form-control:focus {
+        border-color: #1632AF !important;
+        box-shadow: 0 0 0 0.25rem rgba(22, 50, 175, 0.1) !important;
+    }
+    
+    .card { background-color: #ffffff; }
+</style>
 {% endblock %}
