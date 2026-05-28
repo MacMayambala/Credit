@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
-
+{% load tz %}
+{{ user.last_login|localtime|date:"M d, Y" }}
 {% block content %}
 <div class="row mb-4 align-items-center">
     <div class="col-md">
@@ -80,7 +81,7 @@
                     <td class="text-muted small" style="font-size: 0.82rem;">
                         {% if user.last_login %}
                             <span class="fw-medium" style="color: var(--text-primary);">{{ user.last_login|date:"M d, Y" }}</span><br>
-                            <span class="text-muted font-monospace">{{ user.last_login|time:"H:i" }}</span>
+                            <span class="text-muted font-monospace">{{ user.last_login|time:"h:i A" }}</span>
                         {% else %}
                             <span class="fst-italic text-secondary">Never Logged In</span>
                         {% endif %}
