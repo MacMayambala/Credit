@@ -142,7 +142,7 @@
                         <th class="ps-4">Reference</th>
                         <th>Member Details</th>
                         <th class="text-end">Principal (UGX)</th>
-                        <th class="text-end">Balance (UGX)</th>
+                        <th class="text-end">Interest (UGX)</th> <th class="text-end">Balance (UGX)</th>
                         <th class="text-center">Status</th>
                         <th class="text-end pe-4">Operations</th>
                     </tr>
@@ -160,6 +160,9 @@
                         </td>
                         <td class="text-end">
                             <span class="fw-medium">{{ loan.principal_amount|floatformat:0|intcomma }}</span>
+                        </td>
+                        <td class="text-end">
+                            <span class="text-secondary fw-medium">{{ loan.interest_balance|floatformat:0|intcomma }}</span>
                         </td>
                         <td class="text-end">
                             <div class="fw-bold {% if loan.balance > 0 %}text-danger{% else %}text-success{% endif %}">
@@ -185,18 +188,9 @@
                         </td>
                         <td class="text-end pe-4">
                             <a href="{% url 'loan_detail' loan.id %}" 
-                               class="btn btn-outline-ledger btn-sm px-3 rounded-2">
-                                VIEW LEDGER
+                            class="btn btn-outline-ledger btn-sm px-3 rounded-2">
+                            VIEW LEDGER
                             </a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5">
-                            <div class="py-5">
-                                <i class="bi bi-inbox fs-1 text-light"></i>
-                                <p class="text-muted mt-2 fw-bold">No records found in the credit registry.</p>
-                            </div>
                         </td>
                     </tr>
                     {% endfor %}

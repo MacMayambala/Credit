@@ -31,13 +31,13 @@
                 <div class="card-body p-4">
                     <div class="text-center mb-4">
                         <small class="text-uppercase fw-bold text-secondary tracking-wider" style="font-size: 0.7rem; letter-spacing: 1px;">Current Outstanding Balance</small>
-                        <h2 class="fw-bold mt-1 mb-0" style="color: var(--brand-cobalt);">UGX {{ loan.balance|intcomma }}</h2>
+                        <h2 class="fw-bold mt-1 mb-0" style="color: var(--brand-cobalt);">UGX {{ loan.balance|floatformat:2|intcomma }}</h2>
                     </div>
                     
                     <div class="p-3 rounded-3 mb-3" style="background: var(--hover-bg);">
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-secondary small">Initial Principal</span>
-                            <span class="fw-bold">UGX {{ loan.principal_amount|intcomma }}</span>
+                            <span class="fw-bold">UGX {{ loan.principal_amount|floatformat:2|intcomma }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-secondary small">Interest Rate</span>
@@ -55,14 +55,14 @@
                                 <div class="bg-danger-subtle p-2 rounded-circle me-2"><i class="bi bi-graph-up text-danger small"></i></div>
                                 <span class="small">Interest Balance</span>
                             </div>
-                            <span class="fw-bold text-danger">{{ loan.interest_balance|intcomma }}</span>
+                            <span class="fw-bold text-danger">{{ loan.interest_balance|floatformat:2|intcomma }}</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center py-2">
                             <div class="d-flex align-items-center">
                                 <div class="bg-success-subtle p-2 rounded-circle me-2"><i class="bi bi-cash-stack text-success small"></i></div>
                                 <span class="small">Principal Balance</span>
                             </div>
-                            <span class="fw-bold text-success">{{ loan.principal_balance|intcomma }}</span>
+                            <span class="fw-bold text-success">{{ loan.principal_balance|floatformat:2|intcomma }}</span>
                         </div>
                     </div>
                 </div>
@@ -131,6 +131,9 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="progress my-3" style="height: 10px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio total_paid total_payable 100 %}%"></div>
                     </div>
                     
                     <div class="mt-4 p-3 rounded-3 bg-light border">

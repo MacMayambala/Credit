@@ -5,84 +5,484 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
 
 <style>
-    :root {
-        --cobalt: #0047AB;
-        --cobalt-dark: #003380;
-        --cobalt-light: #e8f0fe;
-        --cobalt-glow: rgba(0, 71, 171, 0.12);
-        --border: #dce4f0;
-        --text: #0d1f3c;
-        --muted: #6b7fa3;
-        --bg: #f2f5fb;
+:root {
+    --cobalt: #0047AB;
+    --cobalt-dark: #003380;
+    --cobalt-light: #e8f0fe;
+    --cobalt-glow: rgba(0, 71, 171, 0.15);
+    --border: #dce4f0;
+    --text: #0d1f3c;
+    --muted: #64748b;
+    --bg: #f8fafc;
+    --success: #16a34a;
+    --radius: 16px;
+}
+
+body {
+    background: var(--bg);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* HEADER */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.04em;
+}
+
+.subtitle {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.075em;
+    color: var(--muted);
+}
+
+/* BUTTONS */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.35rem;
+    font-weight: 600;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.btn-cobalt {
+    background: linear-gradient(135deg, var(--cobalt), var(--cobalt-dark));
+    color: white;
+    border: none;
+    box-shadow: 0 8px 25px rgba(0, 71, 171, 0.25);
+}
+
+.btn-cobalt:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(0, 71, 171, 0.3);
+}
+
+.btn-cobalt-outline {
+    background: white;
+    color: var(--cobalt);
+    border: 1.5px solid var(--border);
+}
+
+.btn-cobalt-outline:hover {
+    background: var(--cobalt-light);
+    border-color: var(--cobalt);
+}
+
+/* STATS */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+}
+
+.stat-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    background: var(--cobalt-light);
+    color: var(--cobalt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.stat-value {
+    font-size: 1.85rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-label {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* MAIN CARD */
+.registry-card {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06),
+                0 25px 50px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+/* TOOLBAR */
+.card-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.search-wrap {
+    flex: 1;
+    max-width: 520px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #f1f5f9;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 0.85rem 1.25rem;
+    transition: all 0.25s;
+}
+
+.search-wrap:focus-within {
+    background: white;
+    border-color: var(--cobalt);
+    box-shadow: 0 0 0 4px var(--cobalt-glow);
+}
+
+.search-wrap input {
+    border: none;
+    background: none;
+    outline: none;
+    width: 100%;
+    font-size: 1rem;
+}
+
+/* MEMBER LIST */
+.member-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.member-row {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid var(--border);
+    transition: all 0.2s;
+}
+
+.member-row:hover {
+    background: #f8fbff;
+    border-left: 4px solid var(--cobalt);
+}
+
+.avatar {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--cobalt-light);
+    color: var(--cobalt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 12px rgba(0, 71, 171, 0.15);
+}
+
+.member-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.member-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.member-name:hover {
+    color: var(--cobalt);
+}
+
+.member-id {
+    display: inline-block;
+    margin-top: 0.35rem;
+    padding: 4px 9px;
+    background: var(--cobalt-light);
+    color: var(--cobalt);
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 6px;
+}
+
+/* FOOTER */
+.card-footer-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.75rem;
+    border-top: 1px solid var(--border);
+    background: #f8fafc;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.entry-count {
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    gap: 0.35rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.page-link {
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: white;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.page-link:hover {
+    background: var(--cobalt-light);
+    color: var(--cobalt);
+}
+
+.page-link.active {
+    background: var(--cobalt);
+    border-color: var(--cobalt);
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .member-row { flex-wrap: wrap; }
+    .member-meta { width: 100%; margin-top: 1rem; }
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
-    body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+    .member-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .card-footer-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+</style>
+<style> 
+    /* Updated Member Row - Screenshot Style */
+.member-row {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.1rem 1.75rem;
+    border-bottom: 1px solid var(--border);
+    transition: all 0.2s ease;
+}
 
-    .page-header { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem; }
-    .page-header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.03em; color: var(--text); margin: 0 0 0.25rem; }
-    .page-header .subtitle { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
-    .header-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+.member-row:hover {
+    background: #f8fbff;
+}
 
-    .btn-cobalt { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.6rem 1.25rem; background: var(--cobalt); color: #fff; border: none; border-radius: 8px; font-family: inherit; font-size: 0.83rem; font-weight: 600; letter-spacing: 0.03em; cursor: pointer; text-decoration: none; box-shadow: 0 4px 14px rgba(0,71,171,0.28); transition: all 0.18s ease; }
-    .btn-cobalt:hover { background: var(--cobalt-dark); box-shadow: 0 6px 20px rgba(0,71,171,0.38); transform: translateY(-1px); color: #fff; text-decoration: none; }
-    .btn-cobalt-outline { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.6rem 1.25rem; background: #fff; color: var(--cobalt); border: 1.5px solid var(--cobalt); border-radius: 8px; font-family: inherit; font-size: 0.83rem; font-weight: 600; letter-spacing: 0.03em; cursor: pointer; text-decoration: none; transition: all 0.18s ease; }
-    .btn-cobalt-outline:hover { background: var(--cobalt-light); color: var(--cobalt); text-decoration: none; }
+.avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--cobalt-light);
+    color: var(--cobalt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 71, 171, 0.12);
+}
 
-    .registry-card { background: #fff; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 2px 16px rgba(0,0,0,0.05); overflow: hidden; }
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
 
-    .card-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border); background: #fff; }
-    .search-wrap { display: flex; align-items: center; gap: 0.5rem; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 0.45rem 0.9rem; flex: 1; min-width: 220px; max-width: 420px; transition: all 0.2s; }
-    .search-wrap:focus-within { background: #fff; border-color: var(--cobalt); box-shadow: 0 0 0 3px var(--cobalt-glow); }
-    .search-wrap i { color: var(--muted); font-size: 0.875rem; flex-shrink: 0; }
-    .search-wrap input { border: none; background: transparent; font-family: inherit; font-size: 0.875rem; color: var(--text); outline: none; width: 100%; }
-    .search-wrap input::placeholder { color: var(--muted); }
+/* Name + Subtitle */
+.member-main {
+    flex: 1;
+    min-width: 0;
+}
 
-    .search-spinner { width: 14px; height: 14px; flex-shrink: 0; border: 2px solid var(--cobalt-light); border-top-color: var(--cobalt); border-radius: 50%; animation: spin 0.6s linear infinite; display: none; }
-    .search-spinner.active { display: block; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+.member-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text);
+    text-decoration: none;
+    display: block;
+}
 
-    .search-clear { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1rem; line-height: 1; padding: 0 2px; display: none; flex-shrink: 0; }
-    .search-clear:hover { color: var(--cobalt); }
-    .search-clear.visible { display: block; }
+.member-name:hover {
+    color: var(--cobalt);
+}
 
-    .result-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.32rem 0.8rem; background: var(--cobalt-light); color: var(--cobalt); border-radius: 20px; font-size: 0.78rem; font-weight: 600; border: 1px solid rgba(0,71,171,0.15); }
+.member-subtitle {
+    font-size: 0.875rem;
+    color: var(--muted);
+    margin-top: 3px;
+}
 
-    .toolbar-right { display: flex; gap: 0.4rem; margin-left: auto; }
-    .icon-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border-radius: 7px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); background: transparent; border: none; cursor: pointer; font-family: inherit; transition: all 0.15s; }
-    .icon-btn:hover { background: var(--bg); color: var(--cobalt); }
+.dot {
+    color: #cbd5e1;
+}
 
-    .member-list { list-style: none; padding: 0; margin: 0; transition: opacity 0.15s; }
-    .member-list.loading { opacity: 0.4; pointer-events: none; }
+/* Details Section */
+.member-details {
+    display: flex;
+    align-items: center;
+    gap: 2.2rem;
+    color: #334155;
+}
 
-    .member-row { display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border); border-left: 3px solid transparent; background: #fff; transition: all 0.18s cubic-bezier(0.4,0,0.2,1); animation: rowIn 0.18s ease both; }
-    @keyframes rowIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-    .member-row:last-child { border-bottom: none; }
-    .member-row:hover { background: #fafcff; border-left-color: var(--cobalt); }
-    .member-row:hover .member-name { color: var(--cobalt); }
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
 
-    .avatar { width: 46px; height: 46px; border-radius: 50%; background: var(--cobalt-light); color: var(--cobalt); display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; flex-shrink: 0; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,71,171,0.13); overflow: hidden; }
-    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.detail-item i {
+    color: #64748b;
+    font-size: 1.05rem;
+}
 
-    .member-info { flex: 1; min-width: 0; }
-    .member-name { display: block; font-size: 0.975rem; font-weight: 700; color: var(--text); text-decoration: none; transition: color 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .member-id { display: inline-block; margin-top: 0.28rem; font-size: 0.72rem; font-weight: 600; color: var(--cobalt); background: var(--cobalt-light); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0,71,171,0.15); }
+.detail-label {
+    font-weight: 500;
+}
 
-    .member-meta { display: flex; gap: 0; flex-shrink: 0; align-items: stretch; }
-    .meta-col { display: flex; flex-direction: column; padding: 0 1.5rem; border-left: 1px solid var(--border); min-width: 100px; }
-    .meta-label { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); opacity: 0.75; margin-bottom: 0.22rem; }
-    .meta-value { font-size: 0.875rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+/* Responsive */
+@media (max-width: 1100px) {
+    .member-details {
+        gap: 1.5rem;
+    }
+}
 
-    .empty-state { padding: 4rem 2rem; text-align: center; color: var(--muted); }
-    .empty-icon { font-size: 2.5rem; opacity: 0.2; margin-bottom: 0.75rem; }
-    .empty-state p { font-weight: 500; }
+@media (max-width: 768px) {
+    .member-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .member-details {
+        width: 100%;
+        margin-top: 0.75rem;
+        gap: 1.25rem;
+    }
+}
+</style>
 
-    .card-footer-bar { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-top: 1px solid var(--border); background: #fff; flex-wrap: wrap; gap: 0.75rem; }
-    .entry-count { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
-    .pagination { display: flex; gap: 0.3rem; list-style: none; margin: 0; padding: 0; }
-    .page-link { display: flex; align-items: center; justify-content: center; min-width: 34px; height: 34px; padding: 0 0.6rem; border-radius: 8px; font-size: 0.83rem; font-weight: 600; color: var(--muted); text-decoration: none; background: transparent; border: 1.5px solid transparent; transition: all 0.15s; cursor: pointer; font-family: inherit; }
-    .page-link:hover { background: var(--cobalt-light); color: var(--cobalt); border-color: rgba(0,71,171,0.15); }
-    .page-link.active { background: var(--cobalt); color: #fff; box-shadow: 0 3px 10px rgba(0,71,171,0.3); pointer-events: none; }
-    .page-link.nav { background: var(--bg); color: var(--text); border-color: var(--border); }
-    .page-link.nav:hover { background: var(--cobalt-light); color: var(--cobalt); border-color: var(--cobalt); }
+<style>
+    /* PAGINATION */
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.page-link {
+    min-width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.page-link:hover {
+    background: var(--cobalt-light);
+    color: var(--cobalt);
+    border-color: var(--cobalt);
+    transform: translateY(-1px);
+}
+
+.page-link.active {
+    background: var(--cobalt);
+    color: white;
+    border-color: var(--cobalt);
+    box-shadow: 0 4px 12px rgba(0, 71, 171, 0.25);
+}
+
+.page-link.nav {
+    min-width: 42px;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+/* Optional: Ellipsis (if you want to add later) */
+.page-ellipsis {
+    padding: 0 8px;
+    color: var(--muted);
+    font-weight: 600;
+}
 </style>
 
 <div class="container-fluid py-5 px-lg-5">
@@ -90,183 +490,173 @@
     <div class="page-header">
         <div>
             <h1>Client Registry</h1>
-            <span class="subtitle" id="headerCount">All Customers &nbsp;·&nbsp; {{ total_count }} Total Record{{ total_count|pluralize }}</span>
+            <span class="subtitle" id="headerCount">
+                All Customers &nbsp;·&nbsp; {{ total_count }} Total Record{{ total_count|pluralize }}
+            </span>
         </div>
-        <div class="header-actions">
-            <a href="{% url 'import_dashboard' %}" class="btn-cobalt-outline">
-                <i class="bi bi-cloud-arrow-up-fill"></i> Bulk Upload Data
+        <div class="d-flex gap-3">
+            <a href="{% url 'import_dashboard' %}" class="btn btn-cobalt-outline">
+                <i class="bi bi-cloud-arrow-up-fill"></i> Bulk Upload
             </a>
-            <a href="{% url 'register_member' %}" class="btn-cobalt">
-                <i class="bi bi-person-plus-fill"></i> Register New Customer
+            <a href="{% url 'register_member' %}" class="btn btn-cobalt">
+                <i class="bi bi-person-plus-fill"></i> New Customer
             </a>
         </div>
     </div>
 
-    <div class="registry-card">
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <div class="stat-value">{{ total_count|intcomma }}</div>
+                <div class="stat-label">Total Customers</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-person-check-fill"></i></div>
+            <div>
+                <div class="stat-value">{{ active_count|intcomma|default:total_count }}</div>
+                <div class="stat-label">Active Customers</div>
+            </div>
+        </div>
+       
+        
+    </div>
 
+    <div class="registry-card">
         <div class="card-toolbar">
             <div class="search-wrap">
-                <i class="bi bi-search"></i>
-                <input type="text" id="searchInput" placeholder="Search name, ID or phone across all records…"
-                       value="{{ search_query }}" autocomplete="off">
-                <div class="search-spinner" id="searchSpinner"></div>
-                <button class="search-clear {% if search_query %}visible{% endif %}" id="searchClear" title="Clear">✕</button>
-            </div>
-
-            <span class="result-badge" id="resultBadge" {% if not search_query %}style="display:none"{% endif %}>
-                <i class="bi bi-funnel-fill" style="font-size:0.7rem;"></i>
-                <span id="badgeText">{{ total_count }} result{{ total_count|pluralize }}</span>
-            </span>
-
-            <div class="toolbar-right d-none d-md-flex">
-                <button class="icon-btn"><i class="bi bi-sliders2 me-1"></i> Filters</button>
-                <button class="icon-btn"><i class="bi bi-file-earmark-arrow-down me-1"></i> Export</button>
+                <i class="bi bi-search text-muted"></i>
+                <input type="text" id="searchInput" placeholder="Search by name, phone, ID..." autocomplete="off">
+                <div id="searchSpinner" class="spinner-border spinner-border-sm text-primary" style="display:none; width:18px;height:18px;"></div>
+                <button id="searchClear" class="btn btn-link text-muted p-0 ms-auto" style="display:none;">&times;</button>
             </div>
         </div>
 
         <ul class="member-list" id="memberList">
-            {% for member in members %}
-            <li class="member-row">
-                <div class="avatar">
-                    {% if member.photo %}
-                        <img src="{{ member.photo.url }}" alt="{{ member.first_name }}">
-                    {% else %}
-                        {{ member.first_name|slice:":1" }}{{ member.last_name|slice:":1" }}
-                    {% endif %}
-                </div>
-                <div class="member-info">
-                    <a href="{% url 'member_profile' member.id %}" class="member-name">{{ member.first_name }} {{ member.last_name }}</a>
-                    <span class="member-id">{{ member.member_number }}</span>
-                </div>
-                <div class="member-meta">
-                    <div class="meta-col">
-                        <span class="meta-label">Gender / Age</span>
-                        <span class="meta-value">{{ member.gender|default:"—" }} · {{ member.age }} yrs</span>
-                    </div>
-                    <div class="meta-col">
-                        <span class="meta-label">Contact</span>
-                        <span class="meta-value">{{ member.phone_number }}</span>
-                    </div>
-                    <div class="meta-col">
-                        <span class="meta-label">Address</span>
-                        <span class="meta-value">{{ member.village }}, {{ member.district }}</span>
-                    </div>
-                </div>
-            </li>
-            {% empty %}
-            <li class="empty-state">
-                <div class="empty-icon"><i class="bi bi-person-exclamation"></i></div>
-                <p>{% if search_query %}No customers match "{{ search_query }}".{% else %}No registered customers found.{% endif %}</p>
-            </li>
-            {% endfor %}
+            {% include 'members/partials/member_rows.html' %}
         </ul>
 
-        <div class="card-footer-bar" id="footerBar">
+        <div class="card-footer-bar">
             <div class="entry-count" id="entryCount">
-                {% if members.paginator.count %}
-                    Showing {{ members.start_index }}–{{ members.end_index }} of {{ total_count }} entr{{ total_count|pluralize:"y,ies" }}
-                {% else %}
-                    No results
-                {% endif %}
+                {% include 'members/partials/entry_count.html' %}
             </div>
-            <nav><ul class="pagination" id="paginationList">
-                {% if members.has_previous %}
-                <li><button class="page-link nav" data-page="{{ members.previous_page_number }}">← Prev</button></li>
-                {% endif %}
-                {% for i in members.paginator.page_range %}
-                    {% if members.number == i %}
-                        <li><span class="page-link active">{{ i }}</span></li>
-                    {% elif i > members.number|add:'-3' and i < members.number|add:'3' %}
-                        <li><button class="page-link" data-page="{{ i }}">{{ i }}</button></li>
-                    {% endif %}
-                {% endfor %}
-                {% if members.has_next %}
-                <li><button class="page-link nav" data-page="{{ members.next_page_number }}">Next →</button></li>
-                {% endif %}
-            </ul></nav>
+            <ul class="pagination" id="paginationList">
+                {% include 'members/partials/pagination.html' %}
+            </ul>
         </div>
-
     </div>
 </div>
 
 <script>
-(function () {
-    const searchInput  = document.getElementById('searchInput');
-    const spinner      = document.getElementById('searchSpinner');
-    const clearBtn     = document.getElementById('searchClear');
-    const badge        = document.getElementById('resultBadge');
-    const badgeTxt     = document.getElementById('badgeText');
-    const memberList   = document.getElementById('memberList');
-    const entryCount   = document.getElementById('entryCount');
-    const pagination   = document.getElementById('paginationList');
-    const headerCount  = document.getElementById('headerCount');
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('searchInput');
+    const spinner = document.getElementById('searchSpinner');
+    const clearBtn = document.getElementById('searchClear');
+    const memberList = document.getElementById('memberList');
+    const entryCount = document.getElementById('entryCount');
+    const pagination = document.getElementById('paginationList');
+    const headerCount = document.getElementById('headerCount');
 
-    let debounceTimer, currentPage = 1;
+    let debounceTimer;
+    let currentPage = 1;
 
-    /* ── Core fetch ── */
-    async function fetchResults(q, page) {
-        spinner.classList.add('active');
-        memberList.classList.add('loading');
-        history.replaceState(null, '', '?' + new URLSearchParams({ q, page }));
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+               getCookie('csrftoken');
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie) {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function fetchResults(query = '', page = 1) {
+        spinner.style.display = 'inline-block';
+        memberList.classList.add('opacity-50');
+
+        const formData = new FormData();
+        formData.append('q', query);
+        formData.append('page', page);
 
         try {
-            const res  = await fetch('?' + new URLSearchParams({ q, page, partial: 1 }), {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            const res = await fetch('', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: formData
             });
+
+            if (!res.ok) throw new Error('Request failed');
+
             const data = await res.json();
 
-            memberList.innerHTML  = data.rows_html;
-            entryCount.innerHTML  = data.entry_count_html;
-            pagination.innerHTML  = data.pagination_html;
+            memberList.innerHTML = data.rows_html || '';
+            entryCount.innerHTML = data.entry_count_html || '';
+            pagination.innerHTML = data.pagination_html || '';
 
-            const n = data.total_count;
-            if (q) {
-                headerCount.textContent = `${n} result${n !== 1 ? 's' : ''} for "${q}"`;
-                badgeTxt.textContent    = `${n} result${n !== 1 ? 's' : ''}`;
-                badge.style.display     = 'inline-flex';
+            const total = data.total_count || 0;
+
+            if (query) {
+                headerCount.textContent = `${total} result${total !== 1 ? 's' : ''} for "${query}"`;
             } else {
-                headerCount.innerHTML = `All Customers &nbsp;·&nbsp; ${n} Total Record${n !== 1 ? 's' : ''}`;
-                badge.style.display   = 'none';
+                headerCount.innerHTML = `All Customers &nbsp;·&nbsp; ${total} Total Record${total !== 1 ? 's' : ''}`;
             }
 
+            currentPage = page;
             bindPagination();
-        } catch (e) {
-            console.error('Search error', e);
+        } catch (err) {
+            console.error('Search failed:', err);
         } finally {
-            spinner.classList.remove('active');
-            memberList.classList.remove('loading');
+            spinner.style.display = 'none';
+            memberList.classList.remove('opacity-50');
         }
     }
 
-    /* ── Input with debounce ── */
-    searchInput.addEventListener('input', function () {
-        clearBtn.classList.toggle('visible', this.value.length > 0);
-        currentPage = 1;
+    function bindPagination() {
+        pagination.querySelectorAll('[data-page]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = parseInt(btn.dataset.page, 10);
+                if (page) {
+                    fetchResults(searchInput.value.trim(), page);
+                    document.querySelector('.registry-card').scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    }
+
+    // Events
+    searchInput.addEventListener('input', () => {
+        clearBtn.style.display = searchInput.value.length ? 'block' : 'none';
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => fetchResults(this.value.trim(), 1), 280);
+        debounceTimer = setTimeout(() => {
+            fetchResults(searchInput.value.trim(), 1);
+        }, 300);
     });
 
-    /* ── Clear ── */
-    clearBtn.addEventListener('click', function () {
+    clearBtn.addEventListener('click', () => {
         searchInput.value = '';
-        this.classList.remove('visible');
-        badge.style.display = 'none';
-        currentPage = 1;
+        clearBtn.style.display = 'none';
         fetchResults('', 1);
         searchInput.focus();
     });
 
-    /* ── Pagination (re-bound after every render) ── */
-    function bindPagination() {
-        pagination.querySelectorAll('[data-page]').forEach(btn => {
-            btn.addEventListener('click', function () {
-                currentPage = parseInt(this.dataset.page, 10);
-                fetchResults(searchInput.value.trim(), currentPage);
-                document.querySelector('.registry-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
-        });
-    }
+    // Initial binding
     bindPagination();
-})();
+});
 </script>
 {% endblock %}

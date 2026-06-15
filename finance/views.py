@@ -214,78 +214,57 @@ def loan_list(request):
     return render(request, 'finance/loan_list.html', context)
 
 
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+from decimal import Decimal
+
 @login_required
 def loan_detail(request, pk):
     """Detailed profile analytics for a singular loan instance"""
     loan = get_object_or_404(Loan, pk=pk)
-    member = loan.member
-
-    try:
-        savings_balance = loan.member.savings.balance
-    except Exception:
-        savings_balance = Decimal('0.00')
-
-    schedule = loan.installments.all().order_by('due_date')
-    repayments = loan.repayments.all().order_by('-date_paid')
     today = timezone.now().date()
 
-    # Unpaid overdue installments
-    unpaid_installments = loan.installments.filter(paid=False, due_date__lte=today)
+    # 1. Ensure schedule exists
+    if not loan.installments.exists():
+        loan.generate_schedule()
 
-    try:
-        principal_amount = Decimal(str(loan.principal_amount or 0))
-        total_payable = Decimal(str(getattr(loan, 'total_payable', 0) or 0))
+    # 2. Aggregations (Only counts installments due today or in the past that are unpaid)
+    active_due = loan.installments.filter(paid=False, due_date__lte=today).aggregate(
+        total_interest=Sum('interest_portion'),
+        total_principal=Sum('principal_portion')
+    )
 
-        if loan.period_months and loan.period_months > 0:
-            monthly_principal = principal_amount / loan.period_months
-            total_interest = total_payable - principal_amount
-            monthly_interest = total_interest / loan.period_months
-        else:
-            monthly_principal = Decimal('0')
-            monthly_interest = Decimal('0')
-    except (TypeError, ZeroDivisionError, InvalidOperation):
-        monthly_principal = Decimal('0')
-        monthly_interest = Decimal('0')
-
-    unpaid_count = unpaid_installments.count()
-    interest_due = (unpaid_count * monthly_interest).quantize(Decimal('0.01'))
-    principal_due = (unpaid_count * monthly_principal).quantize(Decimal('0.01'))
+    interest_due = active_due['total_interest'] or Decimal('0.00')
+    principal_due = active_due['total_principal'] or Decimal('0.00')
     total_due_now = (interest_due + principal_due).quantize(Decimal('0.01'))
 
+    # 3. Totals and Metadata
     total_paid = loan.repayments.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0')
-    officer = getattr(loan, 'officer', None)
-
-    disbursement_date = getattr(loan, 'disbursement_date', getattr(loan, 'start_date', None))
-    period_months = getattr(loan, 'period_months', 0)
-
-    if disbursement_date and period_months:
-        end_date = disbursement_date + relativedelta(months=+period_months)
-    else:
-        end_date = None
+    
+    disbursement_date = loan.disbursed_date or loan.start_date
+    end_date = disbursement_date + relativedelta(months=loan.period_months) if disbursement_date else None
 
     context = {
         'loan': loan,
-        'savings_balance': savings_balance,
-        'schedule': schedule,
-        'repayments': repayments,
-        'officer': officer,
-        'member_address': f"{member.village}, {member.parish}, {member.district}",
-        'principal_balance': getattr(loan, 'principal_balance', principal_amount),
-        'interest_balance': getattr(loan, 'interest_balance', interest_due),
-        'total_penalty': getattr(loan, 'total_penalty', Decimal('0')),
-        'total_payable': total_payable,
-        'interest_due': interest_due,
-        'principal_due': principal_due,
+        'actual_loan_amount': loan.principal_amount,  # Added this for the "Loan Amount" display
+        'principal_balance': loan.principal_balance,    # This tracks the actual debt
+        'interest_balance': loan.interest_balance,      # Total interest remaining
+        'interest_due': interest_due,                   # Interest active (due now)
+        'principal_due': principal_due,                 # Principal active (due now)
         'total_due_now': total_due_now,
+        'savings_balance': getattr(loan.member.savings, 'balance', Decimal('0.00')),
+        'schedule': loan.installments.all().order_by('due_date'),
+        'repayments': loan.repayments.all().order_by('-date_paid'),
+        'member_address': f"{loan.member.village}, {loan.member.parish}, {loan.member.district}",
         'total_paid': total_paid.quantize(Decimal('0.01')),
         'disbursement_date': disbursement_date,
-        'period_months': period_months,
         'end_date': end_date,
         'today': today,
     }
+    
     return render(request, 'finance/loan_detail.html', context)
-
-
 @login_required
 def apply_loan(request, member_id=None):
     """
@@ -1674,37 +1653,59 @@ from datetime import datetime
 
 from django.db.models import Sum
 
-@login_required
+from django.db.models import Sum, Window, F
+from django.shortcuts import render
+from .models import GeneralLedger, ChartOfAccount
+
+from django.db.models import Sum, Window, F
+from django.shortcuts import render
+from .models import GeneralLedger, ChartOfAccount
+
+from django.shortcuts import render
+from django.db.models import Sum, Window, F
+from django.utils import timezone
+from .models import GeneralLedger, ChartOfAccount
+
 def general_ledger(request):
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    
-    transactions = GeneralLedger.objects.select_related('account').order_by('-date')
-    
+    # Base QuerySet
+    queryset = GeneralLedger.objects.select_related('account').all().order_by('date', 'id')
+
+    # Get data from POST, default to empty string if not present
+    start_date = request.POST.get('start_date') or None
+    end_date = request.POST.get('end_date') or None
+    account_id = request.POST.get('account_id') or None
+
+    # Apply filters
     if start_date:
-        transactions = transactions.filter(date__gte=start_date)
+        queryset = queryset.filter(date__gte=start_date)
     if end_date:
-        transactions = transactions.filter(date__lte=end_date)
-    
+        queryset = queryset.filter(date__lte=end_date)
+    if account_id:
+        queryset = queryset.filter(account_id=account_id)
+
+    # Annotate transactions
+    transactions = queryset.annotate(
+        running_balance=Window(
+            expression=Sum(F('credit') - F('debit')),
+            order_by=F('date').asc(),
+            partition_by=F('account_id')
+        )
+    )
+
     totals = transactions.aggregate(
         total_debit=Sum('debit'),
         total_credit=Sum('credit')
     )
-    
-    # Net Cash calculation based on Account 1001
-    cash_entries = GeneralLedger.objects.filter(account__code='1001')
-    cash_in = cash_entries.aggregate(total=Sum('debit'))['total'] or 0
-    cash_out = cash_entries.aggregate(total=Sum('credit'))['total'] or 0
-    
+
     return render(request, 'accounting/ledger.html', {
         'transactions': transactions,
         'total_debit': totals['total_debit'] or 0,
         'total_credit': totals['total_credit'] or 0,
-        'net_cash': cash_in - cash_out,
-        'start_date': start_date,
-        'end_date': end_date,
+        'start_date': start_date or '',
+        'end_date': end_date or '',
+        'selected_account': account_id or '',
+        'all_accounts': ChartOfAccount.objects.all(),
     })
-
 @login_required
 def chart_of_accounts(request):
     """List Chart of Accounts grouped by type"""

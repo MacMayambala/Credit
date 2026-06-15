@@ -235,63 +235,20 @@ from django.urls import reverse
 
 from .models import Member
 
-ROWS_TEMPLATE = """
-{% load humanize %}
-{% for member in members %}
-<li class="member-row">
-    <div class="avatar">
-        {% if member.photo %}<img src="{{ member.photo.url }}" alt="{{ member.first_name }}">
-        {% else %}{{ member.first_name|slice:":1" }}{{ member.last_name|slice:":1" }}{% endif %}
-    </div>
-    <div class="member-info">
-        <a href="{{ member.profile_url }}" class="member-name">{{ member.first_name }} {{ member.last_name }}</a>
-        <span class="member-id">{{ member.member_number }}</span>
-    </div>
-    <div class="member-meta">
-        <div class="meta-col">
-            <span class="meta-label">Gender / Age</span>
-            <span class="meta-value">{{ member.gender|default:"—" }} · {{ member.age }} yrs</span>
-        </div>
-        <div class="meta-col">
-            <span class="meta-label">Contact</span>
-            <span class="meta-value">{{ member.phone_number }}</span>
-        </div>
-        <div class="meta-col">
-            <span class="meta-label">Address</span>
-            <span class="meta-value">{{ member.village }}, {{ member.district }}</span>
-        </div>
-    </div>
-</li>
-{% empty %}
-<li class="empty-state">
-    <div class="empty-icon"><i class="bi bi-person-exclamation"></i></div>
-    <p>{% if search_query %}No customers match "{{ search_query }}".{% else %}No registered customers found.{% endif %}</p>
-</li>
-{% endfor %}
-"""
+from django.template.loader import render_to_string
+from django.http import JsonResponse
+from django.shortcuts import render, reverse
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from datetime import date
+from .models import Member
 
-PAGINATION_TEMPLATE = """
-{% if members.has_previous %}<li><button class="page-link nav" data-page="{{ members.previous_page_number }}">← Prev</button></li>{% endif %}
-{% for i in members.paginator.page_range %}
-    {% if members.number == i %}<li><span class="page-link active">{{ i }}</span></li>
-    {% elif i > members.number|add:'-3' and i < members.number|add:'3' %}<li><button class="page-link" data-page="{{ i }}">{{ i }}</button></li>
-    {% endif %}
-{% endfor %}
-{% if members.has_next %}<li><button class="page-link nav" data-page="{{ members.next_page_number }}">Next →</button></li>{% endif %}
-"""
-
-ENTRY_COUNT_TEMPLATE = """
-{% load humanize %}
-{% if members.paginator.count %}
-    Showing {{ members.start_index }}–{{ members.end_index }} of {{ total_count }} entr{{ total_count|pluralize:"y,ies" }}
-{% else %}No results{% endif %}
-"""
-
+from datetime import date
 
 def _annotate_age(members_page):
     today = date.today()
     for member in members_page:
         if getattr(member, 'dob', None):
+            # Calculate age correctly
             member.age = (
                 today.year - member.dob.year
                 - ((today.month, today.day) < (member.dob.month, member.dob.day))
@@ -299,57 +256,51 @@ def _annotate_age(members_page):
         else:
             member.age = 'N/A'
 
+from django.db.models import Q
+from django.core.paginator import Paginator
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+from django.urls import reverse
 
-def _render_inline(template_str, context_dict):
-    from django.template import engines
-    engine = engines['django']
-    t = engine.from_string(template_str)
-    return t.render(context_dict)
-
+import json
+from django.views.decorators.csrf import csrf_exempt # Optional: only if you handle CSRF via headers
 
 def customer_list(request):
-    search_query = request.GET.get('q', '').strip()
-    page_number  = request.GET.get('page', 1)
-    is_partial   = request.GET.get('partial') == '1'
+    # Change to POST.get
+    search_query = request.POST.get('q', '').strip()
+    page_number  = request.POST.get('page', 1)
 
     qs = Member.objects.all().order_by('last_name')
+
     if search_query:
         qs = qs.filter(
-            Q(first_name__icontains=search_query)    |
-            Q(last_name__icontains=search_query)     |
-            Q(member_number__icontains=search_query) |
-            Q(phone_number__icontains=search_query)
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(phone_number__icontains=search_query) |
+            Q(member_number__icontains=search_query)
         )
 
-    total_count = qs.count()
-    paginator   = Paginator(qs, 5)
-
-    try:
-        members_page = paginator.page(page_number)
-    except PageNotAnInteger:
-        members_page = paginator.page(1)
-    except EmptyPage:
-        members_page = paginator.page(paginator.num_pages)
-
+    paginator = Paginator(qs, 5)
+    members_page = paginator.get_page(page_number)
     _annotate_age(members_page)
 
-    # Annotate the correct profile URL using reverse() so inline templates
-    # never have to guess the URL pattern or hardcode paths.
-    for member in members_page:
-        member.profile_url = reverse('member_profile', args=[member.id])
+    for m in members_page:
+        m.profile_url = reverse('member_profile', args=[m.id])
 
     context = {
-        'members':      members_page,
+        'members': members_page,
         'search_query': search_query,
-        'total_count':  total_count,
+        'total_count': paginator.count
     }
 
-    if is_partial:
+    # AJAX Response remains largely the same
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({
-            'rows_html':       _render_inline(ROWS_TEMPLATE, context),
-            'pagination_html': _render_inline(PAGINATION_TEMPLATE, context),
-            'entry_count_html':_render_inline(ENTRY_COUNT_TEMPLATE, context),
-            'total_count':     total_count,
+            'rows_html': render_to_string('members/partials/member_rows.html', context),
+            'pagination_html': render_to_string('members/partials/pagination.html', context),
+            'entry_count_html': render_to_string('members/partials/entry_count.html', context),
+            'total_count': paginator.count,
         })
 
     return render(request, 'members/customer_list.html', context)

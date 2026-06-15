@@ -132,28 +132,23 @@
 
     <!-- Financial Balances Grid -->
     <div class="row g-4 mb-5">
-        <div class="col-md-3">
+       
+        <div class="col-md-4">
             <div class="balance-card h-100">
-                <div class="uppercase-tracking mb-2">Principal Bal</div>
-                <h4 class="fw-bold mb-0">UGX {{ principal_balance|floatformat:0|intcomma }}</h4>
+                <div class="uppercase-tracking mb-2">Loan Amount</div>
+                <h4 class="fw-bold mb-0">UGX {{ loan.principal_amount|floatformat:2|intcomma }}</h4>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="balance-card h-100">
-                <div class="uppercase-tracking mb-2 text-primary">Interest Bal</div>
-                <h4 class="fw-bold text-primary mb-0">UGX {{ interest_balance|floatformat:0|intcomma }}</h4>
+                <div class="uppercase-tracking mb-2 text-success">Principal Balance</div>
+                <h4 class="fw-bold text-success mb-0">UGX {{ principal_balance|floatformat:2|intcomma }}</h4>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="balance-card h-100">
-                <div class="uppercase-tracking mb-2 text-danger">Total Penalties</div>
-                <h4 class="fw-bold text-danger mb-0">UGX {{ total_penalty|floatformat:0|intcomma }}</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="balance-card total h-100">
-                <div class="uppercase-tracking mb-2 text-primary">Total Payoff Amount</div>
-                <h3 class="fw-bold text-primary mb-0">UGX {{ total_payable|floatformat:0|intcomma }}</h3>
+                <div class="uppercase-tracking mb-2 text-primary">Interest Due (Active)</div>
+                <h4 class="fw-bold text-primary mb-0">UGX {{ interest_due|floatformat:2|intcomma }}</h4>
             </div>
         </div>
     </div>
@@ -181,6 +176,24 @@
                 <a href="{% url 'loan_details' loan.id %}" class="btn btn-success btn-action shadow-sm">
                         <i class="bi bi-check-circle-fill"></i> Loan Details
                  </a>
+            </div>
+        </div>
+    </div>
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4" style="background: linear-gradient(135deg, #f8fafc, #edf2f7);">
+                <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold mb-1 text-dark">Current Payment Obligation</h5>
+                        <p class="text-muted small mb-0">Payments due as of today ({{ today|date:"d M, Y" }})</p>
+                    </div>
+                    <div class="text-end">
+                        <h2 class="fw-bold text-primary mb-0">UGX {{ total_due_now|intcomma }}</h2>
+                        <div class="small text-muted">
+                            Principal: {{ principal_due|intcomma }} | Interest: {{ interest_due|intcomma }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

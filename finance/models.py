@@ -183,6 +183,24 @@ class Loan(models.Model):
             
         super().save(*args, **kwargs)
 
+
+    # Add to Loan class
+    def get_active_interest_due(self):
+        """Calculates interest for all installments that have reached their due date."""
+        today = timezone.now().date()
+        return self.installments.filter(
+            due_date__lte=today, 
+            paid=False
+        ).aggregate(total=Sum('interest_portion'))['total'] or Decimal('0.00')
+
+    def get_current_principal_due(self):
+        """Calculates principal for installments that have reached their due date."""
+        today = timezone.now().date()
+        return self.installments.filter(
+            due_date__lte=today, 
+            paid=False
+        ).aggregate(total=Sum('principal_portion'))['total'] or Decimal('0.00')
+
     def __str__(self):
         return f"{self.loan_reference or f'LN-{self.id}'} - {self.member.first_name} {self.member.last_name}"
 
@@ -200,6 +218,16 @@ class Installment(models.Model):
     interest_portion = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     penalty_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     paid = models.BooleanField(default=False)
+
+    @property
+    def is_active(self):
+        """Interest is only active if the date has arrived."""
+        return timezone.now().date() >= self.due_date
+
+    @property
+    def interest_due(self):
+        """Returns interest only if the installment is active."""
+        return self.interest_portion if self.is_active else Decimal('0.00')
 
     @property
     def total_due(self):
@@ -267,7 +295,12 @@ class GeneralLedger(models.Model):
         ordering = ['date', 'id']
         verbose_name = "General Ledger"
         verbose_name_plural = "General Ledger Entries"
-
+    
+    class Meta:
+        indexes = [
+            # Speeds up date-range filters combined with account lookups
+            models.Index(fields=['date', 'account']), 
+        ]
     def __str__(self):
         return f"{self.date} - {self.account.name} | Dr:{self.debit} Cr:{self.credit}"
 

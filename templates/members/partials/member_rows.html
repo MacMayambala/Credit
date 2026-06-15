@@ -1,0 +1,49 @@
+{% for member in members %}
+<li class="member-row">
+    <div class="avatar">
+        {% if member.photo %}
+            <img src="{{ member.photo.url }}" 
+                 alt="{{ member.get_full_name }}" 
+                 loading="lazy">
+        {% else %}
+            <span>{{ member.first_name|first|upper }}{{ member.last_name|first|upper }}</span>
+        {% endif %}
+    </div>
+
+    <div class="member-main">
+        <a href="{{ member.profile_url|default:'#' }}" class="member-name">
+            {{ member.get_full_name }}
+        </a>
+        <div class="member-subtitle">
+            
+            <span class="member-id">{{ member.member_number }}</span>
+            
+        </div>
+    </div>
+
+    <div class="member-details">
+        <div class="detail-item">
+            <span class="detail-label">{{ member.gender }}</span>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">{{ member.age }} Years</span>
+        </div>
+        <div class="detail-item">
+            <i class="bi bi-telephone"></i>
+            <span>{{ member.phone_number}}</span>
+        </div>
+        <div class="detail-item">
+            <i class="bi bi-geo-alt"></i>
+            <span>{{ member.physical_address }}</span>
+        </div>
+    </div>
+</li>
+{% empty %}
+<li class="empty-state">
+    <div class="text-center py-5">
+        <i class="bi bi-people" style="font-size: 3.8rem; opacity: 0.15;"></i>
+        <h5 class="mt-3 mb-1">No customers found</h5>
+        <p class="text-muted">We couldn't find any records matching your search.</p>
+    </div>
+</li>
+{% endfor %}

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between mb-4">
+        <h3 class="fw-bold text-primary">General Ledger Report</h3>
+        <button class="btn btn-primary" data-bs-toggle="offcanvas" data-bs-target="#filterDrawer">
+            <i class="bi bi-funnel"></i> Filters
+        </button>
+    </div>
+
+    <div class="offcanvas offcanvas-end" id="filterDrawer">
+        <div class="offcanvas-header"><h5 class="offcanvas-title">Filters</h5><button class="btn-close" data-bs-dismiss="offcanvas"></button></div>
+        <div class="offcanvas-body">
+            <form method="GET">
+                {{ filter.form.as_p }}
+                <button type="submit" class="btn btn-primary w-100">RUN REPORT</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th><th>Account</th><th>Debit</th><th>Credit</th><th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr>
+                        <td>{{ tx.date|date:"d M, Y" }}</td>
+                        <td>{{ tx.account.name }}</td>
+                        <td class="text-danger">{{ tx.debit|intcomma }}</td>
+                        <td class="text-success">{{ tx.credit|intcomma }}</td>
+                        <td class="fw-bold">{{ tx.running_balance|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-dark">
+                    <tr>
+                        <td colspan="2">TOTAL</td>
+                        <td>{{ total_debit|intcomma }}</td>
+                        <td>{{ total_credit|intcomma }}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
