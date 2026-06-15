@@ -617,7 +617,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             currentPage = page;
-            bindPagination();
+            // REMOVED: bindPagination() call is no longer needed here.
         } catch (err) {
             console.error('Search failed:', err);
         } finally {
@@ -626,18 +626,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function bindPagination() {
-        pagination.querySelectorAll('[data-page]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const page = parseInt(btn.dataset.page, 10);
-                if (page) {
-                    fetchResults(searchInput.value.trim(), page);
-                    document.querySelector('.registry-card').scrollIntoView({ behavior: 'smooth' });
-                }
-            });
-        });
-    }
+    // UPDATED: Reliable Event Delegation for dynamic pagination buttons
+    pagination.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-page]');
+        if (btn) {
+            e.preventDefault();
+            const page = parseInt(btn.dataset.page, 10);
+            if (page) {
+                fetchResults(searchInput.value.trim(), page);
+                document.querySelector('.registry-card').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    });
 
     // Events
     searchInput.addEventListener('input', () => {
@@ -654,9 +654,6 @@ document.addEventListener('DOMContentLoaded', function () {
         fetchResults('', 1);
         searchInput.focus();
     });
-
-    // Initial binding
-    bindPagination();
 });
 </script>
 {% endblock %}
