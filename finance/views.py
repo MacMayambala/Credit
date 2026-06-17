@@ -220,17 +220,21 @@ from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 
+from django.db.models import Sum
+from decimal import Decimal
+from dateutil.relativedelta import relativedelta
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+
 @login_required
 def loan_detail(request, pk):
-    """Detailed profile analytics for a singular loan instance"""
-    loan = get_object_or_404(Loan, pk=pk)
+    loan = get_object_or_404(Loan.objects.select_related('member', 'officer'), pk=pk)
     today = timezone.now().date()
 
-    # 1. Ensure schedule exists
     if not loan.installments.exists():
         loan.generate_schedule()
 
-    # 2. Aggregations (Only counts installments due today or in the past that are unpaid)
     active_due = loan.installments.filter(paid=False, due_date__lte=today).aggregate(
         total_interest=Sum('interest_portion'),
         total_principal=Sum('principal_portion')
@@ -240,7 +244,6 @@ def loan_detail(request, pk):
     principal_due = active_due['total_principal'] or Decimal('0.00')
     total_due_now = (interest_due + principal_due).quantize(Decimal('0.01'))
 
-    # 3. Totals and Metadata
     total_paid = loan.repayments.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0')
     
     disbursement_date = loan.disbursed_date or loan.start_date
@@ -248,16 +251,12 @@ def loan_detail(request, pk):
 
     context = {
         'loan': loan,
-        'actual_loan_amount': loan.principal_amount,  # Added this for the "Loan Amount" display
-        'principal_balance': loan.principal_balance,    # This tracks the actual debt
-        'interest_balance': loan.interest_balance,      # Total interest remaining
-        'interest_due': interest_due,                   # Interest active (due now)
-        'principal_due': principal_due,                 # Principal active (due now)
+        'principal_balance': loan.principal_balance,
+        'interest_due': interest_due,
+        'principal_due': principal_due,
         'total_due_now': total_due_now,
-        'savings_balance': getattr(loan.member.savings, 'balance', Decimal('0.00')),
         'schedule': loan.installments.all().order_by('due_date'),
         'repayments': loan.repayments.all().order_by('-date_paid'),
-        'member_address': f"{loan.member.village}, {loan.member.parish}, {loan.member.district}",
         'total_paid': total_paid.quantize(Decimal('0.01')),
         'disbursement_date': disbursement_date,
         'end_date': end_date,
@@ -363,8 +362,8 @@ def approve_loan(request, pk, action):
             loan.save()
 
             # Execute underlying calculations
-            generate_schedule(loan)
-
+            if not loan.installments.exists():
+               generate_schedule(loan)
             # Route currency pool to member portfolio
             savings.balance += principal
             savings.save()

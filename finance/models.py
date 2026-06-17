@@ -186,20 +186,54 @@ class Loan(models.Model):
 
     # Add to Loan class
     def get_active_interest_due(self):
-        """Calculates interest for all installments that have reached their due date."""
-        today = timezone.now().date()
-        return self.installments.filter(
-            due_date__lte=today, 
-            paid=False
-        ).aggregate(total=Sum('interest_portion'))['total'] or Decimal('0.00')
+        """Calculates total active interest due for installments with passed due dates."""
+        total = Decimal('0.00')
+
+        for inst in self.installments.filter(
+            due_date__lte=timezone.now().date()
+        ):
+            total += inst.interest_balance
+
+        return total
 
     def get_current_principal_due(self):
-        """Calculates principal for installments that have reached their due date."""
+
+        total = Decimal('0.00')
+
+        for inst in self.installments.filter(
+            due_date__lte=timezone.now().date()
+        ):
+            total += inst.principal_balance
+
+        return total
+    @property
+    def arrears_balance(self):
+
         today = timezone.now().date()
-        return self.installments.filter(
-            due_date__lte=today, 
-            paid=False
-        ).aggregate(total=Sum('principal_portion'))['total'] or Decimal('0.00')
+
+        return sum(
+            inst.balance
+            for inst in self.installments.filter(
+                due_date__lt=today
+            )
+        )
+    @property
+    def completion_percentage(self):
+
+        total_due = self.total_payable
+
+        total_remaining = (
+            self.principal_balance +
+            self.interest_balance
+        )
+
+        if total_due <= 0:
+            return 0
+
+        return round(
+            ((total_due - total_remaining) / total_due) * 100,
+            2
+        )
 
     def __str__(self):
         return f"{self.loan_reference or f'LN-{self.id}'} - {self.member.first_name} {self.member.last_name}"
@@ -210,31 +244,122 @@ class Loan(models.Model):
 
 
 class Installment(models.Model):
-    """Amortization segments representing planned repayments."""
-    loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='installments')
+    loan = models.ForeignKey(
+        Loan,
+        on_delete=models.CASCADE,
+        related_name='installments'
+    )
+
     due_date = models.DateField()
-    amount_remaining = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    principal_portion = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    interest_portion = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    penalty_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+
+    # ORIGINAL SCHEDULE VALUES
+    principal_portion = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    interest_portion = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    penalty_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00')
+    )
+
+    # PAID VALUES
+    principal_paid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00')
+    )
+
+    interest_paid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00')
+    )
+
+    penalty_paid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00')
+    )
+
     paid = models.BooleanField(default=False)
 
     @property
+    def principal_balance(self):
+        return max(
+            Decimal('0.00'),
+            self.principal_portion - self.principal_paid
+        )
+
+    @property
+    def interest_balance(self):
+        return max(
+            Decimal('0.00'),
+            self.interest_portion - self.interest_paid
+        )
+
+    @property
+    def penalty_balance(self):
+        return max(
+            Decimal('0.00'),
+            self.penalty_amount - self.penalty_paid
+        )
+
+    @property
+    def amount_due(self):
+        return (
+            self.principal_portion +
+            self.interest_portion +
+            self.penalty_amount
+        )
+
+    @property
+    def amount_paid(self):
+        return (
+            self.principal_paid +
+            self.interest_paid +
+            self.penalty_paid
+        )
+
+    @property
+    def balance(self):
+        return (
+            self.principal_balance +
+            self.interest_balance +
+            self.penalty_balance
+        )
+
+    @property
     def is_active(self):
-        """Interest is only active if the date has arrived."""
         return timezone.now().date() >= self.due_date
 
     @property
-    def interest_due(self):
-        """Returns interest only if the installment is active."""
-        return self.interest_portion if self.is_active else Decimal('0.00')
+    def is_overdue(self):
+        return (
+            timezone.now().date() > self.due_date
+            and self.balance > 0
+        )
 
-    @property
-    def total_due(self):
-        return (self.principal_portion or 0) + (self.interest_portion or 0) + (self.penalty_amount or 0)
+    def save(self, *args, **kwargs):
+
+        self.paid = self.balance <= Decimal('0.00')
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Inst {self.id} - Due: {self.due_date} (Remaining: {self.amount_remaining})"
+        return (
+            f"Installment #{self.id} "
+            f"| Due {self.due_date} "
+            f"| Balance {self.balance}"
+        )
 
 
 # =========================================================
@@ -344,111 +469,221 @@ class Repayment(models.Model):
     notes = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        if not self.pk and not self.receipt_number:
-            self.receipt_number = f"RCP-{random.randint(10000, 99999)}"
+        if self.pk:
+            return super().save(*args, **kwargs)
+
+        if not self.receipt_number:
+            self.receipt_number = f"RCP-{random.randint(10000,99999)}"
 
         with transaction.atomic():
-            loan_obj = Loan.objects.select_for_update().get(id=self.loan.id)
+
+            loan_obj = Loan.objects.select_for_update().get(pk=self.loan.pk)
+
             try:
-                savings = SavingsAccount.objects.select_for_update().get(member=loan_obj.member)
+                savings = SavingsAccount.objects.select_for_update().get(
+                    member=loan_obj.member
+                )
             except SavingsAccount.DoesNotExist:
-                raise ValidationError("Member does not possess an active savings pocket.")
+                raise ValidationError(
+                    "Member does not possess an active savings pocket."
+                )
 
             repayment_pool = Decimal(str(self.amount_paid))
+
             if savings.balance < repayment_pool:
-                raise ValidationError(f"Insufficient funds inside Savings Account. Balance: UGX {savings.balance:,.0f}")
+                raise ValidationError(
+                    f"Insufficient funds. Balance: UGX {savings.balance:,.0f}"
+                )
 
-            # 1. Deduct from Member Savings
+            # --------------------------------------------------
+            # 1. Deduct savings
+            # --------------------------------------------------
             savings.balance -= repayment_pool
-            savings.save()
+            savings.save(update_fields=["balance"])
 
-            # 2. Allocate across Interest and Principal Balances
-            allocated_interest = Decimal('0.00')
-            allocated_principal = Decimal('0.00')
+            allocated_interest = Decimal("0.00")
+            allocated_principal = Decimal("0.00")
+            allocated_penalty = Decimal("0.00")
 
-            if loan_obj.interest_balance > 0:
-                allocated_interest = min(repayment_pool, loan_obj.interest_balance)
-                loan_obj.interest_balance -= allocated_interest
-                repayment_pool -= allocated_interest
+            # --------------------------------------------------
+            # 2. Waterfall
+            # Oldest installment first
+            # Penalty -> Interest -> Principal
+            # --------------------------------------------------
 
-            if repayment_pool > 0 and loan_obj.principal_balance > 0:
-                allocated_principal = min(repayment_pool, loan_obj.principal_balance)
-                loan_obj.principal_balance -= allocated_principal
-                repayment_pool -= allocated_principal
+            installments = (
+                loan_obj.installments
+                .select_for_update()
+                .filter(paid=False)
+                .order_by("due_date", "id")
+            )
 
-            # 3. Clear off Installment records chronologically
-            temp_pool = Decimal(str(self.amount_paid))
-            unpaid_installments = loan_obj.installments.filter(paid=False).order_by('due_date')
-            for inst in unpaid_installments:
-                if temp_pool <= 0:
+            for inst in installments:
+
+                if repayment_pool <= 0:
                     break
-                payment_to_inst = min(temp_pool, inst.amount_remaining)
-                inst.amount_remaining -= payment_to_inst
-                temp_pool -= payment_to_inst
-                if inst.amount_remaining <= 0:
+
+                penalty_remaining = max(
+                    Decimal("0.00"),
+                    inst.penalty_amount - inst.penalty_paid
+                )
+
+                interest_remaining = max(
+                    Decimal("0.00"),
+                    inst.interest_portion - inst.interest_paid
+                )
+
+                principal_remaining = max(
+                    Decimal("0.00"),
+                    inst.principal_portion - inst.principal_paid
+                )
+
+                # -----------------------------------------
+                # Penalty
+                # -----------------------------------------
+                if penalty_remaining > 0 and repayment_pool > 0:
+
+                    pay = min(repayment_pool, penalty_remaining)
+
+                    inst.penalty_paid += pay
+                    repayment_pool -= pay
+                    allocated_penalty += pay
+
+                    penalty_remaining -= pay
+
+                # -----------------------------------------
+                # Interest
+                # -----------------------------------------
+                if interest_remaining > 0 and repayment_pool > 0:
+
+                    pay = min(repayment_pool, interest_remaining)
+
+                    inst.interest_paid += pay
+                    repayment_pool -= pay
+                    allocated_interest += pay
+
+                    interest_remaining -= pay
+
+                # -----------------------------------------
+                # Principal
+                # -----------------------------------------
+                if principal_remaining > 0 and repayment_pool > 0:
+
+                    pay = min(repayment_pool, principal_remaining)
+
+                    inst.principal_paid += pay
+                    repayment_pool -= pay
+                    allocated_principal += pay
+
+                    principal_remaining -= pay
+
+                remaining_total = (
+                    (inst.penalty_amount - inst.penalty_paid)
+                    + (inst.interest_portion - inst.interest_paid)
+                    + (inst.principal_portion - inst.principal_paid)
+                )
+
+                inst.amount_remaining = max(
+                    Decimal("0.00"),
+                    remaining_total
+                )
+
+                if inst.amount_remaining <= Decimal("0.00"):
                     inst.paid = True
+
                 inst.save()
 
-            # 4. Status Update Checks
+            # --------------------------------------------------
+            # 3. Update Loan Balances
+            # --------------------------------------------------
+
+            loan_obj.interest_balance = max(
+                Decimal("0.00"),
+                loan_obj.interest_balance - allocated_interest
+            )
+
+            loan_obj.principal_balance = max(
+                Decimal("0.00"),
+                loan_obj.principal_balance - allocated_principal
+            )
+
+            # --------------------------------------------------
+            # 4. Loan Status
+            # --------------------------------------------------
+
             today = timezone.now().date()
-            overdue_exists = loan_obj.installments.filter(due_date__lt=today, paid=False).exists()
-            if not overdue_exists and loan_obj.status == 'arrears':
-                loan_obj.status = 'approved'
-            if loan_obj.principal_balance <= 0 and loan_obj.interest_balance <= 0:
-                loan_obj.status = 'closed'
+
+            overdue_exists = loan_obj.installments.filter(
+                due_date__lt=today,
+                paid=False
+            ).exists()
+
+            if overdue_exists:
+                loan_obj.status = "arrears"
+            elif loan_obj.status != "closed":
+                loan_obj.status = "approved"
+
+            if (
+                loan_obj.principal_balance <= 0 and
+                loan_obj.interest_balance <= 0
+            ):
+                loan_obj.status = "closed"
                 loan_obj.is_active = False
+
             loan_obj.save()
 
-            # 5. Create core system log transaction
+            # --------------------------------------------------
+            # 5. Transaction Log
+            # --------------------------------------------------
+
             tx_log = Transaction.objects.create(
                 member=loan_obj.member,
                 amount=self.amount_paid,
-                type='repayment',
-                reference=f"LOAN-PYMT-#{self.receipt_number}",
+                type="repayment",
+                reference=f"LOAN-PYMT-{self.receipt_number}",
                 loan=loan_obj,
                 timestamp=self.date_paid
             )
 
-            # =========================================================
-            # INTEGRATED SYSTEM DOUBLE-ENTRY LEDGER POSTING
-            # =========================================================
-            # Entry 1: Reduce SACCO liability to the member (Debit Savings account)
+            # --------------------------------------------------
+            # 6. Ledger Entries
+            # --------------------------------------------------
+
             AccountingEngine.post_ledger_entry(
                 account_code="2000",
                 description=f"Savings withdrawal for Loan Repayment {loan_obj.loan_reference}",
                 reference=self.receipt_number,
                 debit=self.amount_paid,
-                credit=Decimal('0.00'),
+                credit=Decimal("0.00"),
                 transaction_obj=tx_log,
                 date_context=self.date_paid.date()
             )
 
-            # Entry 2: Reduce SACCO loan portfolio outstanding balances (Credit Loan Asset)
             if allocated_principal > 0:
+
                 AccountingEngine.post_ledger_entry(
                     account_code="1200",
                     description=f"Principal Recovery on Loan {loan_obj.loan_reference}",
                     reference=self.receipt_number,
-                    debit=Decimal('0.00'),
+                    debit=Decimal("0.00"),
                     credit=allocated_principal,
                     transaction_obj=tx_log,
                     date_context=self.date_paid.date()
                 )
 
-            # Entry 3: Recognize real income generated from operations (Credit Income Statement)
             if allocated_interest > 0:
+
                 AccountingEngine.post_ledger_entry(
                     account_code="2100",
                     description=f"Interest Income Recognized on Loan {loan_obj.loan_reference}",
                     reference=self.receipt_number,
-                    debit=Decimal('0.00'),
+                    debit=Decimal("0.00"),
                     credit=allocated_interest,
                     transaction_obj=tx_log,
                     date_context=self.date_paid.date()
                 )
 
             super().save(*args, **kwargs)
-
     def __str__(self):
         return f"Repayment {self.receipt_number} - {self.loan.member.last_name}"
 
@@ -582,37 +817,47 @@ class SMSTransaction(models.Model):
 
 
 def generate_schedule(loan):
-    """Generates schedule installments and initializes amount_remaining structures."""
-    if not loan.total_payable or loan.period_months <= 0:
+
+    if loan.installments.exists():
         return
+
     principal_total = Decimal(str(loan.principal_amount))
     total_payable = Decimal(str(loan.total_payable))
     total_interest = total_payable - principal_total
 
-    monthly_p = (principal_total / loan.period_months).quantize(Decimal('0.01'))
-    monthly_i = (total_interest / loan.period_months).quantize(Decimal('0.01'))
+    monthly_p = (principal_total / loan.period_months).quantize(
+        Decimal('0.01')
+    )
+
+    monthly_i = (total_interest / loan.period_months).quantize(
+        Decimal('0.01')
+    )
+
     rem_p = principal_total
 
     for i in range(loan.period_months):
+
         due_date = loan.start_date + relativedelta(months=i + 1)
+
         curr_p = rem_p if i == loan.period_months - 1 else monthly_p
-        curr_p = min(curr_p, rem_p)
-        total_inst_due = curr_p + monthly_i
 
         Installment.objects.create(
             loan=loan,
             due_date=due_date,
             principal_portion=curr_p,
             interest_portion=monthly_i,
-            amount_remaining=total_inst_due,
+            penalty_amount=Decimal('0.00'),
+            principal_paid=Decimal('0.00'),
+            interest_paid=Decimal('0.00'),
+            penalty_paid=Decimal('0.00'),
             paid=False
         )
+
         rem_p -= curr_p
 
     loan.principal_balance = principal_total
     loan.interest_balance = total_interest
     loan.save()
-
 
 # =========================================================
 # 7. AUTO-REPAYMENT SYSTEM SETTINGS LOGGERS

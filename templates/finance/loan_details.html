@@ -14,6 +14,7 @@
                 </ol>
             </nav>
         </div>
+        
         <div class="text-end">
             <span class="badge rounded-pill px-3 py-2 fs-6 {% if loan.status == 'approved' %}bg-success-subtle text-success border border-success{% elif loan.status == 'pending' %}bg-warning-subtle text-warning border border-warning{% else %}bg-danger-subtle text-danger border border-danger{% endif %}">
                 <i class="bi bi-circle-fill me-1 small"></i> {{ loan.get_status_display }}

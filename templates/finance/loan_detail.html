@@ -94,6 +94,7 @@
                 <div class="d-flex gap-4 text-muted small">
                     <span><i class="bi bi-telephone-fill me-1 text-primary"></i> {{ loan.member.phone_number }}</span>
                     <span><i class="bi bi-geo-alt-fill me-1 text-primary"></i> {{ loan.member.village }}, {{ loan.member.district }}</span>
+                    
                 </div>
             </div>
             <div class="col-lg-auto text-lg-end border-start ps-lg-5">
@@ -106,6 +107,9 @@
                 </div>
             </div>
         </div>
+    </div>
+    <div class="progress-bar bg-success"
+            style="width: {{ loan.completion_percentage }}%">
     </div>
 
     <!-- Quick Status Cards -->
@@ -178,6 +182,7 @@
                  </a>
             </div>
         </div>
+        
     </div>
     <div class="row g-4 mb-4">
         <div class="col-12">
@@ -247,7 +252,10 @@
                         <th>Due Date</th>
                         <th class="text-end">Principal</th>
                         <th class="text-end">Interest</th>
+                        <th class="text-center">Penalty</th>
                         <th class="text-end">Total Due</th>
+                        
+                       
                         <th class="text-center">Status</th>
                     </tr>
                 </thead>
@@ -258,7 +266,11 @@
                         <td class="fw-bold text-dark">{{ inst.due_date|date:"d M, Y" }}</td>
                         <td class="text-end">UGX {{ inst.principal_portion|intcomma }}</td>
                         <td class="text-end">UGX {{ inst.interest_portion|intcomma }}</td>
-                        <td class="text-end fw-bold text-primary">UGX {{ inst.total_due|intcomma }}</td>
+                        <td class="text-end">UGX {{ inst.penalty_amount|intcomma }}</td>
+                        
+                        <td class="text-end fw-bold {% if inst.paid %}text-success{% else %}text-danger{% endif %}">
+                            UGX {{ inst.balance|floatformat:2|intcomma }}
+                        </td>
                         <td class="text-center">
                             {% if inst.paid %}
                                 <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3">PAID</span>
