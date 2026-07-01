@@ -99,7 +99,7 @@ def generate_migration_template_http() -> HttpResponse:
 
     # Add descriptive placeholder row to guide data entry clerks
     sample_row = [
-        "KAL-001", "John", "Doe", "Male", "1990-05-15", "CM9001234567XX", 
+        "KAL001", "John", "Doe", "Male", "1990-05-15", "CM9001234567XX", 
         "CARD-102", "0772000111", "0701000222", "john.doe@email.com", "Kampala Road", 
         "Central Zone", "Nakasero", "Kampala", "250000", "LN-2026-04", "1500000", 
         "12.0", "12", "2025-10-01", "1000000", "120000", "personal", "Business Stock", 

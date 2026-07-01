@@ -1,5 +1,10 @@
 from django.db import models
-from django.conf import settings
+from django.db import models
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
 
 class Member(models.Model):
     GENDER_CHOICES = [
@@ -7,34 +12,29 @@ class Member(models.Model):
         ('Female', 'Female'),
         ('Other', 'Other'),
     ]
-    
-    # Core Fields
+
     member_number = models.CharField(max_length=20, unique=True, editable=False)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='Male')
-    dob = models.DateField(blank=True, null=True, verbose_name="Date of Birth")
-    
-    # Identification
-    nin = models.CharField(max_length=20, blank=True, null=True, unique=True, verbose_name="National ID (NIN)")
-    card_number = models.CharField(max_length=30, blank=True, null=True, verbose_name="Membership Card Number")
-    
-    # Contact
+    dob = models.DateField(blank=True, null=True)
+
+    nin = models.CharField(max_length=20, blank=True, null=True, unique=True)
+    card_number = models.CharField(max_length=30, blank=True, null=True)
+
     phone_number = models.CharField(max_length=15)
     alternative_phone = models.CharField(max_length=15, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
-    
-    # Location
+
     physical_address = models.TextField(blank=True, null=True)
     village = models.CharField(max_length=100, blank=True, null=True)
     parish = models.CharField(max_length=100, blank=True, null=True)
     district = models.CharField(max_length=100, blank=True, null=True)
 
-    # KYC/Media
     photo = models.ImageField(upload_to='members/photos/', blank=True, null=True)
     id_front = models.ImageField(upload_to='members/ids/', blank=True, null=True)
     signature = models.ImageField(upload_to='members/signatures/', blank=True, null=True)
-    
+
     date_joined = models.DateField(auto_now_add=True)
 
     class Meta:
@@ -42,32 +42,44 @@ class Member(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.member_number:
-            last_member = Member.objects.all().order_by('id').last()
+
+            # ✅ safe import (still ok here)
+            from finance.models import SystemSetting
+
+            setting = SystemSetting.objects.first()
+            prefix = setting.member_prefix if setting else "KAL"
+
+            last_member = Member.objects.filter(
+                member_number__startswith=prefix
+            ).order_by('id').last()
+
             if not last_member:
                 new_number = 1
             else:
                 try:
-                    # Extracts number from "KAL00001" -> 1
-                    last_number_str = last_member.member_number.replace('KAL', '')
+                    last_number_str = last_member.member_number.replace(prefix, '')
                     new_number = int(last_number_str) + 1
-                except (ValueError, TypeError):
-                    new_number = Member.objects.count() + 1
-            
-            # KAL (3 chars) + 00001 (5 chars) = 8 characters total
-            self.member_number = f"KAL{str(new_number).zfill(5)}"
-        super(Member, self).save(*args, **kwargs)
+                except:
+                    new_number = Member.objects.filter(
+                        member_number__startswith=prefix
+                    ).count() + 1
+
+            self.member_number = f"{prefix}{str(new_number).zfill(5)}"
+
+        super().save(*args, **kwargs)
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
 
     def get_address(self):
-        parts = [self.village, self.parish, self.district]
-        return ", ".join([p for p in parts if p])
+        return ", ".join(filter(None, [self.village, self.parish, self.district]))
 
     def __str__(self):
         return f"{self.member_number} - {self.get_full_name()}"
-    
 
+
+    
+    
 from django.db import models
 from django.contrib.auth.models import User
 

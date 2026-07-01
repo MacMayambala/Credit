@@ -157,3 +157,5 @@ def generate_transaction_ref(prefix, length=8):
     chars = string.ascii_uppercase + string.digits
     code = ''.join(random.choices(chars, k=length))
     return f"{prefix}-{code}"
+
+

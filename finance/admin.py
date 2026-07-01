@@ -185,22 +185,17 @@ from django.contrib import admin
 from .models import SystemSetting
 
 @admin.register(SystemSetting)
+
 class SystemSettingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'enable_back_dating', 'updated_at')
-    list_editable = ('enable_back_dating',)
-    
+    list_display = ('id', 'enable_back_dating', 'member_prefix', 'updated_at')
+    list_editable = ('enable_back_dating', 'member_prefix')
+
     def has_add_permission(self, request):
-        # Prevent creating multiple setting rows. 
-        # If one exists, don't allow adding another.
-        if self.model.objects.exists():
-            return False
-        return super().has_add_permission(request)
+        return not self.model.objects.exists()
 
     def has_delete_permission(self, request, obj=None):
-        # Prevent deleting the configuration row
         return False
 
-    # Optional: Force the ID to be 1 to match your model's .get_or_create(id=1)
     def save_model(self, request, obj, form, change):
         obj.id = 1
         super().save_model(request, obj, form, change)

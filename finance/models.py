@@ -2,30 +2,42 @@ import random
 from decimal import Decimal
 from django.db import models, transaction
 from django.utils import timezone
-from django.conf import settings
+
 from django.core.exceptions import ValidationError
 from django.db.models import Sum, Q
 from django.db.models.functions import Coalesce
 from dateutil.relativedelta import relativedelta
-from members.models import Member
+from members.models import Member   
+
 
 # =========================================================
 # 1. CONFIGURATION & ACCOUNTING SYSTEM MODELS
 # =========================================================
 
 class SystemSetting(models.Model):
-    """Global configuration for back-dating actions."""
+    """Global configuration stored as key-value pairs."""
+
+    key = models.CharField(max_length=100, unique=True)
+    value = models.CharField(max_length=255, blank=True, null=True)
+
+    # Backdating flag (kept for system use)
     enable_back_dating = models.BooleanField(
-        default=False, 
+        default=False,
         help_text="If enabled, manually set dates for deposits and repayments can be used."
     )
+    member_prefix = models.CharField(
+        max_length=10,
+        default="KAL",
+        help_text="Prefix used for member numbers (e.g. KAL, ABC)"
+    )
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "System Setting"
 
     def __str__(self):
-        return f"Back-Dating: {'Enabled' if self.enable_back_dating else 'Disabled'}"
+        return f"{self.key}: {self.value}"
 
     @classmethod
     def is_backdate_allowed(cls):
@@ -85,7 +97,11 @@ class ChartOfAccount(models.Model):
 
 class SavingsAccount(models.Model):
     """Primary ledger balance account representing real capital for members."""
-    member = models.OneToOneField(Member, on_delete=models.CASCADE, related_name='savings')
+    member = models.OneToOneField(
+        'members.Member',
+        on_delete=models.CASCADE,
+        related_name='savings'
+    )
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
 
     @property
@@ -101,14 +117,14 @@ from django.conf import settings
 from django.utils import timezone
 from decimal import Decimal
 # Assuming your Member model is in the same app or imported correctly
-from .models import Member 
+
 
 from decimal import Decimal
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
 
-from members.models import Member
+
 
 
 class Loan(models.Model):
@@ -155,7 +171,7 @@ class Loan(models.Model):
     )
 
     member = models.ForeignKey(
-        Member,
+        'members.Member',
         on_delete=models.CASCADE,
         related_name='loans'
     )
@@ -479,7 +495,11 @@ class Transaction(models.Model):
         ('repayment', 'Loan Repayment'),
         ('penalty', 'Penalty')
     )
-    member = models.ForeignKey(Member, on_delete=models.CASCADE)
+    member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name='transactions'
+    )
     loan = models.ForeignKey(Loan, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     type = models.CharField(max_length=20, choices=T_TYPES)
