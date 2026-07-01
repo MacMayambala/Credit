@@ -14,52 +14,86 @@ class DataMigrationService:
     Maintains rigorous financial ledgers and ledger balance calculations.
     """
 
-    # Fully expanded matrix containing all 26 necessary operational headers
-    REQUIRED_HEADERS = {
-        'member_number', 'first_name', 'last_name', 'gender', 'date_of_birth', 
-        'nin', 'card_number', 'phone_number', 'alternative_phone', 'email', 
-        'physical_address', 'village', 'parish', 'district', 'savings_balance', 
-        'loan_reference', 'principal_amount', 'interest_rate', 'period_months', 
-        'loan_start_date', 'principal_balance', 'interest_balance', 'product_type', 
-        'loan_purpose', 'guarantor_1_name', 'guarantor_1_phone'
-    }
+    # ==============================
+    # REQUIRED HEADERS (CORE ONLY)
+    # ==============================
+    TEMPLATE_HEADERS_ORDERED = [
+    # Member
+    "member_number",
+    "first_name",
+    "last_name",
+    "gender",
+    "date_of_birth",
+    "nin",
+    "card_number",
+    "phone_number",
+    "alternative_phone",
+    "email",
+    "physical_address",
+    "village",
+    "parish",
+    "district",
 
+    # Savings
+    "savings_balance",
+
+    # Loan
+    "loan_reference",
+    "principal_amount",
+    "interest_rate",
+    "period_months",
+    "loan_start_date",
+    "principal_balance",
+    "interest_balance",
+    "product_type",
+    "loan_purpose",
+
+    # Guarantors
+    "guarantor_1_name",
+    "guarantor_1_phone",
+
+    # ======================
+    # 🔥 PENALTY FIELDS (ADD THIS)
+    # ======================
+    "penalty_type",
+    "penalty_rate",
+    "penalty_flat_amount",
+    "penalty_grace_days",
+]
     @classmethod
     def _load_file_safely(cls, file_obj) -> pd.DataFrame:
         """
-        Detects if an instruction row banner is present at line 0, 
-        bypasses it automatically, and normalizes headers.
+        Detects instruction banner row and normalizes headers.
         """
         name = getattr(file_obj, 'name', '').lower()
-        
+
         if name.endswith(('.xlsx', '.xls')):
-            # Read first row to peek for instructions banner
             df_check = pd.read_excel(file_obj, nrows=1, header=None)
             file_obj.seek(0)
-            
+
             if not df_check.empty and "INSTRUCTIONS" in str(df_check.iloc[0, 0]):
                 df = pd.read_excel(file_obj, skiprows=1)
             else:
                 df = pd.read_excel(file_obj)
         else:
-            # Handle standard CSV format layout
             first_line = file_obj.readline()
             if isinstance(first_line, bytes):
                 first_line = first_line.decode('utf-8', errors='ignore')
             file_obj.seek(0)
-            
+
             if "INSTRUCTIONS" in first_line:
                 df = pd.read_csv(file_obj, skiprows=1)
             else:
                 df = pd.read_csv(file_obj)
-                
-        # Normalize column mapping layouts
+
         df.columns = [str(c).strip().lower() for c in df.columns]
         return df
 
     @classmethod
     def validate_template_structure(cls, df: pd.DataFrame) -> list:
-        """Verifies that the uploaded file contains all baseline schema headers."""
+        """
+        Ensures required columns exist (optional columns ignored).
+        """
         missing = cls.REQUIRED_HEADERS - set(df.columns)
         return [f"Missing required column header: '{col}'" for col in missing]
 
@@ -91,21 +125,21 @@ class DataMigrationService:
 
     @classmethod
     def preview_file(cls, file_obj) -> dict:
-        """Parses data into a lightweight JSON structure allowing web previews."""
         try:
             df = cls._load_file_safely(file_obj)
         except Exception as e:
             return {"errors": [f"Unreadable file system matrix: {str(e)}"], "rows": []}
 
-        structural_errors = cls.validate_template_structure(df)
-        if structural_errors:
-            return {"errors": structural_errors, "rows": []}
+        errors = cls.validate_template_structure(df)
+        if errors:
+            return {"errors": errors, "rows": []}
 
         preview_rows = []
+
         for index, row in df.iterrows():
             if not cls.clean_nan(row.get('first_name')) and not cls.clean_nan(row.get('last_name')):
                 continue
-                
+
             preview_rows.append({
                 "row_index": index + 2,
                 "member_number": cls.clean_nan(row.get('member_number')),
@@ -115,11 +149,11 @@ class DataMigrationService:
                 "loan_reference": cls.clean_nan(row.get('loan_reference')),
                 "principal": float(cls.clean_decimal(row.get('principal_amount')))
             })
+
         return {"errors": [], "rows": preview_rows}
 
     @classmethod
     def execute_import(cls, file_obj, user: User) -> dict:
-        """Executes a row-by-row atomic migration import sequence."""
         report = {
             "success": True,
             "stats": {"members": 0, "savings": Decimal('0.00'), "loans": 0, "failed_rows": 0},
@@ -130,31 +164,34 @@ class DataMigrationService:
             df = cls._load_file_safely(file_obj)
         except Exception as e:
             report["success"] = False
-            report["logs"].append(f"Critical execution block error reading file: {str(e)}")
+            report["logs"].append(f"Critical error reading file: {str(e)}")
             return report
 
-        # Row-by-Row Migration Processing Loop
         for index, row in df.iterrows():
             row_num = index + 2
-            
+
             if not cls.clean_nan(row.get('first_name')) and not cls.clean_nan(row.get('last_name')):
                 continue
 
             try:
                 with transaction.atomic():
+
                     member_num = cls.clean_nan(row.get('member_number'))
                     nin_val = cls.clean_nan(row.get('nin'))
                     first_name = cls.clean_nan(row.get('first_name'))
                     last_name = cls.clean_nan(row.get('last_name'))
 
                     if not first_name or not last_name:
-                        raise ValueError("First name and Last name are required core attributes.")
+                        raise ValueError("First name and Last name are required.")
 
                     if member_num and Member.objects.filter(member_number=member_num).exists():
-                        raise ValueError(f"Duplicate Member: ID '{member_num}' already exists.")
+                        raise ValueError(f"Duplicate Member: '{member_num}'")
                     if nin_val and Member.objects.filter(nin=nin_val).exists():
-                        raise ValueError(f"Duplicate Identity: NIN '{nin_val}' already exists.")
+                        raise ValueError(f"Duplicate NIN: '{nin_val}'")
 
+                    # ==============================
+                    # CREATE MEMBER
+                    # ==============================
                     member = Member(
                         first_name=first_name,
                         last_name=last_name,
@@ -170,18 +207,22 @@ class DataMigrationService:
                         parish=cls.clean_nan(row.get('parish')),
                         district=cls.clean_nan(row.get('district'))
                     )
-                    
+
                     if member_num:
                         member.member_number = member_num
+
                     member.save()
 
-                    # Handle Savings Balance Initialization
+                    # ==============================
+                    # SAVINGS
+                    # ==============================
                     savings_bal = cls.clean_decimal(row.get('savings_balance'))
                     savings_acc, _ = SavingsAccount.objects.get_or_create(member=member)
+
                     if savings_bal > 0:
                         savings_acc.balance = savings_bal
                         savings_acc.save()
-                        
+
                         Transaction.objects.create(
                             member=member,
                             amount=savings_bal,
@@ -191,24 +232,38 @@ class DataMigrationService:
                             timestamp=timezone.now()
                         )
 
-                    # Handle Active Historical Loans Processing
+                    # ==============================
+                    # LOAN IMPORT
+                    # ==============================
                     loan_ref = cls.clean_nan(row.get('loan_reference'))
                     principal = cls.clean_decimal(row.get('principal_amount'))
-                    
+
                     if loan_ref and principal > 0:
+
                         if Loan.objects.filter(loan_reference=loan_ref).exists():
-                            raise ValueError(f"Loan reference conflict: '{loan_ref}' is active.")
+                            raise ValueError(f"Loan '{loan_ref}' exists.")
 
                         period = int(float(cls.clean_nan(row.get('period_months'), 12)))
                         l_start_date = cls.clean_date(row.get('loan_start_date')) or timezone.now().date()
+
                         p_bal = cls.clean_decimal(row.get('principal_balance'))
                         i_bal = cls.clean_decimal(row.get('interest_balance'))
                         interest_rate = cls.clean_decimal(row.get('interest_rate'))
-                        
-                        # Fix: Handle required non-nullable guarantor info database fields safely
+
+                        # ==============================
+                        # PENALTY FIELDS (NEW)
+                        # ==============================
+                        penalty_type = cls.clean_nan(row.get('penalty_type'), 'daily_flat')
+                        penalty_rate = cls.clean_decimal(row.get('penalty_rate'))
+                        penalty_flat_amount = cls.clean_decimal(row.get('penalty_flat_amount'))
+                        penalty_grace_days = int(float(cls.clean_nan(row.get('penalty_grace_days'), 0)))
+
                         guarantor_name = cls.clean_nan(row.get('guarantor_1_name'), 'Migration Placeholder')
                         guarantor_phone = cls.clean_nan(row.get('guarantor_1_phone'), '0000000000')
 
+                        # ==============================
+                        # CREATE LOAN
+                        # ==============================
                         loan = Loan.objects.create(
                             member=member,
                             officer=user,
@@ -224,12 +279,20 @@ class DataMigrationService:
                             purpose=cls.clean_nan(row.get('loan_purpose')),
                             guarantor_1_name=guarantor_name,
                             guarantor_1_phone=guarantor_phone,
+
+                            # PENALTY SYSTEM
+                            penalty_type=penalty_type,
+                            penalty_rate=penalty_rate,
+                            penalty_flat_amount=penalty_flat_amount,
+                            penalty_grace_days=penalty_grace_days,
+
                             status='approved' if (p_bal > 0 or i_bal > 0) else 'closed',
                             is_active=True if p_bal > 0 else False
                         )
 
+                        # INSTALLMENT SNAPSHOT
                         if p_bal > 0 or i_bal > 0:
-                         Installment.objects.create(
+                            Installment.objects.create(
                                 loan=loan,
                                 due_date=l_start_date,
                                 principal_portion=p_bal,
@@ -239,7 +302,8 @@ class DataMigrationService:
                                 interest_paid=Decimal("0.00"),
                                 penalty_paid=Decimal("0.00"),
                             )
-                        
+
+                        # DISBURSEMENT TRANSACTION
                         Transaction.objects.create(
                             member=member,
                             loan=loan,
@@ -247,16 +311,19 @@ class DataMigrationService:
                             type='disbursement',
                             reference=f"MIGRATION-DISB-{loan_ref}",
                             created_by=user,
-                            timestamp=timezone.make_aware(datetime.combine(l_start_date, datetime.min.time()))
+                            timestamp=timezone.make_aware(
+                                datetime.combine(l_start_date, datetime.min.time())
+                            )
                         )
+
                         report["stats"]["loans"] += 1
 
                 report["stats"]["members"] += 1
                 report["stats"]["savings"] += savings_bal
-                report["logs"].append(f"Row {row_num}: Successfully imported member {member.member_number}")
+                report["logs"].append(f"Row {row_num}: Imported {member.member_number}")
 
             except Exception as row_error:
                 report["stats"]["failed_rows"] += 1
-                report["logs"].append(f"Row {row_num}: Rejected - {str(row_error)}")
+                report["logs"].append(f"Row {row_num}: Failed - {str(row_error)}")
 
         return report

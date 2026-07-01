@@ -261,15 +261,31 @@ class Loan(models.Model):
     location = models.CharField(max_length=255, blank=True, null=True)
     contact_person = models.CharField(max_length=100, blank=True, null=True)
     contact_phone = models.CharField(max_length=15, blank=True, null=True)
+
+    last_penalty_date = models.DateField(null=True, blank=True)
+    penalty_flat_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
     penalty_type = models.CharField(
-    max_length=20,
-    choices=[
-        ("daily_flat", "Daily Flat"),
-        ("daily_percentage", "Daily Percentage"),
-        ("fixed", "Fixed Penalty"),
-        ("compound", "Compound Penalty"),
-    ],
-    default="daily_flat"
+        max_length=25,
+        choices=[
+            ("daily_flat", "Daily Flat"),
+            ("daily_percentage", "Daily Percentage"),
+            ("fixed", "Fixed Penalty"),
+            ("compound", "Compound Penalty"),
+            ("monthly_once", "Monthly Once (on total due)"),
+        ],
+        default="daily_flat"
+    )
+    penalty_frequency = models.CharField(
+        choices=[
+            ("daily", "Daily"),
+            ("weekly", "Weekly"),
+            ("monthly", "Monthly"),
+        ],
+        default="monthly"
     )
 
     penalty_rate = models.DecimalField(

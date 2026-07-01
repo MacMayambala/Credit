@@ -422,3 +422,44 @@ class FinancialTransactionService:
         AccountingEngine.post_ledger_entry("2000", "Member Withdrawal", receipt_ref, amount, 0, tx, date)
         AccountingEngine.post_ledger_entry("1000", "Member Withdrawal", receipt_ref, 0, amount, tx, date)
         return tx
+    
+    
+from datetime import date
+from dateutil.relativedelta import relativedelta
+from decimal import Decimal
+
+
+def apply_monthly_penalty(loan):
+    """
+    Applies monthly penalty once per month based on outstanding total due.
+    """
+
+    if loan.penalty_type != "monthly_once":
+        return 0
+
+    today = date.today()
+
+    # If never applied before
+    if not loan.last_penalty_date:
+        should_charge = True
+    else:
+        next_due_date = loan.last_penalty_date + relativedelta(months=1)
+        should_charge = today >= next_due_date
+
+    if not should_charge:
+        return 0
+
+    # OUTSTANDING = NOT principal only
+    outstanding = loan.principal_balance + loan.interest_balance
+
+    penalty_amount = (outstanding * loan.penalty_rate) / Decimal("100")
+
+    loan.accumulated_penalty += penalty_amount
+    loan.last_penalty_date = today
+
+    loan.save(update_fields=[
+        "accumulated_penalty",
+        "last_penalty_date"
+    ])
+
+    return penalty_amount
