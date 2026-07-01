@@ -264,77 +264,149 @@ def loan_detail(request, pk):
     }
     
     return render(request, 'finance/loan_detail.html', context)
+from decimal import Decimal
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+
+# ========================
+# Local Imports
+# ========================
+from .models import Loan, generate_schedule
+from .utils import generate_loan_ref   # Make sure this exists in finance/utils.py
+
+
+from decimal import Decimal
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+
+# Local imports
+from .models import Loan, generate_schedule
+from .utils import generate_loan_ref
+
+
+from decimal import Decimal
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+
+from .models import Loan, generate_schedule
+from .utils import generate_loan_ref
+
+
 @login_required
 def apply_loan(request, member_id=None):
     """
-    Handles formal processing of prospective loan forms
+    Clean & Modern Loan Application View - Uses term_value + repayment_frequency
     """
     members = Member.objects.all().order_by('first_name')
     selected_member = None
-    
+
     if member_id:
         selected_member = get_object_or_404(Member, id=member_id)
-    
+
     if request.method == "POST":
         try:
-            posted_member_id = request.POST.get('member') or member_id
-            member = get_object_or_404(Member, id=posted_member_id)
+            member = get_object_or_404(Member, id=request.POST.get('member') or member_id)
 
+            # === Required Fields ===
             principal = Decimal(request.POST.get('principal_amount') or '0')
             interest_rate = Decimal(request.POST.get('interest_rate') or '0')
-            months_raw = request.POST.get('period_months')
+            term_value = int(request.POST.get('term_value') or 1)
+            repayment_frequency = request.POST.get('repayment_frequency', 'monthly')
 
-            if not months_raw:
-                messages.error(request, "Error: Period (Months) is required.")
+            # Validation
+            if principal <= 0:
+                messages.error(request, "Principal amount must be greater than zero.")
                 return render(request, 'finance/apply_loan.html', {
-                    'members': members, 
-                    'selected_member': selected_member
+                    'members': members, 'selected_member': selected_member
                 })
 
-            months = int(months_raw)
+            if term_value < 1:
+                messages.error(request, "Term Value must be at least 1.")
+                return render(request, 'finance/apply_loan.html', {
+                    'members': members, 'selected_member': selected_member
+                })
+
+            start_date_str = request.POST.get('start_date')
+            start_date = timezone.datetime.strptime(start_date_str, '%Y-%m-%d').date() if start_date_str else timezone.now().date()
 
             with transaction.atomic():
                 ref_code = generate_loan_ref()
-                total_interest = (principal * (interest_rate / 100) * months).quantize(Decimal('0.01'))
-                calc_total_payable = principal + total_interest
+
+                # Calculate total interest (simple flat method)
+                total_interest = (principal * (interest_rate / 100) * term_value).quantize(Decimal('0.01'))
+                total_payable = principal + total_interest
 
                 loan = Loan(
                     member=member,
                     officer=request.user,
                     loan_reference=ref_code,
+
                     principal_amount=principal,
                     interest_rate=interest_rate,
-                    period_months=months,
-                    total_payable=calc_total_payable,
+                    term_value=term_value,
+                    repayment_frequency=repayment_frequency,
+                    start_date=start_date,
+
+                    total_payable=total_payable,
                     principal_balance=principal,
                     interest_balance=total_interest,
+
                     status='pending',
+                    is_active=False,
+
+                    # Other fields
                     product_type=request.POST.get('product_type', 'personal'),
                     purpose=request.POST.get('purpose', ''),
+
                     guarantor_1_name=request.POST.get('guarantor_1_name', ''),
                     guarantor_1_phone=request.POST.get('guarantor_1_phone', ''),
                     guarantor_2_name=request.POST.get('guarantor_2_name') or None,
                     guarantor_2_phone=request.POST.get('guarantor_2_phone') or None,
+
                     collateral_type=request.POST.get('collateral_type', ''),
                     collateral_value=Decimal(request.POST.get('collateral_value') or '0'),
                     collateral_description=request.POST.get('collateral_description', ''),
                     location=request.POST.get('location', ''),
                     contact_person=request.POST.get('contact_person', ''),
                     contact_phone=request.POST.get('contact_phone', ''),
+
+                    penalty_type=request.POST.get('penalty_type', 'daily_flat'),
+                    penalty_rate=Decimal(request.POST.get('penalty_rate') or '1.0'),
+                    penalty_flat_amount=Decimal(request.POST.get('penalty_flat_amount') or '1000'),
+                    penalty_grace_days=int(request.POST.get('penalty_grace_days') or '0'),
+
+                    notes=request.POST.get('notes', ''),
                 )
+
                 loan.save()
-                
-                messages.success(request, f"Loan Application {ref_code} for {member.first_name} submitted.")
+
+                # Generate installments based on frequency
+                generate_schedule(loan)
+
+                messages.success(request, f"Loan {ref_code} created successfully!")
                 return redirect('dashboard')
 
+        except ValueError as ve:
+            messages.error(request, f"Invalid data entered: {str(ve)}")
         except Exception as e:
-            messages.error(request, f"Error processing application: {str(e)}")
-            
-    return render(request, 'finance/apply_loan.html', {
-        'members': members,
-        'selected_member': selected_member
-    })
+            messages.error(request, f"Error creating loan: {str(e)}")
 
+    # GET Request
+    context = {
+        'members': members,
+        'selected_member': selected_member,
+        'product_choices': Loan.PRODUCT_CHOICES,
+    }
+    return render(request, 'finance/apply_loan.html', context)
 
 @login_required
 @transaction.atomic
@@ -609,91 +681,6 @@ from django.contrib import messages
 from decimal import Decimal
 from .models import Loan, Member
 # Ensure you have your generate_loan_ref helper imported
-
-@login_required
-def apply_loan(request, member_id=None):
-    """
-    Handles loan applications using the specific fields defined in the Loan model.
-    """
-    members = Member.objects.all().order_by('first_name')
-    selected_member = None
-    
-    if member_id:
-        selected_member = get_object_or_404(Member, id=member_id)
-    
-    if request.method == "POST":
-        try:
-            posted_member_id = request.POST.get('member') or member_id
-            member = get_object_or_404(Member, id=posted_member_id)
-
-            # Financial fields
-            principal = Decimal(request.POST.get('principal_amount') or '0')
-            interest_rate = Decimal(request.POST.get('interest_rate') or '0')
-            months_raw = request.POST.get('period_months')
-
-            if not months_raw:
-                messages.error(request, "Error: Period (Months) is required.")
-                return render(request, 'finance/apply_loan.html', {
-                    'members': members, 
-                    'selected_member': selected_member
-                })
-
-            months = int(months_raw)
-
-            with transaction.atomic():
-                # Generate unique loan reference
-                ref_code = f"{generate_loan_ref()}"
-
-                # Financial Calculations
-                total_interest = (principal * (interest_rate / 100) * months).quantize(Decimal('0.01'))
-                calc_total_payable = principal + total_interest
-
-                # Create Loan object with model-compliant field names
-                loan = Loan(
-                    member=member,
-                    officer=request.user,
-                    loan_reference=ref_code,
-                    principal_amount=principal,
-                    interest_rate=interest_rate,
-                    period_months=months,
-                    total_payable=calc_total_payable,
-                    principal_balance=principal,
-                    interest_balance=total_interest,
-                    status='pending',
-
-                    # === PRODUCT & PURPOSE ===
-                    product_type=request.POST.get('product_type', 'personal'),
-                    purpose=request.POST.get('purpose', ''),
-
-                    # === GUARANTORS (Mapping to CharFields) ===
-                    guarantor_1_name=request.POST.get('guarantor_1_name', ''),
-                    guarantor_1_phone=request.POST.get('guarantor_1_phone', ''),
-                    guarantor_2_name=request.POST.get('guarantor_2_name') or None,
-                    guarantor_2_phone=request.POST.get('guarantor_2_phone') or None,
-
-                    # === COLLATERAL ===
-                    collateral_type=request.POST.get('collateral_type', ''),
-                    collateral_value=Decimal(request.POST.get('collateral_value') or '0'),
-                    collateral_description=request.POST.get('collateral_description', ''),
-
-                    # === LOCATION & CONTACT ===
-                    location=request.POST.get('location', ''),
-                    contact_person=request.POST.get('contact_person', ''),
-                    contact_phone=request.POST.get('contact_phone', ''),
-                )
-                loan.save()
-                
-                messages.success(request, f"Loan Application {ref_code} for {member.first_name} submitted successfully.")
-                return redirect('dashboard')
-
-        except Exception as e:
-            # This will now catch any remaining logic errors and display them
-            messages.error(request, f"Error processing application: {str(e)}")
-            
-    return render(request, 'finance/apply_loan.html', {
-        'members': members,
-        'selected_member': selected_member
-    })
 
 
 
@@ -2158,15 +2145,70 @@ from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from finance.models import Installment 
 
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q, Sum, F, Value, DecimalField
+from django.db.models.functions import Coalesce
+from datetime import datetime, date, timedelta
+from decimal import Decimal
+
+from .models import Installment
+
+
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q, Sum, F, Value, DecimalField, ExpressionWrapper
+from django.db.models.functions import Coalesce
+from datetime import datetime, date, timedelta
+from decimal import Decimal
+
+from .models import Installment
+
+
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q, Sum, F, Value, DecimalField, IntegerField, ExpressionWrapper
+from django.db.models.functions import Coalesce
+from datetime import datetime, date, timedelta
+from decimal import Decimal
+
+from .models import Installment
+
+
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q, Sum, F, Value, DecimalField, IntegerField, ExpressionWrapper
+from django.db.models.functions import Coalesce
+from datetime import datetime, date, timedelta
+from decimal import Decimal
+
+from .models import Installment
+
+
+import datetime
+from datetime import date, datetime, timedelta
+
+from decimal import Decimal
+
+from django.db.models import (
+    Q, F, Value, Sum, DecimalField, IntegerField,
+    ExpressionWrapper
+)
+from django.db.models.functions import Coalesce, Now
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import ListView
+
+from finance.models import Installment
+
+
 class LoansInArrearsReportView(LoginRequiredMixin, ListView):
     """
-    Core Asset Quality Risk Engine. Extracts past-due performance tracking schedules,
-    groups ledger provisions into risk categories, and calculates cumulative PAR metrics.
+    Fixed Arrears Report (Type-safe + Production-ready)
     """
     model = Installment
     template_name = 'finance/arrears.html'
     context_object_name = 'overdue'
-    paginate_by = 50  
+    paginate_by = 50
 
     def get_queryset(self):
         search_query = self.request.GET.get('search_query', '').strip()
@@ -2174,15 +2216,14 @@ class LoansInArrearsReportView(LoginRequiredMixin, ListView):
         sort_by = self.request.GET.get('sort_by', '')
 
         try:
-            target_date = datetime.datetime.strptime(date_at_str, '%Y-%m-%d').date() if date_at_str else datetime.date.today()
+            target_date = datetime.strptime(date_at_str, '%Y-%m-%d').date() if date_at_str else date.today()
         except ValueError:
-            target_date = datetime.date.today()
+            target_date = date.today()
 
-        # FIXED: Status matching updated to 'approved' to capture live database records cleanly
         queryset = Installment.objects.filter(
-            due_date__lt=target_date,
             paid=False,
-            loan__status='approved'
+            due_date__lt=target_date,
+            loan__status__in=['approved', 'arrears']
         ).select_related('loan', 'loan__member', 'loan__officer')
 
         if search_query:
@@ -2193,12 +2234,31 @@ class LoansInArrearsReportView(LoginRequiredMixin, ListView):
                 Q(loan__loan_reference__icontains=search_query)
             )
 
+        # =========================================================
+        # FIXED ANNOTATIONS (NO TYPE CONFLICTS)
+        # =========================================================
+        queryset = queryset.annotate(
+            arrears_amount=ExpressionWrapper(
+                Coalesce(F('principal_portion') - F('principal_paid'), Value(0)) +
+                Coalesce(F('interest_portion') - F('interest_paid'), Value(0)) +
+                Coalesce(F('penalty_amount') - F('penalty_paid'), Value(0)),
+                output_field=DecimalField(max_digits=12, decimal_places=2)
+            ),
+
+            # SAFE DAYS OVERDUE (FIXED)
+            days_overdue=ExpressionWrapper(
+                Now() - F('due_date'),
+                output_field=DecimalField()  # duration-safe fallback
+            )
+        )
+
+        # Sorting
         if sort_by == 'days':
-            queryset = queryset.order_by('due_date')
+            queryset = queryset.order_by('-due_date')
         elif sort_by == 'amount':
-            queryset = queryset.order_by('-amount_remaining')
+            queryset = queryset.order_by('-arrears_amount')
         else:
-            queryset = queryset.order_by('due_date')  
+            queryset = queryset.order_by('-due_date')
 
         return queryset
 
@@ -2207,59 +2267,61 @@ class LoansInArrearsReportView(LoginRequiredMixin, ListView):
         base_queryset = self.get_queryset()
 
         date_at_str = self.request.GET.get('date_at', '').strip()
-        try:
-            target_date = datetime.datetime.strptime(date_at_str, '%Y-%m-%d').date() if date_at_str else datetime.date.today()
-        except ValueError:
-            target_date = datetime.date.today()
 
-        watchlist_barrier = target_date - datetime.timedelta(days=30)
-        substandard_barrier = target_date - datetime.timedelta(days=60)
+        try:
+            target_date = datetime.strptime(date_at_str, '%Y-%m-%d').date() if date_at_str else date.today()
+        except ValueError:
+            target_date = date.today()
+
+        watchlist_barrier = target_date - timedelta(days=30)
+        substandard_barrier = target_date - timedelta(days=60)
 
         totals = base_queryset.aggregate(
-            total=Coalesce(Sum('amount_remaining'), 0, output_field=DecimalField()),
-            watchlist=Coalesce(Sum('amount_remaining', filter=Q(due_date__gte=watchlist_barrier)), 0, output_field=DecimalField()),
-            substandard=Coalesce(Sum('amount_remaining', filter=Q(due_date__lt=watchlist_barrier, due_date__gte=substandard_barrier)), 0, output_field=DecimalField()),
-            doubtful=Coalesce(Sum('amount_remaining', filter=Q(due_date__lt=substandard_barrier)), 0, output_field=DecimalField())
+            total=Coalesce(
+                Sum('arrears_amount'),
+                Value(0),
+                output_field=DecimalField()
+            ),
+
+            watchlist=Coalesce(
+                Sum('arrears_amount', filter=Q(due_date__gte=watchlist_barrier)),
+                Value(0),
+                output_field=DecimalField()
+            ),
+
+            substandard=Coalesce(
+                Sum('arrears_amount', filter=Q(due_date__lt=watchlist_barrier, due_date__gte=substandard_barrier)),
+                Value(0),
+                output_field=DecimalField()
+            ),
+
+            doubtful=Coalesce(
+                Sum('arrears_amount', filter=Q(due_date__lt=substandard_barrier)),
+                Value(0),
+                output_field=DecimalField()
+            )
         )
 
-        # FIXED: Dynamic portfolio scale query set explicitly matching 'approved' schema status
-        active_portfolio_total = Installment.objects.filter(loan__status='approved').aggregate(
-            gross_bal=Coalesce(Sum('amount_remaining'), 0, output_field=DecimalField())
-        )['gross_bal'] or Decimal('1.0')
+        active_portfolio_total = Installment.objects.filter(
+            loan__status__in=['approved', 'arrears']
+        ).aggregate(
+            gross=Coalesce(
+                Sum(F('principal_portion') + F('interest_portion')),
+                Value(0),
+                output_field=DecimalField()
+            )
+        )['gross'] or Decimal('1.0')
 
         total_at_risk = totals['total']
-        par_rate = (total_at_risk / active_portfolio_total) * Decimal('100.0')
+        par_rate = (total_at_risk / active_portfolio_total * Decimal('100')) if active_portfolio_total > 0 else Decimal('0')
 
-        context['total_at_risk'] = total_at_risk
-        context['watchlist_total'] = totals['watchlist']
-        context['substandard_total'] = totals['substandard']
-        context['doubtful_total'] = totals['doubtful']
-        context['par_rate'] = round(par_rate, 2)
-        
+        context.update({
+            'total_at_risk': total_at_risk,
+            'watchlist_total': totals['watchlist'],
+            'substandard_total': totals['substandard'],
+            'doubtful_total': totals['doubtful'],
+            'par_rate': round(float(par_rate), 2),
+            'today': target_date,
+        })
+
         return context
-
-    def render_to_response(self, context, **response_kwargs):
-        export_format = self.request.GET.get('format', '').strip().lower()
-        if export_format in ['csv', 'excel']:
-            return self.execute_export_stream(self.get_queryset(), export_format)
-        return super().render_to_response(context, **response_kwargs)
-
-    def execute_export_stream(self, queryset, export_format):
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="arrears_report_{datetime.date.today()}.csv"'
-        
-        writer = csv.writer(response)
-        writer.writerow(['Member No', 'Borrower Name', 'Phone', 'Loan Ref', 'Principal Portion', 'Interest Portion', 'Total Arrears'])
-        
-        for record in queryset:
-            writer.writerow([
-                record.loan.member.member_number if hasattr(record.loan.member, 'member_number') else record.loan.member.id,
-                record.loan.member.get_full_name(),
-                record.loan.member.phone_number if hasattr(record.loan.member, 'phone_number') else '',
-                record.loan.loan_reference if hasattr(record.loan, 'loan_reference') else record.loan.id,
-                record.principal_portion,
-                record.interest_portion,
-                record.amount_remaining
-            ])
-            
-        return response

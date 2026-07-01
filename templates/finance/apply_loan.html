@@ -12,9 +12,7 @@
         --slate-900: #0f172a;
     }
 
-    body {
-        background-color: var(--slate-50);
-    }
+    body { background-color: var(--slate-50); }
 
     .form-card {
         border: 1px solid var(--slate-200);
@@ -22,33 +20,34 @@
     }
 
     .step-indicator {
-        width: 38px;
-        height: 38px;
+        width: 42px;
+        height: 42px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 10px;
+        border-radius: 12px;
         background: var(--brand-blue);
         color: white;
         font-weight: 700;
-        font-size: 1.1rem;
+        font-size: 1.15rem;
+        flex-shrink: 0;
     }
 
     .form-label {
-        font-size: 0.82rem;
+        font-size: 0.78rem;
         font-weight: 700;
         color: var(--slate-700);
         text-transform: uppercase;
-        letter-spacing: 0.025em;
-        margin-bottom: 0.5rem;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.45rem;
     }
 
     .form-control, .form-select {
         border: 1px solid var(--slate-200);
-        padding: 12px 16px;
-        font-size: 0.95rem;
-        transition: all 0.2s;
+        padding: 13px 16px;
+        font-size: 0.97rem;
         border-radius: 8px;
+        transition: all 0.2s ease;
     }
 
     .form-control:focus, .form-select:focus {
@@ -56,57 +55,63 @@
         box-shadow: 0 0 0 4px var(--brand-blue-soft);
     }
 
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--slate-900);
+        margin-bottom: 1.25rem;
+    }
+
     .btn-brand {
         background: var(--brand-blue);
         color: white;
         font-weight: 700;
-        padding: 14px 30px;
+        padding: 14px 32px;
         border-radius: 10px;
         border: none;
-        transition: transform 0.2s;
+        transition: all 0.2s ease;
     }
 
     .btn-brand:hover {
         background: #11268a;
-        color: white;
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(22, 50, 175, 0.25);
     }
 
     .section-divider {
         border-bottom: 1px solid var(--slate-200);
-        margin: 2.5rem 0;
-    }
-
-    /* Info Badge Custom */
-    .badge-reducing {
-        background: var(--brand-blue-soft);
-        color: var(--brand-blue);
-        border: 1px solid rgba(22, 50, 175, 0.2);
-        font-weight: 700;
+        margin: 2.75rem 0;
     }
 
     .avatar-placeholder {
-        width: 48px;
-        height: 48px;
+        width: 52px;
+        height: 52px;
         background: var(--brand-blue);
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 12px;
+        border-radius: 14px;
         font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .help-text {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin-top: 4px;
     }
 </style>
 
 <div class="container-fluid py-4">
 
-    <!-- Header & Breadcrumb -->
-    <div class="row align-items-center mb-4">
+    <!-- Header -->
+    <div class="row align-items-center mb-5">
         <div class="col-md-8">
             <nav aria-label="breadcrumb" class="mb-2">
                 <ol class="breadcrumb small fw-medium">
                     <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none text-muted">Portfolio</a></li>
-                    <li class="breadcrumb-item active text-primary">New Loan</li>
+                    <li class="breadcrumb-item active text-primary">New Loan Application</li>
                 </ol>
             </nav>
             <div class="d-flex align-items-center gap-3">
@@ -114,14 +119,16 @@
                     {{ selected_member.first_name|slice:":1" }}{{ selected_member.last_name|slice:":1" }}
                 </div>
                 <div>
-                    <h2 class="fw-bold text-dark mb-0">Loan Application</h2>
-                    <p class="text-muted mb-0">Applicant: <span class="text-dark fw-bold">{{ selected_member.first_name }} {{ selected_member.last_name }}</span></p>
+                    <h1 class="fw-bold text-dark mb-1">Loan Application</h1>
+                    <p class="text-muted mb-0 fs-5">
+                        Applicant: <strong>{{ selected_member.first_name }} {{ selected_member.last_name }}</strong>
+                    </p>
                 </div>
             </div>
         </div>
         <div class="col-md-4 text-md-end">
-            <span class="badge badge-reducing rounded-pill px-3 py-2">
-                <i class="bi bi-percent me-1"></i> flat  Method
+            <span class="badge badge-reducing rounded-pill px-4 py-2 fs-6">
+                <i class="bi bi-file-earmark-text me-2"></i>New Application
             </span>
         </div>
     </div>
@@ -141,42 +148,58 @@
                 <input type="hidden" name="member" value="{{ selected_member.id }}">
 
                 <div class="card form-card border-0 rounded-4 overflow-hidden">
-                    <div class="card-body p-4 p-md-5">
 
-                        <!-- Section 1: Financials -->
+                    <div class="card-body p-5">
+
+                        <!-- Section 1: Loan Parameters -->
                         <div class="d-flex align-items-center gap-3 mb-4">
                             <div class="step-indicator">1</div>
-                            <h5 class="fw-bold mb-0 text-dark">Loan Parameters</h5>
+                            <h5 class="section-title mb-0">Loan Parameters</h5>
                         </div>
 
                         <div class="row g-4">
                             <div class="col-md-6">
                                 <label class="form-label">Loan Product</label>
                                 <select name="product_type" class="form-select" required>
-                                    <option value="personal">Personal Loan</option>
-                                    <option value="business">Business Loan</option>
-                                    <option value="salary">Salary Advance</option>
-                                    <option value="emergency">Emergency Loan</option>
+                                    {% for value, label in product_choices %}
+                                        <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Loan Purpose</label>
-                                <input type="text" name="purpose" class="form-control" placeholder="e.g. School Fees" required>
+                                <label class="form-label">Repayment Frequency</label>
+                                <select name="repayment_frequency" class="form-select" required>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="manual">Manual</option>
+                                </select>
                             </div>
+
                             <div class="col-md-4">
                                 <label class="form-label">Principal Amount (UGX)</label>
                                 <input type="number" name="principal_amount" class="form-control fw-bold" placeholder="0.00" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Interest Rate (% p.m)</label>
+                                <label class="form-label">Interest Rate (%)</label>
                                 <div class="input-group">
-                                    <input type="number" step="0.1" name="interest_rate" class="form-control fw-bold" value="3.0" required>
+                                    <input type="number" step="0.01" name="interest_rate" class="form-control fw-bold" value="3.0" required>
                                     <span class="input-group-text bg-white border-start-0">%</span>
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Loan Term (Months)</label>
-                                <input type="number" name="period_months" class="form-control fw-bold" placeholder="12" required>
+                                <label class="form-label">Term Value</label>
+                                <input type="number" name="term_value" class="form-control fw-bold" placeholder="12" min="1" required>
+                                <small class="help-text">Number of repayment cycles</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Start Date</label>
+                                <input type="date" name="start_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Purpose of Loan</label>
+                                <input type="text" name="purpose" class="form-control" placeholder="e.g. School fees, Business expansion" required>
                             </div>
                         </div>
 
@@ -185,7 +208,7 @@
                         <!-- Section 2: Guarantors -->
                         <div class="d-flex align-items-center gap-3 mb-4">
                             <div class="step-indicator">2</div>
-                            <h5 class="fw-bold mb-0 text-dark">Guarantors Details</h5>
+                            <h5 class="section-title mb-0">Guarantors</h5>
                         </div>
 
                         <div class="row g-4">
@@ -198,7 +221,7 @@
                                 <input type="tel" name="guarantor_1_phone" class="form-control" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label text-muted">Guarantor 2 (Optional)</label>
+                                <label class="form-label text-muted">Guarantor 2 Name <small>(Optional)</small></label>
                                 <input type="text" name="guarantor_2_name" class="form-control">
                             </div>
                             <div class="col-md-6">
@@ -209,31 +232,85 @@
 
                         <div class="section-divider"></div>
 
-                        <!-- Section 3: Assets -->
+                        <!-- Section 3: Security -->
                         <div class="d-flex align-items-center gap-3 mb-4">
                             <div class="step-indicator">3</div>
-                            <h5 class="fw-bold mb-0 text-dark">Security & Location</h5>
+                            <h5 class="section-title mb-0">Security &amp; Location</h5>
                         </div>
 
                         <div class="row g-4">
                             <div class="col-md-6">
                                 <label class="form-label">Collateral Type</label>
-                                <input type="text" name="collateral_type" class="form-control" placeholder="Land, Savings, etc.">
+                                <input type="text" name="collateral_type" class="form-control" placeholder="e.g. Land Title, Vehicle, Savings">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Estimated Value (UGX)</label>
                                 <input type="number" name="collateral_value" class="form-control">
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Physical Residence/Location</label>
+                                <label class="form-label">Collateral Description</label>
+                                <textarea name="collateral_description" class="form-control" rows="3" placeholder="Details about collateral..."></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Physical Residence / Location</label>
                                 <input type="text" name="location" class="form-control" placeholder="Village, Parish, District" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Contact Person</label>
+                                <input type="text" name="contact_person" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Contact Phone</label>
+                                <input type="tel" name="contact_phone" class="form-control">
                             </div>
                         </div>
 
-                        <!-- Footer Actions -->
-                        <div class="mt-5 d-flex flex-column flex-md-row gap-3">
+                        <div class="section-divider"></div>
+
+                        <!-- Section 4: Penalty Settings -->
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <div class="step-indicator">4</div>
+                            <h5 class="section-title mb-0">Penalty Configuration</h5>
+                        </div>
+
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Penalty Type</label>
+                                <select name="penalty_type" class="form-select">
+                                    <option value="daily_flat">Daily Flat Amount</option>
+                                    <option value="daily_percentage">Daily Percentage</option>
+                                    <option value="fixed">One-time Fixed Penalty</option>
+                                    <option value="compound">Compound Penalty</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Penalty Rate / Value</label>
+                                <input type="number" step="0.01" name="penalty_rate" class="form-control" placeholder="e.g. 2.5 or 1500">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Default Flat Penalty (UGX)</label>
+                                <input type="number" name="penalty_flat_amount" class="form-control" value="1000">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Grace Period (Days)</label>
+                                <input type="number" name="penalty_grace_days" class="form-control" value="3" min="0">
+                            </div>
+                        </div>
+
+                        <div class="section-divider"></div>
+
+                        <!-- Notes -->
+                        <div class="row">
+                            <div class="col-12">
+                                <label class="form-label">Additional Notes / Remarks</label>
+                                <textarea name="notes" class="form-control" rows="4" placeholder="Any special conditions, observations, or instructions..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="mt-5 pt-4 border-top d-flex flex-column flex-md-row gap-3">
                             <button type="submit" class="btn btn-brand btn-lg flex-grow-1 shadow-sm">
-                                <i class="bi bi-check2-circle me-2"></i> Submit Application
+                                <i class="bi bi-check-circle me-2"></i>Submit Loan Application
                             </button>
                             <a href="{% url 'dashboard' %}" class="btn btn-light btn-lg px-5">Cancel</a>
                         </div>
@@ -243,27 +320,33 @@
             </form>
         </div>
 
-        <!-- Sidebar Guideline -->
+        <!-- Sidebar -->
         <div class="col-xl-4">
-            <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-4 sticky-top" style="top: 20px;">
                 <h6 class="fw-bold text-dark mb-3">Submission Checklist</h6>
                 <ul class="list-unstyled small text-muted">
                     <li class="mb-3 d-flex align-items-start">
-                        <i class="bi bi-check-square-fill text-primary me-3 mt-1"></i>
-                        Ensure the member has active savings to cover security.
+                        <i class="bi bi-check-square-fill text-success me-3 mt-1"></i>
+                        Member has active savings account
                     </li>
                     <li class="mb-3 d-flex align-items-start">
-                        <i class="bi bi-check-square-fill text-primary me-3 mt-1"></i>
-                        Guarantors must be existing SACCO members.
+                        <i class="bi bi-check-square-fill text-success me-3 mt-1"></i>
+                        Guarantors are verified members
                     </li>
                     <li class="mb-3 d-flex align-items-start">
-                        <i class="bi bi-info-circle-fill text-warning me-3 mt-1"></i>
-                        Reducing balance interest is calculated on the remaining principal each month.
+                        <i class="bi bi-info-circle-fill text-primary me-3 mt-1"></i>
+                        Penalty rules are configurable per loan
+                    </li>
+                    <li class="mb-3 d-flex align-items-start">
+                        <i class="bi bi-info-circle-fill text-primary me-3 mt-1"></i>
+                        Repayment schedule will be auto-generated
                     </li>
                 </ul>
-                <div class="p-3 rounded-3 bg-light">
-                    <span class="d-block text-muted small fw-bold text-uppercase">Support Desk</span>
-                    <span class="d-block fw-bold text-dark">0700-100-200</span>
+
+                <div class="mt-4 p-3 rounded-3 bg-light">
+                    <span class="d-block text-muted small fw-bold text-uppercase mb-1">Need Help?</span>
+                    <span class="d-block fw-semibold text-dark">0700 100 200</span>
+                    <small class="text-muted">Credit Officer Support</small>
                 </div>
             </div>
         </div>

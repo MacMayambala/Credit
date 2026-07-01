@@ -142,7 +142,10 @@ def generate_schedule(loan):
                 due_date=loan.start_date + relativedelta(months=i + 1)
             )
 
-
+def generate_loan_ref(length=10):
+    """Generates a unique uppercase alphanumeric loan reference."""
+    chars = string.ascii_uppercase + string.digits
+    return f"LN-{''.join(random.choices(chars, k=length))}"
 
 import string
 import random

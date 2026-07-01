@@ -228,15 +228,16 @@ class DataMigrationService:
                             is_active=True if p_bal > 0 else False
                         )
 
-                        total_payable_est = p_bal + i_bal
-                        if total_payable_est > 0:
-                            Installment.objects.create(
+                        if p_bal > 0 or i_bal > 0:
+                         Installment.objects.create(
                                 loan=loan,
                                 due_date=l_start_date,
                                 principal_portion=p_bal,
                                 interest_portion=i_bal,
-                                amount_remaining=total_payable_est,
-                                paid=False
+                                penalty_amount=Decimal("0.00"),
+                                principal_paid=Decimal("0.00"),
+                                interest_paid=Decimal("0.00"),
+                                penalty_paid=Decimal("0.00"),
                             )
                         
                         Transaction.objects.create(

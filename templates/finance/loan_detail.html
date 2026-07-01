@@ -93,8 +93,7 @@
                 <h3 class="fw-bold mb-1 text-dark">{{ loan.member.get_full_name }}</h3>
                 <div class="d-flex gap-4 text-muted small">
                     <span><i class="bi bi-telephone-fill me-1 text-primary"></i> {{ loan.member.phone_number }}</span>
-                    <span><i class="bi bi-geo-alt-fill me-1 text-primary"></i> {{ loan.member.village }}, {{ loan.member.district }}</span>
-                    
+                    <span><i class="bi bi-geo-alt-fill me-1 text-primary"></i> {{ loan.location|default:"—" }}</span>
                 </div>
             </div>
             <div class="col-lg-auto text-lg-end border-start ps-lg-5">
@@ -108,35 +107,40 @@
             </div>
         </div>
     </div>
-    <div class="progress-bar bg-success"
-            style="width: {{ loan.completion_percentage }}%">
-    </div>
 
     <!-- Quick Status Cards -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="balance-card">
                 <div class="uppercase-tracking mb-2">Disbursement Date</div>
-                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-calendar-check me-2 text-primary"></i>{{ disbursement_date|date:"d M, Y" | default:"Not Disbursed" }}</h5>
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-calendar-check me-2 text-primary"></i>
+                    {{ disbursement_date|date:"d M, Y" | default:"Not Disbursed" }}
+                </h5>
             </div>
         </div>
         <div class="col-md-4">
             <div class="balance-card">
                 <div class="uppercase-tracking mb-2">Loan Tenure</div>
-                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history me-2 text-primary"></i>{{ period_months }} Months</h5>
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-clock-history me-2 text-primary"></i>
+                    {{ loan.term_value }} {{ loan.get_repayment_frequency_display }}
+                </h5>
             </div>
         </div>
         <div class="col-md-4">
             <div class="balance-card">
                 <div class="uppercase-tracking mb-2">Maturity Date</div>
-                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-calendar-x me-2 text-danger"></i>{{ end_date|date:"d M, Y" | default:"—" }}</h5>
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-calendar-x me-2 text-danger"></i>
+                    {{ end_date|date:"d M, Y" | default:"—" }}
+                </h5>
             </div>
         </div>
     </div>
 
     <!-- Financial Balances Grid -->
     <div class="row g-4 mb-5">
-       
         <div class="col-md-4">
             <div class="balance-card h-100">
                 <div class="uppercase-tracking mb-2">Loan Amount</div>
@@ -153,6 +157,29 @@
             <div class="balance-card h-100">
                 <div class="uppercase-tracking mb-2 text-primary">Interest Due (Active)</div>
                 <h4 class="fw-bold text-primary mb-0">UGX {{ interest_due|floatformat:2|intcomma }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Loan Details -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="balance-card h-100">
+                <h6 class="fw-bold mb-3">Loan Information</h6>
+                <p><strong>Product:</strong> {{ loan.get_product_type_display }}</p>
+                <p><strong>Purpose:</strong> {{ loan.purpose|default:"—" }}</p>
+                <p><strong>Interest Rate:</strong> {{ loan.interest_rate }}%</p>
+                <p><strong>Officer:</strong> {{ loan.officer.get_full_name|default:loan.officer.username }}</p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="balance-card h-100">
+                <h6 class="fw-bold mb-3">Guarantors & Collateral</h6>
+                <p><strong>Guarantor 1:</strong> {{ loan.guarantor_1_name|default:"—" }} ({{ loan.guarantor_1_phone|default:"—" }})</p>
+                {% if loan.guarantor_2_name %}
+                <p><strong>Guarantor 2:</strong> {{ loan.guarantor_2_name }} ({{ loan.guarantor_2_phone|default:"—" }})</p>
+                {% endif %}
+                <p><strong>Collateral:</strong> {{ loan.collateral_type|default:"—" }} • UGX {{ loan.collateral_value|floatformat:0|intcomma }}</p>
             </div>
         </div>
     </div>
@@ -178,12 +205,13 @@
                     </button>
                 {% endif %}
                 <a href="{% url 'loan_details' loan.id %}" class="btn btn-success btn-action shadow-sm">
-                        <i class="bi bi-check-circle-fill"></i> Loan Details
-                 </a>
+                    <i class="bi bi-check-circle-fill"></i> Loan Details
+                </a>
             </div>
         </div>
-        
     </div>
+
+    <!-- Current Payment Obligation -->
     <div class="row g-4 mb-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm rounded-4" style="background: linear-gradient(135deg, #f8fafc, #edf2f7);">
@@ -203,7 +231,7 @@
         </div>
     </div>
 
-    <!-- Repayment Form (Collapsed) -->
+    <!-- Repayment Form -->
     {% if loan.status == 'approved' %}
     <div id="repaymentFormArea" class="collapse mb-5">
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
@@ -254,8 +282,6 @@
                         <th class="text-end">Interest</th>
                         <th class="text-center">Penalty</th>
                         <th class="text-end">Total Due</th>
-                        
-                       
                         <th class="text-center">Status</th>
                     </tr>
                 </thead>
@@ -267,7 +293,6 @@
                         <td class="text-end">UGX {{ inst.principal_portion|intcomma }}</td>
                         <td class="text-end">UGX {{ inst.interest_portion|intcomma }}</td>
                         <td class="text-end">UGX {{ inst.penalty_amount|intcomma }}</td>
-                        
                         <td class="text-end fw-bold {% if inst.paid %}text-success{% else %}text-danger{% endif %}">
                             UGX {{ inst.balance|floatformat:2|intcomma }}
                         </td>
@@ -281,7 +306,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-5">
+                        <td colspan="7" class="text-center py-5">
                             <i class="bi bi-info-circle fs-2 text-muted d-block mb-2"></i>
                             <span class="text-muted">No schedule generated for this loan yet.</span>
                         </td>
