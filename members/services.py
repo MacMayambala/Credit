@@ -13,7 +13,16 @@ class DataMigrationService:
     Deconstructs, validates, and migrates complete SACCO historical datasets.
     Maintains rigorous financial ledgers and ledger balance calculations.
     """
-
+    REQUIRED_HEADERS = {
+        "member_number",
+        "first_name",
+        "last_name",
+        "gender",
+        "date_of_birth",
+        "nin",
+        "phone_number",
+        "savings_balance",
+    }
     # ==============================
     # REQUIRED HEADERS (CORE ONLY)
     # ==============================
