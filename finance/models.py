@@ -8,7 +8,50 @@ from django.db.models import Sum, Q
 from django.db.models.functions import Coalesce
 from dateutil.relativedelta import relativedelta
 from members.models import Member   
+# core/models.py
+from django.db import models
+from django.utils import timezone
 
+class Company(models.Model):
+    """
+    Singleton model to store company-wide information.
+    """
+    name = models.CharField(max_length=100, default="MAC Technologies")
+    tagline = models.CharField(max_length=200, blank=True, default="Core Banking & Financial Services")
+    logo = models.ImageField(upload_to='company/', blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, default="+256 700 000 000")
+    email = models.EmailField(blank=True, default="mmayambala@schooladmin.tech")
+    website = models.URLField(blank=True, default="www.schooladmin.tech")
+    address = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Company"
+        verbose_name_plural = "Company"
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        # Ensure only one record exists
+        if not self.pk and Company.objects.exists():
+            raise ValueError("There is already a Company record. Update it instead.")
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_company(cls):
+        """Return the company instance, creating a default one if none exists."""
+        company, created = cls.objects.get_or_create(
+            id=1,
+            defaults={
+                'name': 'MAC Technologies',
+                'tagline': 'Core Banking & Financial Services',
+                'phone': '+256 776 203 790',
+                'email': 'mmayambala@schooladmin.tech',
+                'website': 'www.schooladmin.tech',
+            }
+        )
+        return company
 
 # =========================================================
 # 1. CONFIGURATION & ACCOUNTING SYSTEM MODELS
@@ -128,8 +171,9 @@ from django.conf import settings
 
 
 class Loan(models.Model):
-    """Loan issuance ledger containing structural states and tracking parameters."""
-
+    # ==============================
+    # CHOICES (defined as tuples)
+    # ==============================
     PRODUCT_CHOICES = [
         ('personal', 'Personal Loan'),
         ('business', 'Business Loan'),
@@ -156,197 +200,108 @@ class Loan(models.Model):
     ]
 
     # ==============================
-    # LOAN STRUCTURE
+    # FIELDS
     # ==============================
-
     repayment_frequency = models.CharField(
         max_length=10,
         choices=REPAYMENT_FREQUENCY,
         default='monthly'
     )
-
-    term_value = models.PositiveIntegerField(
-        default=1,
-        help_text="Number of cycles depending on frequency (days/weeks/months)"
-    )
-
-    member = models.ForeignKey(
-        'members.Member',
-        on_delete=models.CASCADE,
-        related_name='loans'
-    )
-
-    officer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='loans_disbursed'
-    )
-
-    loan_reference = models.CharField(
-        max_length=20,
-        unique=True,
-        null=True,
-        blank=True,
-        help_text="Unique alphanumeric loan reference (e.g., LN-ABC1234567)"
-    )
-
-    # ==============================
-    # FINANCIAL DATA
-    # ==============================
+    term_value = models.PositiveIntegerField(default=1)
+    member = models.ForeignKey('members.Member', on_delete=models.CASCADE, related_name='loans')
+    officer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    loan_reference = models.CharField(max_length=20, unique=True, null=True, blank=True)
 
     principal_amount = models.DecimalField(max_digits=12, decimal_places=2)
     interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
-
-    # kept for backward compatibility (NOT used in schedule logic anymore)
     period_months = models.IntegerField(default=1)
-
     start_date = models.DateField(default=timezone.now)
     disbursed_date = models.DateField(null=True, blank=True)
-
-    total_payable = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0
-    )
-
-    principal_balance = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0
-    )
-
-    interest_balance = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0
-    )
-
-    # ==============================
-    # PRODUCT DETAILS
-    # ==============================
+    total_payable = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    principal_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    interest_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     product_type = models.CharField(
         max_length=20,
         choices=PRODUCT_CHOICES,
-        default='personal',
-        verbose_name="Loan Product"
+        default='personal'
     )
-
     purpose = models.TextField(blank=True, null=True)
-
-    # ==============================
-    # GUARANTORS
-    # ==============================
 
     guarantor_1_name = models.CharField(max_length=255, null=True, blank=True)
     guarantor_1_phone = models.CharField(max_length=20, null=True, blank=True)
-
     guarantor_2_name = models.CharField(max_length=255, null=True, blank=True)
     guarantor_2_phone = models.CharField(max_length=20, null=True, blank=True)
-
-    # ==============================
-    # COLLATERAL
-    # ==============================
 
     collateral_type = models.CharField(max_length=100, blank=True, null=True)
     collateral_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     collateral_description = models.TextField(blank=True, null=True)
 
-    # ==============================
-    # CONTACT / LOCATION
-    # ==============================
-
     location = models.CharField(max_length=255, blank=True, null=True)
     contact_person = models.CharField(max_length=100, blank=True, null=True)
     contact_phone = models.CharField(max_length=15, blank=True, null=True)
 
+    # Legacy penalty fields (deprecated, but kept for now)
     last_penalty_date = models.DateField(null=True, blank=True)
-    penalty_flat_amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0
-    )
+    penalty_flat_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     penalty_type = models.CharField(
         max_length=25,
         choices=[
-            ("daily_flat", "Daily Flat"),
-            ("daily_percentage", "Daily Percentage"),
-            ("fixed", "Fixed Penalty"),
-            ("compound", "Compound Penalty"),
-            ("monthly_once", "Monthly Once (on total due)"),
+            ('daily_flat', 'Daily Flat'),
+            ('daily_percentage', 'Daily Percentage'),
+            ('fixed', 'Fixed Penalty'),
+            ('compound', 'Compound Penalty'),
+            ('monthly_once', 'Monthly Once'),
         ],
-        default="daily_flat"
+        default='daily_flat'
     )
     penalty_frequency = models.CharField(
-        choices=[
-            ("daily", "Daily"),
-            ("weekly", "Weekly"),
-            ("monthly", "Monthly"),
-        ],
-        default="monthly"
+        max_length=10,
+        choices=[('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly')],
+        default='monthly'
     )
-
-    penalty_rate = models.DecimalField(
-        max_digits=6,
-        decimal_places=2,
-        default=1.0,
-        help_text="Used for percentage-based penalties"
-    )
-
-    penalty_flat_amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=Decimal("1000.00"),
-        help_text="Used for flat penalties"
-    )
-
+    penalty_rate = models.DecimalField(max_digits=6, decimal_places=2, default=1.0)
     penalty_grace_days = models.PositiveIntegerField(default=0)
-
-    # ==============================
-    # STATUS CONTROL
-    # ==============================
 
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
         default='pending'
     )
-
     is_active = models.BooleanField(default=False)
-
     notes = models.TextField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     # ==============================
-    # CORE SAVE LOGIC
+    # META
     # ==============================
+    class Meta:
+        permissions = [
+            ('can_apply_loan', 'Can apply for a loan'),
+            ('can_approve_loan', 'Can approve a loan'),
+            ('can_disburse_loan', 'Can disburse a loan'),
+            ('can_apply_manual_penalty', 'Can manually apply penalty'),
+            ('can_waive_penalty', 'Can waive penalties'),
+        ]
 
+    # ==============================
+    # METHODS
+    # ==============================
     def save(self, *args, **kwargs):
-        """
-        Initializes loan financial state once.
-        """
-
         if not self.total_payable or self.total_payable == 0:
-
-            interest_amount = (
-                self.principal_amount *
-                (self.interest_rate / Decimal('100'))
-            )
-
+            interest_amount = self.principal_amount * (self.interest_rate / Decimal('100'))
             self.total_payable = self.principal_amount + interest_amount
             self.principal_balance = self.principal_amount
             self.interest_balance = interest_amount
-
         super().save(*args, **kwargs)
+
+    # (keep your analytics methods – they are fine)
 
     # ==============================
     # ANALYTICS METHODS
     # ==============================
-
     def get_active_interest_due(self):
         total = Decimal('0.00')
         for inst in self.installments.filter(due_date__lte=timezone.now().date()):
@@ -362,25 +317,19 @@ class Loan(models.Model):
     @property
     def arrears_balance(self):
         today = timezone.now().date()
-        return sum(
-            inst.balance for inst in self.installments.filter(due_date__lt=today)
-        )
+        return sum(inst.balance for inst in self.installments.filter(due_date__lt=today))
 
     @property
     def completion_percentage(self):
         total_due = self.total_payable
         remaining = self.principal_balance + self.interest_balance
-
         if total_due <= 0:
             return 0
-
         return round(((total_due - remaining) / total_due) * 100, 2)
 
     @property
     def balance(self):
-        return (self.principal_balance or Decimal('0')) + (
-            self.interest_balance or Decimal('0')
-        )
+        return (self.principal_balance or Decimal('0')) + (self.interest_balance or Decimal('0'))
 
     def __str__(self):
         return f"{self.loan_reference or f'LN-{self.id}'} - {self.member}"
@@ -391,54 +340,26 @@ from django.utils import timezone
 
 
 class Installment(models.Model):
-    loan = models.ForeignKey(
-        "Loan",
-        on_delete=models.CASCADE,
-        related_name='installments'
-    )
-
+    loan = models.ForeignKey('Loan', on_delete=models.CASCADE, related_name='installments')
     due_date = models.DateField()
 
-    # =========================
-    # SCHEDULE VALUES
-    # =========================
     principal_portion = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     interest_portion = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-
-    # penalty is dynamically calculated OR stored when applied
     penalty_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
 
-    # =========================
-    # PAID VALUES
-    # =========================
     principal_paid = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     interest_paid = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     penalty_paid = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
 
     paid = models.BooleanField(default=False)
 
-    # =========================
-    # PENALTY REFRESH (FIXED)
-    # =========================
     def refresh_penalty(self):
-        """
-        SAFE VERSION:
-        - avoids circular imports
-        - works with Celery
-        - keeps system stable
-        """
-        from finance.penalties import calculate_penalty  # IMPORTANT: use your app path
-
+        from finance.penalties import calculate_penalty
         new_penalty = calculate_penalty(self)
-
-        # avoid unnecessary DB writes
         if self.penalty_amount != new_penalty:
             self.penalty_amount = new_penalty
             self.save(update_fields=["penalty_amount"])
 
-    # =========================
-    # BALANCES (CLEANED)
-    # =========================
     @property
     def principal_balance(self):
         return max(Decimal('0.00'), self.principal_portion - self.principal_paid)
@@ -453,47 +374,36 @@ class Installment(models.Model):
 
     @property
     def amount_due(self):
-        return (
-            self.principal_portion +
-            self.interest_portion +
-            self.penalty_amount
-        )
+        return self.principal_portion + self.interest_portion + self.penalty_amount
 
     @property
     def amount_paid(self):
-        return (
-            self.principal_paid +
-            self.interest_paid +
-            self.penalty_paid
-        )
+        return self.principal_paid + self.interest_paid + self.penalty_paid
 
     @property
     def balance(self):
-        return (
-            self.principal_balance +
-            self.interest_balance +
-            self.penalty_balance
-        )
+        return self.principal_balance + self.interest_balance + self.penalty_balance
 
-    # =========================
-    # STATUS HELPERS
-    # =========================
+    @property
+    def get_total_penalty(self):
+        """Returns total penalty (calculated + manual) for this installment."""
+        from finance.penalties import calculate_penalty
+        calc = calculate_penalty(self)
+        manual = self.manual_penalties.filter(is_waived=False).aggregate(
+            total=models.Sum('amount')
+        )['total'] or Decimal('0.00')
+        return calc + manual
+
     @property
     def is_active(self):
         return timezone.now().date() >= self.due_date
 
     @property
     def is_overdue(self):
-        return (
-            timezone.now().date() > self.due_date
-            and self.balance > 0
-        )
+        return timezone.now().date() > self.due_date and self.balance > 0
 
-    # =========================
-    # SAVE LOGIC (FIXED)
-    # =========================
     def save(self, *args, **kwargs):
-        self.paid = (self.balance <= Decimal("0.00"))
+        self.paid = (self.balance <= Decimal('0.00'))
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -502,6 +412,13 @@ class Installment(models.Model):
 # 3. TRANSACTION ENGINE LOGS, REVERSALS & DOUBLE-ENTRY
 # =========================================================
 
+# finance/models.py
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+from decimal import Decimal
+from members.models import Member  # Import from members app
+
 class Transaction(models.Model):
     """Individual system action tracking financial entry modifications."""
     T_TYPES = (
@@ -509,26 +426,62 @@ class Transaction(models.Model):
         ('withdrawal', 'Withdrawal'),
         ('disbursement', 'Loan Disbursement'),
         ('repayment', 'Loan Repayment'),
-        ('penalty', 'Penalty')
+        ('penalty', 'Penalty'),
+        ('reversal', 'Reversal'),
     )
+    
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('reversed', 'Reversed'),
+    )
+    
     member = models.ForeignKey(
-        Member,
+        Member,  # Now Member is imported
         on_delete=models.CASCADE,
         related_name='transactions'
     )
-    loan = models.ForeignKey(Loan, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    type = models.CharField(max_length=20, choices=T_TYPES)
-    timestamp = models.DateTimeField(default=timezone.now)
-    reference = models.CharField(max_length=100, blank=True, null=True)
+    
+    loan = models.ForeignKey(
+        'Loan', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='transactions'
+    )
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    type = models.CharField(max_length=20, choices=T_TYPES, db_index=True)
+    timestamp = models.DateTimeField(default=timezone.now, db_index=True)
+    reference = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     is_reversed = models.BooleanField(default=False)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='transactions_created'
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='transactions_created'
     )
+    reversed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='transactions_reversed'
+    )
+    reversal_reason = models.TextField(blank=True, null=True)
+    reversal_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.type.upper()} - {self.amount} ({self.reference})"
-
+    
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['member', 'type']),
+            models.Index(fields=['reference']),
+            models.Index(fields=['timestamp']),
+        ]
 
 class TransactionReversal(models.Model):
     """Audit footprint logging explicit transaction changes."""
@@ -960,55 +913,62 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 
-def generate_schedule(loan):
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
+from decimal import Decimal
+from django.db import transaction
 
+def generate_schedule(loan):
+    """
+    Generates installments for the loan based on repayment_frequency and term_value.
+    Interest is split equally across all installments.
+    """
     if loan.installments.exists():
-        return
+        return  # prevent duplicate schedules
 
     frequency = loan.repayment_frequency
     plan_length = loan.term_value
 
-    principal_total = Decimal(str(loan.principal_amount))
-    total_interest = Decimal(str(loan.total_payable)) - principal_total
+    if plan_length <= 0:
+        return
 
-    principal_per = (principal_total / plan_length).quantize(Decimal("0.01"))
-    interest_per = (total_interest / plan_length).quantize(Decimal("0.01"))
+    principal_total = loan.principal_amount
+    total_interest = loan.total_payable - principal_total
+
+    principal_per = (principal_total / Decimal(plan_length)).quantize(Decimal('0.01'))
+    interest_per = (total_interest / Decimal(plan_length)).quantize(Decimal('0.01'))
 
     remaining_principal = principal_total
     current_date = loan.start_date
 
-    for i in range(plan_length):
+    with transaction.atomic():
+        for i in range(plan_length):
+            # Date calculation
+            if frequency == 'daily':
+                current_date += timedelta(days=1)
+            elif frequency == 'weekly':
+                current_date += timedelta(weeks=1)
+            elif frequency == 'monthly':
+                current_date += relativedelta(months=1)
+            elif frequency == 'manual':
+                raise ValueError("Manual loans require explicit installment creation")
+            else:
+                raise ValueError(f"Unknown frequency: {frequency}")
 
-        # -----------------------------
-        # DATE CALCULATION
-        # -----------------------------
-        if frequency == "daily":
-            current_date += timedelta(days=1)
+            # Last installment absorbs rounding errors
+            principal_portion = remaining_principal if i == plan_length - 1 else principal_per
 
-        elif frequency == "weekly":
-            current_date += timedelta(weeks=1)
+            Installment.objects.create(
+                loan=loan,
+                due_date=current_date,
+                principal_portion=principal_portion,
+                interest_portion=interest_per,
+            )
 
-        elif frequency == "monthly":
-            current_date += relativedelta(months=1)
+            remaining_principal -= principal_portion
 
-        elif frequency == "manual":
-            raise ValueError("Manual loans require explicit installment creation")
-
-        # last installment adjustment
-        p = remaining_principal if i == plan_length - 1 else principal_per
-
-        Installment.objects.create(
-            loan=loan,
-            due_date=current_date,
-            principal_portion=p,
-            interest_portion=interest_per,
-        )
-
-        remaining_principal -= p
-
+    # Re-save loan to update any dependent fields (optional)
     loan.save()
-
-
 
 from decimal import Decimal
 from django.utils import timezone
@@ -1133,38 +1093,135 @@ class DailyRepaymentSummary(models.Model):
         ordering = ['-date']
 
 class LoanPenaltyRule(models.Model):
-    """
-    Defines penalty rules agreed per loan or product.
-    This makes penalties flexible instead of hardcoded.
-    """
-
-    PENALTY_TYPE = [
-        ('fixed', 'Fixed Amount'),
-        ('percentage', 'Percentage of overdue'),
-        ('daily', 'Daily penalty'),
-    ]
-
-    loan = models.OneToOneField(
-        'Loan',
-        on_delete=models.CASCADE,
-        related_name='penalty_rule'
+    """Defines penalty rules per loan – flexible and auditable."""
+    PENALTY_TYPE = (
+        ('fixed', 'Fixed amount per period'),
+        ('percentage', 'Percentage of overdue amount per period'),
+        ('daily_flat', 'Daily flat amount'),
+        ('daily_percentage', 'Daily percentage of overdue amount'),
+    )
+    PERIOD_CHOICES = (
+        ('monthly', 'Monthly'),
+        ('weekly', 'Weekly'),
+        ('daily', 'Daily'),
     )
 
-    penalty_type = models.CharField(max_length=20, choices=PENALTY_TYPE, default='fixed')
+    loan = models.OneToOneField('Loan', on_delete=models.CASCADE, related_name='penalty_rule')
 
-    fixed_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    percentage_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    penalty_type = models.CharField(max_length=20, choices=PENALTY_TYPE, default='percentage')
+    period = models.CharField(max_length=10, choices=PERIOD_CHOICES, default='monthly',
+                              help_text="How often the penalty is applied (e.g., monthly for percentage)")
 
-    daily_penalty_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    fixed_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0,
+                                       help_text="Used for fixed or daily_flat")
+    percentage_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0,
+                                          help_text="Percentage rate (e.g., 5 for 5%)")
 
-    grace_period_days = models.PositiveIntegerField(default=0)
+    grace_period_days = models.PositiveIntegerField(default=0,
+                                                    help_text="Days after due date before penalty starts")
+    max_penalty_cap = models.DecimalField(max_digits=12, decimal_places=2, default=0,
+                                          help_text="Maximum penalty per period (0 = unlimited)")
 
-    max_penalty_cap = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0,
-        help_text="0 = unlimited"
-    )
+    # Whether to apply penalty on existing penalty (compound)
+    compound = models.BooleanField(default=False,
+                                   help_text="If True, penalty is calculated on principal+interest+previous penalty")
+
+    # For manual overrides – if set, this rule is ignored and the fixed override amount is used
+    override_penalty = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True,
+                                           help_text="If set, this exact amount is used as penalty (manual override)")
+    override_applied_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                            null=True, blank=True, related_name='penalty_overrides')
+    override_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Penalty Rule for {self.loan}"
+        return f"Penalty Rule for {self.loan.loan_reference}"
+
+    def get_penalty_for_installment(self, installment):
+        """
+        Calculate penalty for a single installment based on this rule.
+        Returns Decimal.
+        """
+        today = timezone.now().date()
+        due_date = installment.due_date
+        if due_date >= today:
+            return Decimal('0.00')
+
+        # Days overdue after grace
+        days_overdue = (today - due_date).days - self.grace_period_days
+        if days_overdue <= 0:
+            return Decimal('0.00')
+
+        # Base overdue amount – the amount that is overdue (principal + interest)
+        overdue_amount = installment.principal_portion + installment.interest_portion
+        if self.compound:
+            overdue_amount += installment.penalty_amount  # include existing penalty if compounding
+
+        # Number of periods (for monthly/weekly/daily)
+        if self.period == 'daily':
+            periods = days_overdue
+        elif self.period == 'weekly':
+            periods = days_overdue // 7
+        else:  # monthly
+            periods = days_overdue // 30  # approximation (or you can use dateutil.relativedelta for exact months)
+
+        if periods <= 0:
+            return Decimal('0.00')
+
+        penalty = Decimal('0.00')
+
+        if self.penalty_type == 'fixed':
+            penalty = self.fixed_amount * periods
+        elif self.penalty_type == 'percentage':
+            penalty = overdue_amount * (self.percentage_rate / Decimal('100')) * periods
+        elif self.penalty_type == 'daily_flat':
+            penalty = self.fixed_amount * days_overdue  # daily flat, period is effectively daily
+        elif self.penalty_type == 'daily_percentage':
+            penalty = overdue_amount * (self.percentage_rate / Decimal('100')) * days_overdue
+
+        # Apply cap per period (if any)
+        if self.max_penalty_cap > 0:
+            penalty = min(penalty, self.max_penalty_cap * periods)  # cap per period multiplied by periods
+
+        return penalty.quantize(Decimal('0.01'))
+
+
+
+# finance/models.py
+from django.db import models
+from django.conf import settings
+
+class ManualPenalty(models.Model):
+    loan = models.ForeignKey('Loan', on_delete=models.CASCADE, related_name='manual_penalties')
+    installment = models.ForeignKey(
+        'Installment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='manual_penalties'
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    reason = models.TextField()
+
+    # ✅ Unique related_name for each to avoid clash
+    applied_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='manual_penalties_applied'   # <-- unique
+    )
+    applied_date = models.DateTimeField(auto_now_add=True)
+
+    is_waived = models.BooleanField(default=False)
+
+    waived_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='manual_penalties_waived'    # <-- unique
+    )
+    waived_date = models.DateTimeField(null=True, blank=True)
+    waiver_reason = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"ManualPenalty #{self.id} on {self.loan.loan_reference}"

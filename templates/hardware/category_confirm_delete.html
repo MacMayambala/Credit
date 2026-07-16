@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Category | MAC Technologies{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="content-card text-center">
+            <i class="bi bi-exclamation-triangle fs-1 text-warning d-block mb-3"></i>
+            <h4 class="fw-bold mb-3">Delete Category?</h4>
+            <p class="text-muted">Are you sure you want to delete "{{ object.name }}"?</p>
+            <p class="text-danger small">This action cannot be undone. Products in this category will be affected.</p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-center gap-2 mt-3">
+                    <button type="submit" class="btn btn-danger rounded-pill px-4">Yes, Delete</button>
+                    <a href="{% url 'hardware:category_list' %}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,108 +1,857 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
+{% block title %}Loan #{{ loan.loan_reference }} | {{ company.name }}{% endblock %}
+
 {% block content %}
+
 <style>
-    /* Professional Overrides to match MAC Tech Identity */
     :root {
-        --ms-primary: var(--brand-cobalt);
-        --ms-border: var(--border-color);
-        --ms-bg: var(--bg);
+        --brand-cobalt: #1632af;
+        --brand-cobalt-dark: #0f248a;
+        --brand-cobalt-light: #2a4ad8;
+        --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+        --brand-cobalt-glow: rgba(22, 50, 175, 0.12);
+        --border-color: #e2e8f0;
+        --bg-body: #f1f5f9;
+        --card-bg: #ffffff;
+        --hover-bg: #f8fafc;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+        --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+        --shadow-lg: 0 20px 50px rgba(0,0,0,0.08);
+        --shadow-xl: 0 24px 60px rgba(0,0,0,0.1);
+        --radius: 20px;
+        --radius-sm: 12px;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --info: #3b82f6;
     }
 
-    .member-header {
+    body {
+        background: var(--bg-body);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .loan-detail-wrapper {
+        max-width: 1340px;
+        margin: 0 auto;
+        padding: 1.5rem 1.5rem 3rem;
+    }
+
+    /* ---- Top Action Bar ---- */
+    .action-bar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+    }
+
+    .btn-ghost {
         background: var(--card-bg);
-        border: 1px solid var(--ms-border);
-        border-radius: 20px;
-        padding: 2rem;
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        box-shadow: var(--shadow-sm);
     }
 
+    .btn-ghost:hover {
+        background: var(--hover-bg);
+        border-color: var(--brand-cobalt);
+        color: var(--brand-cobalt);
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-ghost i { font-size: 1.1rem; }
+
+    /* ---- Profile Header ---- */
+    .profile-header {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 2rem 2rem 1.8rem;
+        box-shadow: var(--shadow-sm);
+        transition: box-shadow 0.3s ease, transform 0.2s ease;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: var(--brand-cobalt-bg);
+        border-radius: 50%;
+        transform: translate(50%, -50%);
+        opacity: 0.3;
+        pointer-events: none;
+    }
+
+    .profile-header:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .profile-header .avatar-lg {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid var(--card-bg);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        flex-shrink: 0;
+    }
+
+    .profile-header .avatar-placeholder {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, var(--brand-cobalt), var(--brand-cobalt-light));
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 2.8rem;
+        font-weight: 700;
+        border: 4px solid var(--card-bg);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        flex-shrink: 0;
+    }
+
+    .profile-header .badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 1rem;
+        border-radius: 100px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+        border: 1px solid rgba(22,50,175,0.1);
+    }
+
+    .profile-header .badge-status.success {
+        background: rgba(16,185,129,0.12);
+        color: var(--success);
+        border-color: rgba(16,185,129,0.2);
+    }
+    .profile-header .badge-status.warning {
+        background: rgba(245,158,11,0.12);
+        color: var(--warning);
+        border-color: rgba(245,158,11,0.2);
+    }
+    .profile-header .badge-status.danger {
+        background: rgba(239,68,68,0.12);
+        color: var(--danger);
+        border-color: rgba(239,68,68,0.2);
+    }
+    .profile-header .badge-status.info {
+        background: rgba(59,130,246,0.12);
+        color: var(--info);
+        border-color: rgba(59,130,246,0.2);
+    }
+
+    .profile-header .meta-detail {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .profile-header .meta-detail i {
+        color: var(--brand-cobalt);
+        width: 1.1rem;
+    }
+
+    .profile-header .loan-ref {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--brand-cobalt);
+        letter-spacing: -0.02em;
+    }
+
+    /* ---- Quick Status Cards ---- */
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        transition: all 0.3s ease;
+        height: 100%;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, var(--brand-cobalt), var(--brand-cobalt-light));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-6px);
+        border-color: var(--brand-cobalt);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-card:hover::after {
+        opacity: 1;
+    }
+
+    .stat-card .stat-label {
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-top: 0.15rem;
+    }
+
+    .stat-card .stat-value i {
+        color: var(--brand-cobalt);
+        margin-right: 0.5rem;
+        font-size: 1.1rem;
+    }
+
+    /* ---- Financial Balances Grid ---- */
     .balance-card {
         background: var(--card-bg);
-        border: 1px solid var(--ms-border);
-        border-radius: 16px;
-        padding: 1.5rem;
-        transition: transform 0.2s;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 1.5rem 1.8rem;
+        transition: all 0.3s ease;
+        height: 100%;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
     }
 
     .balance-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        transform: translateY(-6px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--brand-cobalt);
     }
 
-    .balance-card.total {
-        border: 2px solid var(--brand-cobalt);
-        background: linear-gradient(to bottom right, #ffffff, #f0f4ff);
-    }
-
-    .uppercase-tracking {
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        font-size: 0.7rem;
+    .balance-card .balance-label {
+        font-size: 0.65rem;
         font-weight: 700;
-        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
     }
 
-    .btn-action {
-        border-radius: 12px;
-        padding: 0.8rem 1.5rem;
+    .balance-card .balance-amount {
+        font-size: 1.6rem;
+        font-weight: 800;
+        margin-top: 0.2rem;
+        letter-spacing: -0.02em;
+    }
+
+    .balance-card .balance-amount.text-cobalt { color: var(--brand-cobalt); }
+    .balance-card .balance-amount.text-success { color: var(--success); }
+    .balance-card .balance-amount.text-danger { color: var(--danger); }
+
+    /* ---- Info Cards (Loan Details) ---- */
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 1.5rem 1.8rem;
+        height: 100%;
+        box-shadow: var(--shadow-sm);
+        transition: box-shadow 0.3s ease, transform 0.2s ease;
+    }
+
+    .info-card:hover { 
+        box-shadow: var(--shadow-md);
+        transform: translateY(-4px);
+    }
+
+    .info-card .info-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .info-card .info-title i {
+        color: var(--brand-cobalt);
+    }
+
+    .info-card .info-value {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .info-card .info-value .label-sm {
+        font-size: 0.6rem;
         font-weight: 600;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+        display: block;
+        margin-bottom: 0.15rem;
+    }
+
+    /* ---- Operations Bar ---- */
+    .operations-bar {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 1.25rem 2rem;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 2rem;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .operations-bar:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .operations-bar .ops-title {
+        font-weight: 700;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .operations-bar .ops-title i {
+        color: var(--brand-cobalt);
+    }
+
+    .operations-bar .ops-sub {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .btn-primary-solid {
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        padding: 0.6rem 1.5rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-size: 0.85rem;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        transition: 0.3s;
+        gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(22,50,175,0.2);
+        text-decoration: none;
+    }
+
+    .btn-primary-solid:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(22,50,175,0.3);
+        color: #ffffff;
+    }
+
+    .btn-success-solid {
+        background: var(--success);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        padding: 0.6rem 1.5rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(16,185,129,0.2);
+        text-decoration: none;
+    }
+
+    .btn-success-solid:hover {
+        background: #059669;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(16,185,129,0.3);
+        color: #ffffff;
+    }
+
+    .btn-outline-danger {
+        background: transparent;
+        color: var(--danger);
+        border: 1.5px solid var(--danger);
+        font-weight: 700;
+        padding: 0.6rem 1.5rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .btn-outline-danger:hover {
+        background: var(--danger);
+        color: #ffffff;
+        transform: translateY(-3px);
+        box-shadow: 0 4px 15px rgba(239,68,68,0.2);
+    }
+
+    /* ---- Payment Obligation Banner ---- */
+    .obligation-banner {
+        background: linear-gradient(135deg, var(--card-bg), var(--brand-cobalt-bg));
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 1.5rem 2rem;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        transition: box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .obligation-banner::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 200px;
+        height: 200px;
+        background: var(--brand-cobalt-glow);
+        border-radius: 50%;
+        opacity: 0.2;
+        pointer-events: none;
+    }
+
+    .obligation-banner:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .obligation-banner .due-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+    }
+
+    .obligation-banner .due-amount {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--brand-cobalt);
+        letter-spacing: -0.02em;
+    }
+
+    .obligation-banner .due-breakdown {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    /* ---- Repayment Form ---- */
+    .repayment-form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 2rem;
+    }
+
+    .repayment-form-card .form-header {
+        padding: 1rem 1.5rem;
+        background: var(--bg-body);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .repayment-form-card .form-body {
+        padding: 1.5rem;
+    }
+
+    .repayment-form-card .form-control {
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0.7rem 1rem;
+        font-size: 0.95rem;
+        background: var(--bg-body);
+        transition: all 0.25s ease;
+        font-weight: 600;
+    }
+
+    .repayment-form-card .form-control:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+        outline: none;
+    }
+
+    .repayment-form-card .form-label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        display: block;
+        margin-bottom: 0.3rem;
+    }
+
+    /* ---- Manual Penalties Card ---- */
+    .manual-penalties-card .card-header {
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .manual-penalties-card .badge-total {
+        background: var(--danger);
+        color: #ffffff;
+        font-size: 0.7rem;
+        padding: 0.2rem 0.8rem;
+        border-radius: 100px;
+        margin-left: 0.5rem;
+    }
+
+    .btn-warning-solid {
+        background: var(--warning);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        padding: 0.6rem 1.5rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(245,158,11,0.2);
+        text-decoration: none;
+    }
+
+    .btn-warning-solid:hover {
+        background: #d97706;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(245,158,11,0.3);
+        color: #ffffff;
+    }
+
+    .btn-sm-outline-danger {
+        padding: 0.2rem 0.8rem;
+        font-size: 0.7rem;
+        border-radius: 100px;
+        background: transparent;
+        color: var(--danger);
+        border: 1.5px solid var(--danger);
+        font-weight: 700;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .btn-sm-outline-danger:hover {
+        background: var(--danger);
+        color: #ffffff;
+    }
+
+    /* ---- Amortization Schedule ---- */
+    .schedule-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        transition: box-shadow 0.3s ease;
+    }
+
+    .schedule-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .schedule-card .schedule-header {
+        padding: 1.25rem 1.5rem;
+        background: var(--bg-body);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .schedule-card .schedule-header h6 {
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .schedule-card .schedule-header h6 i {
+        color: var(--brand-cobalt);
+    }
+
+    .schedule-table {
+        width: 100%;
+        font-size: 0.9rem;
+        border-collapse: collapse;
     }
 
     .schedule-table thead th {
-        background: var(--hover-bg);
+        background: var(--bg-body);
+        font-size: 0.6rem;
+        font-weight: 700;
         text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 0.05em;
-        padding: 1rem;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        padding: 0.8rem 1rem;
+        border-bottom: 2px solid var(--border-color);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+
+    .schedule-table tbody td {
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+
+    .schedule-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .schedule-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .schedule-table .badge-status {
+        padding: 0.2rem 0.8rem;
+        border-radius: 100px;
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .schedule-table .badge-status.paid {
+        background: rgba(16,185,129,0.12);
+        color: var(--success);
+    }
+
+    .schedule-table .badge-status.pending {
+        background: rgba(245,158,11,0.12);
+        color: var(--warning);
+    }
+
+    .schedule-table .badge-status.overdue {
+        background: rgba(239,68,68,0.12);
+        color: var(--danger);
+    }
+
+    .schedule-table .text-end { text-align: right; }
+    .schedule-table .text-center { text-align: center; }
+    .schedule-table .fw-bold { font-weight: 700; }
+    .schedule-table .text-success { color: var(--success); }
+    .schedule-table .text-danger { color: var(--danger); }
+
+    /* ---- Animations ---- */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .profile-header,
+    .stat-card,
+    .balance-card,
+    .info-card,
+    .operations-bar,
+    .obligation-banner,
+    .repayment-form-card,
+    .manual-penalties-card,
+    .schedule-card {
+        animation: fadeInUp 0.5s ease forwards;
+    }
+
+    .stat-card:nth-child(1) { animation-delay: 0.05s; }
+    .stat-card:nth-child(2) { animation-delay: 0.10s; }
+    .stat-card:nth-child(3) { animation-delay: 0.15s; }
+    .balance-card:nth-child(1) { animation-delay: 0.10s; }
+    .balance-card:nth-child(2) { animation-delay: 0.15s; }
+    .balance-card:nth-child(3) { animation-delay: 0.20s; }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 992px) {
+        .profile-header .avatar-lg,
+        .profile-header .avatar-placeholder {
+            width: 80px;
+            height: 80px;
+            font-size: 2.2rem;
+        }
+        .profile-header h3 { font-size: 1.4rem; }
+        .balance-card .balance-amount { font-size: 1.3rem; }
+        .obligation-banner .due-amount { font-size: 1.6rem; }
+        .loan-detail-wrapper { padding: 1rem; }
+    }
+
+    @media (max-width: 768px) {
+        .profile-header .row.align-items-center {
+            flex-direction: column;
+            text-align: center;
+        }
+        .profile-header .col-auto { margin-bottom: 1rem; }
+        .profile-header .col-lg-auto.text-lg-end {
+            border-left: none !important;
+            padding-left: 0 !important;
+            margin-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 1rem;
+        }
+        .profile-header .meta-detail { justify-content: center; }
+        .action-bar .d-flex.gap-2 { width: 100%; justify-content: flex-start; }
+        .operations-bar { flex-direction: column; align-items: stretch; }
+        .operations-bar .d-flex { justify-content: center; }
+        .obligation-banner { flex-direction: column; text-align: center; }
+        .obligation-banner .text-end { text-align: center !important; }
+        .schedule-table { font-size: 0.75rem; }
+        .schedule-table thead th,
+        .schedule-table tbody td {
+            padding: 0.5rem 0.6rem;
+        }
+        .balance-card { padding: 1rem; }
+        .balance-card .balance-amount { font-size: 1.1rem; }
+        .repayment-form-card .form-body .row .col-md-4 {
+            margin-bottom: 1rem;
+        }
+        .btn-primary-solid,
+        .btn-success-solid,
+        .btn-outline-danger,
+        .btn-warning-solid {
+            width: 100%;
+            justify-content: center;
+        }
+        .loan-detail-wrapper { padding: 0.75rem; }
+    }
+
+    @media (max-width: 576px) {
+        .profile-header { padding: 1rem; }
+        .profile-header h3 { font-size: 1.2rem; }
+        .profile-header .avatar-lg,
+        .profile-header .avatar-placeholder {
+            width: 64px;
+            height: 64px;
+            font-size: 1.8rem;
+        }
+        .stat-card .stat-value { font-size: 1rem; }
+        .balance-card .balance-amount { font-size: 1rem; }
+        .obligation-banner .due-amount { font-size: 1.3rem; }
+        .schedule-card .schedule-header { flex-direction: column; align-items: stretch; text-align: center; }
+        .schedule-card .schedule-header .text-muted { text-align: center; }
     }
 </style>
 
-<div class="container-fluid px-2">
+<div class="loan-detail-wrapper">
 
     <!-- Top Action Bar -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <a href="{% url 'loan_list' %}" class="btn btn-light btn-action border shadow-sm text-secondary">
-            <i class="bi bi-arrow-left"></i> View All Loans
+    <div class="action-bar">
+        <a href="{% url 'loan_list' %}" class="btn-ghost">
+            <i class="bi bi-arrow-left"></i> All Loans
         </a>
         <div class="d-flex gap-2">
-            <button onclick="window.print()" class="btn btn-light btn-action border shadow-sm">
+            <button onclick="window.print()" class="btn-ghost">
                 <i class="bi bi-printer"></i> Print
             </button>
         </div>
     </div>
 
-    <!-- Member Profile Header -->
-    <div class="member-header mb-4 shadow-sm">
-        <div class="row align-items-center">
+    <!-- Profile Header -->
+    <div class="profile-header">
+        <div class="row align-items-center g-3">
             <div class="col-auto">
                 {% if loan.member.photo %}
-                    <img src="{{ loan.member.photo.url }}" class="rounded-circle border border-4 border-white shadow-sm" width="100" height="100" style="object-fit: cover;">
+                    <img src="{{ loan.member.photo.url }}" class="avatar-lg" alt="Photo of {{ loan.member.get_full_name }}">
                 {% else %}
-                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border shadow-sm" style="width: 100px; height: 100px;">
-                        <i class="bi bi-person-fill fs-1 text-secondary"></i>
+                    <div class="avatar-placeholder">
+                        {{ loan.member.first_name|slice:":1" }}{{ loan.member.last_name|slice:":1" }}
                     </div>
                 {% endif %}
             </div>
-            <div class="col px-4">
-                <div class="uppercase-tracking text-primary mb-1">Borrower Profile</div>
-                <h3 class="fw-bold mb-1 text-dark">{{ loan.member.get_full_name }}</h3>
-                <div class="d-flex gap-4 text-muted small">
-                    <span><i class="bi bi-telephone-fill me-1 text-primary"></i> {{ loan.member.phone_number }}</span>
-                    <span><i class="bi bi-geo-alt-fill me-1 text-primary"></i> {{ loan.location|default:"—" }}</span>
+            <div class="col px-3 px-md-4">
+                <div class="text-uppercase fw-bold small text-muted mb-1" style="letter-spacing: 0.08em; font-size: 0.65rem;">
+                    <i class="bi bi-person-badge me-1" style="color: var(--brand-cobalt);"></i> Borrower Profile
+                </div>
+                <h3 class="fw-bold mb-1">{{ loan.member.get_full_name }}</h3>
+                <div class="d-flex flex-wrap gap-3">
+                    <span class="meta-detail"><i class="bi bi-telephone-fill"></i> +256{{ loan.member.phone_number }}</span>
+                    <span class="meta-detail"><i class="bi bi-geo-alt-fill"></i> {{ loan.location|default:"—" }}</span>
+                    <span class="meta-detail"><i class="bi bi-envelope-fill"></i> {{ loan.member.email|default:"—" }}</span>
                 </div>
             </div>
-            <div class="col-lg-auto text-lg-end border-start ps-lg-5">
-                <div class="uppercase-tracking mb-1">Loan ID</div>
-                <h5 class="fw-bold text-primary mb-0">{{ loan.loan_reference }}</h5>
+            <div class="col-lg-auto text-lg-end border-start ps-lg-5 mt-3 mt-lg-0">
+                <div class="text-uppercase fw-bold small text-muted mb-1" style="letter-spacing: 0.08em; font-size: 0.65rem;">Loan Reference</div>
+                <div class="loan-ref">{{ loan.loan_reference }}</div>
                 <div class="mt-2">
-                    <span class="badge {% if loan.status == 'approved' %}bg-success{% elif loan.status == 'pending' %}bg-warning text-dark{% else %}bg-danger{% endif %} px-3 py-2 rounded-pill">
-                        <i class="bi bi-dot"></i> {{ loan.get_status_display|upper }}
-                    </span>
+                    {% if loan.status == 'approved' or loan.status == 'active' %}
+                        <span class="badge-status success"><i class="bi bi-check-circle-fill"></i> {{ loan.get_status_display|upper }}</span>
+                    {% elif loan.status == 'pending' %}
+                        <span class="badge-status warning"><i class="bi bi-clock-history"></i> {{ loan.get_status_display|upper }}</span>
+                    {% elif loan.status == 'rejected' %}
+                        <span class="badge-status danger"><i class="bi bi-x-circle-fill"></i> {{ loan.get_status_display|upper }}</span>
+                    {% else %}
+                        <span class="badge-status info"><i class="bi bi-credit-card"></i> {{ loan.get_status_display|upper }}</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -111,152 +860,174 @@
     <!-- Quick Status Cards -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="balance-card">
-                <div class="uppercase-tracking mb-2">Disbursement Date</div>
-                <h5 class="fw-bold mb-0 text-dark">
-                    <i class="bi bi-calendar-check me-2 text-primary"></i>
-                    {{ disbursement_date|date:"d M, Y" | default:"Not Disbursed" }}
-                </h5>
+            <div class="stat-card">
+                <div class="stat-label"><i class="bi bi-calendar-check me-1"></i> Disbursement Date</div>
+                <div class="stat-value">
+                    <i class="bi bi-calendar-event"></i>
+                    {{ disbursement_date|date:"d M, Y"|default:"Not Disbursed" }}
+                </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="balance-card">
-                <div class="uppercase-tracking mb-2">Loan Tenure</div>
-                <h5 class="fw-bold mb-0 text-dark">
-                    <i class="bi bi-clock-history me-2 text-primary"></i>
+            <div class="stat-card">
+                <div class="stat-label"><i class="bi bi-clock-history me-1"></i> Loan Tenure</div>
+                <div class="stat-value">
+                    <i class="bi bi-hourglass-split"></i>
                     {{ loan.term_value }} {{ loan.get_repayment_frequency_display }}
-                </h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-label"><i class="bi bi-calendar-x me-1"></i> Maturity Date</div>
+                <div class="stat-value">
+                    <i class="bi bi-calendar-range"></i>
+                    {{ end_date|date:"d M, Y"|default:"—" }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Balances -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="balance-card">
+                <div class="balance-label">Loan Amount</div>
+                <div class="balance-amount text-cobalt">UGX {{ loan.principal_amount|floatformat:0|intcomma }}</div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="balance-card">
-                <div class="uppercase-tracking mb-2">Maturity Date</div>
-                <h5 class="fw-bold mb-0 text-dark">
-                    <i class="bi bi-calendar-x me-2 text-danger"></i>
-                    {{ end_date|date:"d M, Y" | default:"—" }}
-                </h5>
+                <div class="balance-label">Principal Balance</div>
+                <div class="balance-amount text-success">UGX {{ principal_balance|floatformat:0|intcomma }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="balance-card">
+                <div class="balance-label">Interest Due</div>
+                <div class="balance-amount text-danger">UGX {{ interest_due|floatformat:0|intcomma }}</div>
             </div>
         </div>
     </div>
 
-    <!-- Financial Balances Grid -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="balance-card h-100">
-                <div class="uppercase-tracking mb-2">Loan Amount</div>
-                <h4 class="fw-bold mb-0">UGX {{ loan.principal_amount|floatformat:2|intcomma }}</h4>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="balance-card h-100">
-                <div class="uppercase-tracking mb-2 text-success">Principal Balance</div>
-                <h4 class="fw-bold text-success mb-0">UGX {{ principal_balance|floatformat:2|intcomma }}</h4>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="balance-card h-100">
-                <div class="uppercase-tracking mb-2 text-primary">Interest Due (Active)</div>
-                <h4 class="fw-bold text-primary mb-0">UGX {{ interest_due|floatformat:2|intcomma }}</h4>
-            </div>
-        </div>
-    </div>
-
-    <!-- Additional Loan Details -->
+    <!-- Loan Details & Guarantors -->
     <div class="row g-4 mb-5">
         <div class="col-md-6">
-            <div class="balance-card h-100">
-                <h6 class="fw-bold mb-3">Loan Information</h6>
-                <p><strong>Product:</strong> {{ loan.get_product_type_display }}</p>
-                <p><strong>Purpose:</strong> {{ loan.purpose|default:"—" }}</p>
-                <p><strong>Interest Rate:</strong> {{ loan.interest_rate }}%</p>
-                <p><strong>Officer:</strong> {{ loan.officer.get_full_name|default:loan.officer.username }}</p>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="balance-card h-100">
-                <h6 class="fw-bold mb-3">Guarantors & Collateral</h6>
-                <p><strong>Guarantor 1:</strong> {{ loan.guarantor_1_name|default:"—" }} ({{ loan.guarantor_1_phone|default:"—" }})</p>
-                {% if loan.guarantor_2_name %}
-                <p><strong>Guarantor 2:</strong> {{ loan.guarantor_2_name }} ({{ loan.guarantor_2_phone|default:"—" }})</p>
-                {% endif %}
-                <p><strong>Collateral:</strong> {{ loan.collateral_type|default:"—" }} • UGX {{ loan.collateral_value|floatformat:0|intcomma }}</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Approval/Payment Actions -->
-    <div class="card border-0 shadow-sm rounded-4 mb-5">
-        <div class="card-body p-4 d-flex justify-content-between align-items-center bg-light rounded-4">
-            <div>
-                <h6 class="fw-bold mb-0 text-dark">Loan Operations</h6>
-                <small class="text-muted">Manage approvals or post incoming payments</small>
-            </div>
-            <div class="d-flex gap-2">
-                {% if loan.status == 'pending' %}
-                    <a href="{% url 'approve_loan' loan.id %}" class="btn btn-success btn-action shadow-sm">
-                        <i class="bi bi-check-circle-fill"></i> Approve Loan
-                    </a>
-                    <a href="{% url 'reject_loan' loan.id %}" class="btn btn-outline-danger btn-action" onclick="return confirm('Reject this application?')">
-                        Reject
-                    </a>
-                {% elif loan.status == 'approved' %}
-                    <button class="btn btn-primary btn-action shadow-sm" data-bs-toggle="collapse" data-bs-target="#repaymentFormArea" style="background-color: var(--brand-cobalt);">
-                        <i class="bi bi-plus-circle-fill"></i> Post Repayment
-                    </button>
-                {% endif %}
-                <a href="{% url 'loan_details' loan.id %}" class="btn btn-success btn-action shadow-sm">
-                    <i class="bi bi-check-circle-fill"></i> Loan Details
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Current Payment Obligation -->
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4" style="background: linear-gradient(135deg, #f8fafc, #edf2f7);">
-                <div class="card-body p-4 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="fw-bold mb-1 text-dark">Current Payment Obligation</h5>
-                        <p class="text-muted small mb-0">Payments due as of today ({{ today|date:"d M, Y" }})</p>
+            <div class="info-card">
+                <div class="info-title"><i class="bi bi-info-circle"></i> Loan Information</div>
+                <div class="row g-2 mt-1">
+                    <div class="col-6">
+                        <div class="info-value"><span class="label-sm">Product</span>{{ loan.get_product_type_display }}</div>
                     </div>
-                    <div class="text-end">
-                        <h2 class="fw-bold text-primary mb-0">UGX {{ total_due_now|intcomma }}</h2>
-                        <div class="small text-muted">
-                            Principal: {{ principal_due|intcomma }} | Interest: {{ interest_due|intcomma }}
-                        </div>
+                    <div class="col-6">
+                        <div class="info-value"><span class="label-sm">Interest Rate</span>{{ loan.interest_rate }}%</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="info-value"><span class="label-sm">Purpose</span>{{ loan.purpose|default:"—" }}</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="info-value"><span class="label-sm">Officer</span>{{ loan.officer.get_full_name|default:loan.officer.username }}</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="info-value"><span class="label-sm">Notes</span>{{ loan.notes|default:"—" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="info-card">
+                <div class="info-title"><i class="bi bi-shield-check"></i> Guarantors & Collateral</div>
+                <div class="row g-2 mt-1">
+                    <div class="col-12">
+                        <div class="info-value"><span class="label-sm">Guarantor 1</span>{{ loan.guarantor_1_name|default:"—" }} ({{ loan.guarantor_1_phone|default:"—" }})</div>
+                    </div>
+                    {% if loan.guarantor_2_name %}
+                    <div class="col-12">
+                        <div class="info-value"><span class="label-sm">Guarantor 2</span>{{ loan.guarantor_2_name }} ({{ loan.guarantor_2_phone|default:"—" }})</div>
+                    </div>
+                    {% endif %}
+                    <div class="col-6">
+                        <div class="info-value"><span class="label-sm">Collateral Type</span>{{ loan.collateral_type|default:"—" }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="info-value"><span class="label-sm">Collateral Value</span>UGX {{ loan.collateral_value|floatformat:0|intcomma|default:"0" }}</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="info-value"><span class="label-sm">Collateral Description</span>{{ loan.collateral_description|default:"—" }}</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Repayment Form -->
-    {% if loan.status == 'approved' %}
-    <div id="repaymentFormArea" class="collapse mb-5">
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-            <div class="card-header bg-white py-3 px-4 border-bottom">
-                <h6 class="fw-bold mb-0">New Transaction Entry</h6>
+    <!-- Operations Bar -->
+    <div class="operations-bar">
+        <div>
+            <div class="ops-title"><i class="bi bi-tools"></i> Loan Operations</div>
+            <div class="ops-sub">Manage approvals or post incoming payments</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            {% if loan.status == 'pending' %}
+                <a href="{% url 'approve_loan' loan.id %}" class="btn-success-solid">
+                    <i class="bi bi-check-circle-fill"></i> Approve Loan
+                </a>
+                <a href="{% url 'reject_loan' loan.id %}" class="btn-outline-danger" onclick="return confirm('Reject this application?')">
+                    <i class="bi bi-x-circle"></i> Reject
+                </a>
+            {% elif loan.status == 'approved' %}
+                <button class="btn-primary-solid" data-bs-toggle="collapse" data-bs-target="#repaymentFormArea">
+                    <i class="bi bi-plus-circle-fill"></i> Post Repayment
+                </button>
+            {% endif %}
+            <a href="{% url 'loan_details' loan.id %}" class="btn-primary-solid" style="background: var(--text-secondary); box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <i class="bi bi-file-earmark-text"></i> Loan Details
+            </a>
+        </div>
+    </div>
+
+    <!-- Payment Obligation Banner -->
+    <div class="obligation-banner">
+        <div>
+            <div class="due-label"><i class="bi bi-exclamation-triangle me-1" style="color: var(--brand-cobalt);"></i> Current Payment Obligation</div>
+            <div class="due-breakdown">Payments due as of <strong>{{ today|date:"d M, Y" }}</strong></div>
+        </div>
+        <div class="text-end">
+            <div class="due-amount">UGX {{ total_due_now|floatformat:0|intcomma }}</div>
+            <div class="due-breakdown">
+                Principal: UGX {{ principal_due|floatformat:0|intcomma }} &middot; Interest: UGX {{ interest_due|floatformat:0|intcomma }}
             </div>
-            <div class="card-body p-4">
+        </div>
+    </div>
+
+    <!-- Repayment Form (collapsible) -->
+    {% if loan.status == 'approved' %}
+    <div id="repaymentFormArea" class="collapse mb-4">
+        <div class="repayment-form-card">
+            <div class="form-header">
+                <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-cash-stack" style="color: var(--brand-cobalt);"></i>
+                    New Transaction Entry
+                </h6>
+            </div>
+            <div class="form-body">
                 <form action="{% url 'receive_payment' loan.id %}" method="POST">
                     {% csrf_token %}
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="uppercase-tracking mb-2 d-block">Principal Payment</label>
-                            <input type="number" step="0.01" name="principal" class="form-control form-control-lg bg-light border-0" value="0.00">
+                            <label class="form-label">Principal Payment</label>
+                            <input type="number" step="0.01" name="principal" class="form-control" value="0.00">
                         </div>
                         <div class="col-md-4">
-                            <label class="uppercase-tracking mb-2 d-block">Interest Payment</label>
-                            <input type="number" step="0.01" name="interest" class="form-control form-control-lg bg-light border-0" value="0.00">
+                            <label class="form-label">Interest Payment</label>
+                            <input type="number" step="0.01" name="interest" class="form-control" value="0.00">
                         </div>
                         <div class="col-md-4">
-                            <label class="uppercase-tracking mb-2 d-block">Penalty Payment</label>
-                            <input type="number" step="0.01" name="penalty" class="form-control form-control-lg bg-light border-0" value="0.00">
+                            <label class="form-label">Penalty Payment</label>
+                            <input type="number" step="0.01" name="penalty" class="form-control" value="0.00">
                         </div>
-                        <div class="col-12 mt-4">
-                            <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3" style="background-color: var(--brand-cobalt);">
-                                <i class="bi bi-send-check-fill me-2"></i> Submit Payment Record
+                        <div class="col-12 mt-3">
+                            <button type="submit" class="btn-primary-solid w-100 py-3" style="justify-content: center; border-radius: 12px;">
+                                <i class="bi bi-send-check-fill"></i> Submit Payment Record
                             </button>
                         </div>
                     </div>
@@ -266,48 +1037,125 @@
     </div>
     {% endif %}
 
-    <!-- Repayment Schedule Table -->
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-header bg-white py-4 px-4 d-flex justify-content-between align-items-center">
-            <h6 class="fw-bold mb-0"><i class="bi bi-list-ul me-2 text-primary"></i>Amortization Schedule</h6>
+    <!-- ========================================== -->
+    <!-- MANUAL PENALTIES CARD                     -->
+    <!-- ========================================== -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 manual-penalties-card">
+        <div class="card-header bg-white py-3 px-4 border-bottom">
+            <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle" style="color: var(--danger);"></i>
+                Manual Penalties
+                {% if total_manual_penalty > 0 %}
+                    <span class="badge bg-danger text-white ms-2">{{ total_manual_penalty|floatformat:0|intcomma }}</span>
+                {% endif %}
+            </h6>
+        </div>
+        <div class="card-body p-4">
+            {% if perms.finance.can_apply_manual_penalty %}
+            <div class="mb-3">
+                <a href="{% url 'apply_manual_penalty' loan.id %}" class="btn-warning-solid">
+                    <i class="bi bi-plus-circle"></i> Apply Manual Penalty
+                </a>
+            </div>
+            {% endif %}
+
+            {% if manual_penalties %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Amount (UGX)</th>
+                            <th>Reason</th>
+                            <th>Applied By</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for penalty in manual_penalties %}
+                        <tr>
+                            <td class="fw-bold text-danger">{{ penalty.amount|floatformat:0|intcomma }}</td>
+                            <td>{{ penalty.reason|truncatechars:50 }}</td>
+                            <td>{{ penalty.applied_by.get_full_name|default:penalty.applied_by.username }}</td>
+                            <td>{{ penalty.applied_date|date:"d M Y" }}</td>
+                            <td>
+                                {% if perms.finance.can_waive_penalty %}
+                                <a href="{% url 'waive_manual_penalty' penalty.id %}" class="btn-sm-outline-danger">
+                                    <i class="bi bi-check-circle"></i> Waive
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i> No active manual penalties on this loan.</p>
+            {% endif %}
+        </div>
+    </div>
+    <!-- END MANUAL PENALTIES CARD -->
+
+    <!-- Amortization Schedule -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden schedule-card">
+        <div class="card-header bg-white py-4 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-list-ul me-2" style="color: var(--brand-cobalt);"></i>
+                Amortization Schedule
+            </h6>
             <div class="text-muted small">Officer: <strong>{{ loan.officer.get_full_name|default:loan.officer.username }}</strong></div>
         </div>
         <div class="table-responsive">
             <table class="table schedule-table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th class="ps-4">No.</th>
+                        <th class="ps-4">#</th>
                         <th>Due Date</th>
                         <th class="text-end">Principal</th>
                         <th class="text-end">Interest</th>
-                        <th class="text-center">Penalty</th>
-                        <th class="text-end">Total Due</th>
+                        <th class="text-end">Penalty</th>
+                        <th class="text-end">Balance</th>
                         <th class="text-center">Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for inst in schedule %}
+                    {% for item in schedule_data %}
                     <tr class="align-middle">
                         <td class="ps-4 text-muted">{{ forloop.counter }}</td>
-                        <td class="fw-bold text-dark">{{ inst.due_date|date:"d M, Y" }}</td>
-                        <td class="text-end">UGX {{ inst.principal_portion|intcomma }}</td>
-                        <td class="text-end">UGX {{ inst.interest_portion|intcomma }}</td>
-                        <td class="text-end">UGX {{ inst.penalty_amount|intcomma }}</td>
-                        <td class="text-end fw-bold {% if inst.paid %}text-success{% else %}text-danger{% endif %}">
-                            UGX {{ inst.balance|floatformat:2|intcomma }}
+                        <td class="fw-bold text-dark">{{ item.due_date|date:"d M, Y" }}</td>
+                        <td class="text-end">UGX {{ item.principal_portion|intcomma }}</td>
+                        <td class="text-end">UGX {{ item.interest_portion|intcomma }}</td>
+                        <td class="text-end">
+                            {% if item.penalty_amount > 0 %}
+                                <span class="text-danger">UGX {{ item.penalty_amount|intcomma }}</span>
+                            {% else %}
+                                UGX 0
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold {% if item.paid %}text-success{% else %}text-danger{% endif %}">
+                            UGX {{ item.balance|floatformat:2|intcomma }}
                         </td>
                         <td class="text-center">
-                            {% if inst.paid %}
-                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3">PAID</span>
+                            {% if item.paid %}
+                                <span class="badge-status badge-paid">
+                                    <i class="bi bi-check-circle-fill"></i> PAID
+                                </span>
+                            {% elif item.is_overdue %}
+                                <span class="badge-status badge-overdue">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> OVERDUE
+                                </span>
                             {% else %}
-                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3">PENDING</span>
+                                <span class="badge-status badge-pending-payment">
+                                    <i class="bi bi-clock"></i> PENDING
+                                </span>
                             {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="7" class="text-center py-5">
-                            <i class="bi bi-info-circle fs-2 text-muted d-block mb-2"></i>
+                            <i class="bi bi-info-circle fs-2 text-muted d-block mb-2 opacity-25"></i>
                             <span class="text-muted">No schedule generated for this loan yet.</span>
                         </td>
                     </tr>

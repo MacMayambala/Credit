@@ -119,8 +119,6 @@ def edit_member(request, member_id):
 
 from django.shortcuts import render, get_object_or_404
 from decimal import Decimal
-from django.shortcuts import render, get_object_or_404
-from .models import Member
 
 def member_profile(request, member_id):
     member = get_object_or_404(Member, id=member_id)
@@ -150,14 +148,41 @@ def member_profile(request, member_id):
         # Update the aggregate total for the profile header
         total_loan_balance += current_total
 
-    return render(request, 'members/profile.html', {
+    # ============================================
+    # RECEIPT DATA FROM SESSION
+    # ============================================
+    receipt_data = None
+    show_receipt = False
+    
+    # Check if receipt data exists in session
+    if 'deposit_receipt' in request.session:
+        receipt_data = request.session['deposit_receipt'].get('data')
+        show_receipt = request.session['deposit_receipt'].get('show', False)
+        
+        # Clear the receipt from session after displaying
+        if show_receipt:
+            request.session['deposit_receipt']['show'] = False
+            request.session.modified = True
+        
+        # If receipt data is still in session but show is False, clean it up
+        if not show_receipt and receipt_data:
+            del request.session['deposit_receipt']
+            request.session.modified = True
+
+    # ============================================
+    # CONTEXT
+    # ============================================
+    context = {
         'member': member,
         'savings': savings,
         'loans': raw_loans,
-        'transactions': transactions, 
+        'transactions': transactions,
         'total_loan_balance': total_loan_balance,
-        
-    })
+        'receipt_data': receipt_data,
+        'show_receipt': show_receipt,
+    }
+    
+    return render(request, 'members/profile.html', context)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from .forms import MemberKYCForm

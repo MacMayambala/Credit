@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Reports | MAC Technologies{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="d-flex flex-wrap flex-sm-nowrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-file-earmark-text" style="color: var(--brand-cobalt); font-size: 1.5rem;"></i>
+            Reports
+        </h4>
+        <p class="text-muted small mb-0 mt-1">
+            <i class="bi bi-bar-chart me-1"></i>
+            Generate and view business reports
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-secondary rounded-pill px-3 d-flex align-items-center gap-2" onclick="refreshReports()">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Refresh</span>
+        </button>
+    </div>
+</div>
+
+<!-- Stats Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="p-3 rounded-3" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-file-earmark-text" style="color: var(--brand-cobalt);"></i>
+                <div>
+                    <div class="text-muted small">Total Reports</div>
+                    <div class="fw-bold">{{ reports|length }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="p-3 rounded-3" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-clock-history" style="color: #f59e0b;"></i>
+                <div>
+                    <div class="text-muted small">Last Generated</div>
+                    <div class="fw-bold" style="color: #f59e0b;">{{ last_generated|default:"—" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="p-3 rounded-3" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-arrow-up-right" style="color: #10b981;"></i>
+                <div>
+                    <div class="text-muted small">Available</div>
+                    <div class="fw-bold" style="color: #10b981;">{{ reports|length }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="p-3 rounded-3" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-download" style="color: #8b5cf6;"></i>
+                <div>
+                    <div class="text-muted small">Export Formats</div>
+                    <div class="fw-bold" style="color: #8b5cf6;">PDF, CSV</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Bar -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color);">
+                <i class="bi bi-search" style="color: var(--text-muted);"></i>
+            </span>
+            <input type="text" id="searchReports" class="form-control border-start-0" 
+                   placeholder="Search reports by name..." 
+                   style="border-color: var(--border-color); background: var(--card-bg); color: var(--text-primary);">
+        </div>
+    </div>
+</div>
+
+<!-- Reports Grid -->
+<div class="row g-4" id="reportsGrid">
+    {% for report in reports %}
+    <div class="col-md-6 col-lg-4 report-card" data-name="{{ report.name|lower }}">
+        <div class="card border-0 h-100" style="background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); transition: all 0.25s ease;"
+             onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.08)';"
+             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--brand-cobalt-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="bi {{ report.icon|default:'bi-file-text' }}" style="color: var(--brand-cobalt); font-size: 1.25rem;"></i>
+                        </div>
+                        <h6 class="fw-bold mb-0" style="color: var(--text-primary);">{{ report.name }}</h6>
+                    </div>
+                    <span class="badge" style="background: var(--brand-cobalt-bg); color: var(--brand-cobalt); font-size: 0.55rem; font-weight: 600; padding: 0.2rem 0.5rem;">
+                        {{ report.category|default:"General" }}
+                    </span>
+                </div>
+                <p class="text-muted small mb-3" style="min-height: 40px;">{{ report.description }}</p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ report.url|default:'#' }}" class="btn btn-sm rounded-pill px-3" style="background: var(--brand-cobalt); color: #ffffff; border: none;">
+                        <i class="bi bi-eye me-1"></i> View Report
+                    </a>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="editReport('{{ report.name }}')" style="border-color: var(--border-color);">
+                        <i class="bi bi-pencil me-1"></i> Edit
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="downloadReport('{{ report.name }}')" style="border-color: var(--border-color);">
+                        <i class="bi bi-download"></i>
+                    </button>
+                </div>
+                <div class="mt-3 pt-2 border-top" style="border-color: var(--border-color) !important;">
+                    <small class="text-muted" style="font-size: 0.6rem;">
+                        <i class="bi bi-clock me-1"></i>
+                        Last run: {{ report.last_run|default:"Never" }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-file-earmark-text fs-1 d-block mb-3 opacity-25"></i>
+            <p class="mb-0 fw-semibold">No reports available</p>
+            <small>Reports will appear here once configured</small>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    /* Card hover enhancements */
+    .card {
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Form controls */
+    .form-control:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 3px rgba(22, 50, 175, 0.12);
+    }
+
+    /* Button hover states */
+    .btn-outline-secondary:hover {
+        background: var(--bg-body);
+        border-color: var(--border-color);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .report-card .btn {
+            font-size: 0.75rem !important;
+            padding: 0.3rem 0.6rem !important;
+        }
+        .report-card .card-body {
+            padding: 1.25rem !important;
+        }
+        .report-card h6 {
+            font-size: 0.85rem !important;
+        }
+        .d-flex.gap-2 .btn {
+            flex: 1;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .row.g-3 > div {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+        .col-6.col-md-3 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+        .report-card .d-flex.align-items-start {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.5rem;
+        }
+        .report-card .badge {
+            align-self: flex-start;
+        }
+    }
+
+    /* Animation for cards */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .report-card {
+        animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .report-card:nth-child(1) { animation-delay: 0.02s; }
+    .report-card:nth-child(2) { animation-delay: 0.04s; }
+    .report-card:nth-child(3) { animation-delay: 0.06s; }
+    .report-card:nth-child(4) { animation-delay: 0.08s; }
+    .report-card:nth-child(5) { animation-delay: 0.10s; }
+    .report-card:nth-child(6) { animation-delay: 0.12s; }
+    .report-card:nth-child(7) { animation-delay: 0.14s; }
+    .report-card:nth-child(8) { animation-delay: 0.16s; }
+    .report-card:nth-child(9) { animation-delay: 0.18s; }
+    .report-card:nth-child(10) { animation-delay: 0.20s; }
+</style>
+
+<script>
+    // Live search functionality
+    document.getElementById('searchReports').addEventListener('keyup', function(e) {
+        const query = this.value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.report-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const name = card.dataset.name || '';
+            const matches = name.includes(query);
+            card.style.display = matches ? '' : 'none';
+            if (matches) visibleCount++;
+        });
+
+        // Update badge count if visible
+        const total = cards.length;
+        // You could add a counter badge if needed
+    });
+
+    // Edit report function
+    function editReport(reportName) {
+        Swal.fire({
+            title: 'Edit Report',
+            text: `Editing ${reportName}`,
+            icon: 'info',
+            confirmButtonColor: '#1632af',
+            timer: 2000,
+            timerProgressBar: true
+        });
+    }
+
+    // Download report function
+    function downloadReport(reportName) {
+        Swal.fire({
+            title: 'Download Report',
+            text: `Downloading ${reportName}...`,
+            icon: 'info',
+            confirmButtonColor: '#1632af',
+            timer: 2000,
+            timerProgressBar: true
+        });
+    }
+
+    // Refresh reports
+    function refreshReports() {
+        Swal.fire({
+            title: 'Refreshing...',
+            text: 'Loading latest reports...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        setTimeout(() => {
+            Swal.close();
+            location.reload();
+        }, 1500);
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+F to focus search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            e.preventDefault();
+            document.getElementById('searchReports').focus();
+        }
+        // Escape to clear search
+        if (e.key === 'Escape') {
+            const search = document.getElementById('searchReports');
+            if (document.activeElement === search) {
+                search.value = '';
+                search.dispatchEvent(new Event('keyup'));
+                search.blur();
+            }
+        }
+        // Ctrl+R to refresh
+        if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+            e.preventDefault();
+            refreshReports();
+        }
+    });
+
+    console.log('💡 Keyboard shortcuts: Ctrl+F (Search), Esc (Clear), Ctrl+R (Refresh)');
+</script>
+
+{% endblock %}

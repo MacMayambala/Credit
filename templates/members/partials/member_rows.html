@@ -1,3 +1,402 @@
+{% load humanize %}
+
+<style>
+/* ============================================
+   MEMBER ROW - MAC TECHNOLOGIES STYLE
+   ============================================ */
+.member-row {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.9rem 1.25rem;
+    background: var(--card-bg, #ffffff);
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    transition: all 0.25s ease;
+    cursor: pointer;
+    position: relative;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.member-row:hover {
+    background: var(--hover-bg, #f8fafc);
+    box-shadow: inset 0 0 0 1px var(--brand-cobalt, #1632af);
+}
+
+.member-row:hover .member-name {
+    color: var(--brand-cobalt, #1632af);
+}
+
+.member-row:last-child {
+    border-bottom: none;
+}
+
+/* Avatar */
+.member-row .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--brand-cobalt-bg, rgba(22, 50, 175, 0.08));
+    color: var(--brand-cobalt, #1632af);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(22, 50, 175, 0.08);
+    overflow: hidden;
+    transition: box-shadow 0.3s ease, transform 0.25s ease;
+}
+
+.member-row:hover .avatar {
+    box-shadow: 0 4px 16px rgba(22, 50, 175, 0.15);
+    transform: scale(1.02);
+}
+
+.member-row .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Member Main Info */
+.member-row .member-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.member-row .member-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary, #0f172a);
+    text-decoration: none;
+    display: block;
+    transition: color 0.2s ease;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+}
+
+.member-row .member-name:hover {
+    color: var(--brand-cobalt, #1632af);
+}
+
+.member-row .member-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-muted, #94a3b8);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-weight: 400;
+}
+
+.member-row .member-subtitle .dot {
+    color: var(--border-color, #e2e8f0);
+    font-weight: 300;
+}
+
+.member-row .member-id {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1rem 0.6rem;
+    background: var(--brand-cobalt-bg, rgba(22, 50, 175, 0.08));
+    color: var(--brand-cobalt, #1632af);
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 100px;
+    letter-spacing: 0.02em;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.member-row .member-subtitle .text-muted {
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    font-weight: 400;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.member-row .member-subtitle .text-muted i {
+    font-size: 0.7rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+/* Member Details */
+.member-row .member-details {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    color: var(--text-secondary, #475569);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.member-row .detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    color: var(--text-secondary, #475569);
+    font-weight: 500;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    transition: color 0.2s ease;
+}
+
+.member-row .detail-item i {
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.85rem;
+    transition: color 0.2s ease;
+}
+
+.member-row .detail-item:hover i {
+    color: var(--brand-cobalt, #1632af);
+}
+
+.member-row .detail-item .detail-label {
+    color: var(--text-muted, #94a3b8);
+    font-weight: 500;
+    font-size: 0.7rem;
+    display: none; /* hidden by default, can show on mobile if needed */
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 0.15rem 0.7rem;
+    border-radius: 100px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border: 1px solid transparent;
+}
+
+.status-badge:hover {
+    transform: scale(1.04);
+}
+
+.status-active {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.status-inactive {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.status-pending {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* Empty State */
+.empty-state {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    list-style: none;
+}
+
+.empty-state .empty-icon {
+    font-size: 3.5rem;
+    opacity: 0.15;
+    display: block;
+    color: var(--text-muted, #94a3b8);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state h5 {
+    font-weight: 700;
+    color: var(--text-secondary, #475569);
+    margin-bottom: 0.25rem;
+    font-size: 1.1rem;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.empty-state p {
+    font-size: 0.9rem;
+    color: var(--text-muted, #94a3b8);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state .btn-clear-search {
+    background: var(--brand-cobalt, #1632af);
+    color: #ffffff;
+    border: none;
+    padding: 0.4rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.25s ease;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    margin-top: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.empty-state .btn-clear-search:hover {
+    background: var(--brand-cobalt-dark, #0f248a);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1100px) {
+    .member-row .member-details {
+        gap: 0.75rem;
+    }
+    .member-row .detail-item {
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .member-row {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0.75rem 1rem;
+        gap: 0.6rem;
+    }
+    
+    .member-row .member-details {
+        width: 100%;
+        margin-top: 0.2rem;
+        gap: 0.5rem;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        border-top: 1px solid var(--border-color, #e2e8f0);
+        padding-top: 0.5rem;
+    }
+    
+    .member-row .member-details .detail-item {
+        font-size: 0.7rem;
+        gap: 0.2rem;
+    }
+    
+    .member-row .member-details .detail-item i {
+        font-size: 0.75rem;
+    }
+    
+    .member-row .member-subtitle {
+        font-size: 0.7rem;
+    }
+    
+    .member-row .member-id {
+        font-size: 0.6rem;
+        padding: 0.1rem 0.5rem;
+    }
+    
+    .member-row .member-name {
+        font-size: 0.9rem;
+    }
+    
+    .member-row .avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+    
+    .status-badge {
+        font-size: 0.55rem;
+        padding: 0.1rem 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .member-row {
+        padding: 0.6rem 0.75rem;
+    }
+    
+    .member-row .member-details {
+        gap: 0.4rem;
+    }
+    
+    .member-row .member-details .detail-item {
+        font-size: 0.6rem;
+    }
+    
+    .member-row .member-details .detail-item i {
+        font-size: 0.65rem;
+    }
+    
+    .member-row .avatar {
+        width: 34px;
+        height: 34px;
+        font-size: 0.75rem;
+    }
+    
+    .member-row .member-name {
+        font-size: 0.85rem;
+    }
+    
+    .member-row .member-subtitle {
+        font-size: 0.6rem;
+    }
+    
+    .status-badge {
+        font-size: 0.45rem;
+        padding: 0.1rem 0.4rem;
+    }
+    
+    .empty-state .empty-icon {
+        font-size: 2.8rem;
+    }
+    
+    .empty-state h5 {
+        font-size: 0.95rem;
+    }
+    
+    .empty-state p {
+        font-size: 0.8rem;
+    }
+}
+
+/* ============================================
+   ANIMATION
+   ============================================ */
+@keyframes slideInRow {
+    from {
+        opacity: 0;
+        transform: translateX(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.member-row {
+    animation: slideInRow 0.3s ease forwards;
+}
+
+.member-row:nth-child(1) { animation-delay: 0.02s; }
+.member-row:nth-child(2) { animation-delay: 0.04s; }
+.member-row:nth-child(3) { animation-delay: 0.06s; }
+.member-row:nth-child(4) { animation-delay: 0.08s; }
+.member-row:nth-child(5) { animation-delay: 0.10s; }
+.member-row:nth-child(6) { animation-delay: 0.12s; }
+.member-row:nth-child(7) { animation-delay: 0.14s; }
+.member-row:nth-child(8) { animation-delay: 0.16s; }
+.member-row:nth-child(9) { animation-delay: 0.18s; }
+.member-row:nth-child(10) { animation-delay: 0.20s; }
+</style>
+
 {% for member in members %}
 <li class="member-row">
     <div class="avatar">
@@ -15,35 +414,55 @@
             {{ member.get_full_name }}
         </a>
         <div class="member-subtitle">
-            
-            <span class="member-id">{{ member.member_number }}</span>
-            
+            <span class="member-id">
+                <i class="bi bi-person-badge"></i>
+                {{ member.member_number|default:"N/A" }}
+            </span>
+            <span class="dot">•</span>
+            <span class="text-muted">
+                <i class="bi bi-calendar3"></i>
+                Joined {{ member.date_joined|date:"M Y"|default:"N/A" }}
+            </span>
         </div>
     </div>
 
     <div class="member-details">
         <div class="detail-item">
-            <span class="detail-label">{{ member.gender }}</span>
+            <i class="bi bi-gender-ambiguous"></i>
+            <span>{{ member.gender|default:"N/A" }}</span>
         </div>
         <div class="detail-item">
-            <span class="detail-label">{{ member.age }} Years</span>
+            <i class="bi bi-cake"></i>
+            <span>{{ member.age|default:"—" }} yrs</span>
         </div>
         <div class="detail-item">
             <i class="bi bi-telephone"></i>
-            <span>{{ member.phone_number}}</span>
+            <span>{{ member.phone_number|default:"—" }}</span>
         </div>
         <div class="detail-item">
             <i class="bi bi-geo-alt"></i>
-            <span>{{ member.physical_address }}</span>
+            <span>{{ member.village|default:member.physical_address|truncatechars:20|default:"—" }}</span>
+        </div>
+        <div class="detail-item">
+            <span class="status-badge 
+                {% if member.status == 'active' %}status-active
+                {% elif member.status == 'pending' %}status-pending
+                {% else %}status-inactive{% endif %}">
+                {% if member.status == 'active' %}<i class="bi bi-check-circle-fill"></i>{% endif %}
+                {{ member.status|default:"Active"|title }}
+            </span>
         </div>
     </div>
 </li>
 {% empty %}
 <li class="empty-state">
-    <div class="text-center py-5">
-        <i class="bi bi-people" style="font-size: 3.8rem; opacity: 0.15;"></i>
-        <h5 class="mt-3 mb-1">No customers found</h5>
-        <p class="text-muted">We couldn't find any records matching your search.</p>
+    <div class="text-center py-4">
+        <i class="bi bi-people empty-icon"></i>
+        <h5>No customers found</h5>
+        <p>We couldn't find any records matching your search.</p>
+        <button class="btn-clear-search" onclick="document.getElementById('searchInput').value=''; document.getElementById('searchInput').dispatchEvent(new Event('input'));">
+            <i class="bi bi-arrow-clockwise"></i> Clear Search
+        </button>
     </div>
 </li>
 {% endfor %}

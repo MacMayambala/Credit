@@ -1,0 +1,577 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Purchase Orders | MAC Technologies{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="d-flex flex-wrap flex-sm-nowrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-truck" style="color: var(--brand-cobalt); font-size: 1.5rem;"></i>
+            Purchase Orders
+        </h4>
+        <p class="text-muted small mb-0 mt-1">
+            <i class="bi bi-box-arrow-in-down me-1"></i>
+            Track incoming inventory and supplier orders
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'hardware:product_list' %}" class="btn btn-outline-secondary rounded-pill px-3 d-flex align-items-center gap-2">
+            <i class="bi bi-box-seam"></i>
+            <span>Products</span>
+        </a>
+    </div>
+</div>
+
+<!-- Stats Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="p-3 rounded-3" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-cart-check" style="color: var(--brand-cobalt);"></i>
+                <div>
+                    <div class="text-muted small">Total Orders</div>
+                    <div class="fw-bold">{{ purchases|length }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="p-3 rounded-3" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-clock" style="color: #f59e0b;"></i>
+                <div>
+                    <div class="text-muted small">Pending</div>
+                    <div class="fw-bold" style="color: #f59e0b;">{{ pending_count|default:"0" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="p-3 rounded-3" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-check-circle" style="color: #10b981;"></i>
+                <div>
+                    <div class="text-muted small">Received</div>
+                    <div class="fw-bold" style="color: #10b981;">{{ received_count|default:"0" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="p-3 rounded-3" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-building" style="color: #8b5cf6;"></i>
+                <div>
+                    <div class="text-muted small">Suppliers</div>
+                    <div class="fw-bold" style="color: #8b5cf6;">{{ supplier_count|default:"0" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color);">
+                <i class="bi bi-search" style="color: var(--text-muted);"></i>
+            </span>
+            <input type="text" id="searchOrders" class="form-control border-start-0" 
+                   placeholder="Search by product, supplier, or reference..." 
+                   style="border-color: var(--border-color); background: var(--card-bg); color: var(--text-primary);">
+        </div>
+    </div>
+    <div class="col-md-3">
+        <select id="filterStatus" class="form-select" style="border-color: var(--border-color); background: var(--card-bg); color: var(--text-primary); border-radius: 12px;">
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="received">Received</option>
+            <option value="cancelled">Cancelled</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <input type="date" id="filterDate" class="form-control" 
+               style="border-color: var(--border-color); background: var(--card-bg); color: var(--text-primary); border-radius: 12px;"
+               placeholder="Filter by date">
+    </div>
+</div>
+
+<!-- Purchase Orders Table -->
+<div class="card border-0" 
+     style="background: var(--card-bg); border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); border: 1px solid var(--border-color);">
+    
+    <div class="card-header bg-transparent border-bottom p-4" style="border-color: var(--border-color);">
+        <div class="d-flex align-items-center justify-content-between">
+            <h5 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-list-ul" style="color: var(--brand-cobalt);"></i>
+                Purchase Orders
+                <span class="badge" style="background: var(--brand-cobalt-bg); color: var(--brand-cobalt); font-size: 0.6rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 100px;">
+                    {{ purchases|length }} orders
+                </span>
+            </h5>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="exportOrders()" style="border-color: var(--border-color);">
+                    <i class="bi bi-download"></i> Export
+                </button>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="printTable()" style="border-color: var(--border-color);">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="purchaseTable" style="font-size: 0.875rem;">
+                <thead style="background: var(--bg-body); border-bottom: 1px solid var(--border-color);">
+                    <tr>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.04em; width: 15%;">
+                            <i class="bi bi-calendar3 me-1"></i> Date
+                        </th>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.04em; width: 25%;">
+                            <i class="bi bi-box me-1"></i> Product
+                        </th>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold text-center" style="letter-spacing: 0.04em; width: 10%;">
+                            <i class="bi bi-hash me-1"></i> Qty
+                        </th>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.04em; width: 20%;">
+                            <i class="bi bi-building me-1"></i> Supplier
+                        </th>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.04em; width: 15%;">
+                            <i class="bi bi-tag me-1"></i> Reference
+                        </th>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold text-center" style="letter-spacing: 0.04em; width: 10%;">
+                            <i class="bi bi-info-circle me-1"></i> Status
+                        </th>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold text-end" style="letter-spacing: 0.04em; width: 5%;">
+                            <i class="bi bi-three-dots me-1"></i>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for purchase in purchases %}
+                    <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s ease;"
+                        class="purchase-row"
+                        data-status="{{ purchase.status|lower|default:'pending' }}"
+                        data-date="{{ purchase.created_at|date:'Y-m-d' }}"
+                        onmouseover="this.style.background='var(--hover-bg)'"
+                        onmouseout="this.style.background='transparent'">
+                        
+                        <td class="py-3 px-4">
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary);">{{ purchase.created_at|date:"d M, Y" }}</div>
+                                <div style="font-size: 0.65rem; color: var(--text-muted);">{{ purchase.created_at|time:"H:i" }}</div>
+                            </div>
+                        </td>
+                        
+                        <td class="py-3 px-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--brand-cobalt-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <i class="bi bi-box" style="color: var(--brand-cobalt); font-size: 0.8rem;"></i>
+                                </div>
+                                <span class="fw-semibold" style="color: var(--text-primary);">
+                                    {% for item in purchase.items.all %}
+                                        {{ item.product.name }}{% if not forloop.last %}, {% endif %}
+                                    {% empty %}
+                                        N/A
+                                    {% endfor %}
+                                </span>
+                            </div>
+                        </td>
+                        
+                        <td class="py-3 px-4 text-center">
+                            <span class="fw-bold" style="color: var(--text-primary);">
+                                {% for item in purchase.items.all %}
+                                    {{ item.quantity|intcomma }}{% if not forloop.last %}, {% endif %}
+                                {% empty %}
+                                    0
+                                {% endfor %}
+                            </span>
+                        </td>
+                        
+                        <td class="py-3 px-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-building" style="color: var(--text-muted); font-size: 0.8rem;"></i>
+                                <span>{{ purchase.supplier.name|default:"N/A" }}</span>
+                            </div>
+                        </td>
+                        
+                        <td class="py-3 px-4">
+                            <code style="background: var(--bg-body); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.7rem;">
+                                {{ purchase.invoice_number|default:"N/A" }}
+                            </code>
+                        </td>
+                        
+                        <td class="py-3 px-4 text-center">
+                            {% with status=purchase.status|lower|default:"pending" %}
+                                {% if status == "received" %}
+                                    <span class="badge rounded-pill px-3 py-2" style="background: rgba(16, 185, 129, 0.1); color: #10b981; font-weight: 600; font-size: 0.65rem;">
+                                        <i class="bi bi-check-circle me-1"></i> Received
+                                    </span>
+                                {% elif status == "cancelled" %}
+                                    <span class="badge rounded-pill px-3 py-2" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; font-weight: 600; font-size: 0.65rem;">
+                                        <i class="bi bi-x-circle me-1"></i> Cancelled
+                                    </span>
+                                {% else %}
+                                    <span class="badge rounded-pill px-3 py-2" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; font-weight: 600; font-size: 0.65rem;">
+                                        <i class="bi bi-clock me-1"></i> Pending
+                                    </span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        
+                        <td class="py-3 px-4 text-end">
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-2" 
+                                        style="border-color: var(--border-color); font-size: 0.7rem;"
+                                        onclick="viewOrder('{{ purchase.id }}')" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                {% if purchase.status|lower != "received" %}
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-2" 
+                                        style="border-color: var(--border-color); font-size: 0.7rem;"
+                                        onclick="receiveOrder('{{ purchase.id }}')" title="Mark as Received">
+                                    <i class="bi bi-check-lg" style="color: #10b981;"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-5 text-center text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-3 opacity-25"></i>
+                            <p class="mb-0 fw-semibold">No purchase orders found</p>
+                            <small>Purchase orders will appear here once created</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Table Footer -->
+    {% if purchases.has_other_pages %}
+    <div class="card-footer bg-transparent border-top p-3" style="border-color: var(--border-color);">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <small class="text-muted">
+                Showing {{ purchases.start_index }} to {{ purchases.end_index }} of {{ purchases.paginator.count }} orders
+            </small>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if purchases.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ purchases.previous_page_number }}" style="border-radius: 8px; color: var(--brand-cobalt); border-color: var(--border-color);">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in purchases.paginator.page_range %}
+                        {% if purchases.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link" style="background: var(--brand-cobalt); border-color: var(--brand-cobalt); color: #ffffff; border-radius: 8px;">
+                                    {{ num }}
+                                </span>
+                            </li>
+                        {% elif num > purchases.number|add:'-3' and num < purchases.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}" style="border-radius: 8px; color: var(--brand-cobalt); border-color: var(--border-color);">
+                                    {{ num }}
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if purchases.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ purchases.next_page_number }}" style="border-radius: 8px; color: var(--brand-cobalt); border-color: var(--border-color);">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    /* Table hover styling */
+    .table-hover tbody tr:hover {
+        background: var(--hover-bg) !important;
+    }
+
+    /* Code tag styling */
+    code {
+        font-family: 'Courier New', monospace;
+        font-size: 0.7rem;
+        background: var(--bg-body);
+        color: var(--text-secondary);
+        padding: 0.2rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Pagination active state */
+    .page-item.active .page-link {
+        background: var(--brand-cobalt) !important;
+        border-color: var(--brand-cobalt) !important;
+        color: #ffffff !important;
+    }
+
+    .page-link {
+        color: var(--brand-cobalt) !important;
+        transition: all 0.2s ease;
+        border-color: var(--border-color);
+    }
+
+    .page-link:hover {
+        background: var(--brand-cobalt-bg) !important;
+        border-color: var(--brand-cobalt) !important;
+    }
+
+    /* Form controls */
+    .form-control:focus, .form-select:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 3px rgba(22, 50, 175, 0.12);
+    }
+
+    /* Button hover states */
+    .btn-outline-secondary:hover {
+        background: var(--bg-body);
+        border-color: var(--border-color);
+    }
+
+    /* Animation for empty state */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .empty-state {
+        animation: fadeInUp 0.5s ease forwards;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .table td, .table th {
+            padding: 0.6rem 0.75rem !important;
+            font-size: 0.75rem !important;
+        }
+        .btn-group .btn {
+            padding: 0.2rem 0.4rem !important;
+            font-size: 0.65rem !important;
+        }
+        .badge {
+            font-size: 0.55rem !important;
+            padding: 0.15rem 0.4rem !important;
+        }
+        code {
+            font-size: 0.65rem !important;
+            padding: 0.1rem 0.3rem !important;
+        }
+        .d-flex.gap-2 .btn {
+            flex: 1;
+            justify-content: center;
+            font-size: 0.75rem !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .row.g-3 > div {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+        .card-header {
+            padding: 1rem !important;
+        }
+        .card-header .d-flex {
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: stretch !important;
+        }
+        .card-header .d-flex .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<script>
+    // Live search functionality
+    document.getElementById('searchOrders').addEventListener('keyup', function(e) {
+        const query = this.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('.purchase-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const matches = text.includes(query);
+            row.style.display = matches ? '' : 'none';
+            if (matches) visibleCount++;
+        });
+
+        // Show/hide empty state
+        if (visibleCount === 0 && rows.length > 0) {
+            const tbody = document.querySelector('tbody');
+            if (!document.querySelector('.no-results')) {
+                const tr = document.createElement('tr');
+                tr.className = 'no-results';
+                tr.innerHTML = `
+                    <td colspan="7" class="py-5 text-center text-muted">
+                        <i class="bi bi-search fs-1 d-block mb-3 opacity-25"></i>
+                        <p class="mb-0 fw-semibold">No orders found</p>
+                        <small>Try adjusting your search terms</small>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        } else {
+            const noResults = document.querySelector('.no-results');
+            if (noResults) noResults.remove();
+        }
+    });
+
+    // Status filter
+    document.getElementById('filterStatus').addEventListener('change', function(e) {
+        const filter = this.value;
+        const rows = document.querySelectorAll('.purchase-row');
+
+        rows.forEach(row => {
+            const status = row.dataset.status;
+            const show = filter === 'all' || status === filter;
+            row.style.display = show ? '' : 'none';
+        });
+    });
+
+    // Date filter
+    document.getElementById('filterDate').addEventListener('change', function(e) {
+        const filter = this.value;
+        const rows = document.querySelectorAll('.purchase-row');
+
+        rows.forEach(row => {
+            const date = row.dataset.date;
+            const show = !filter || date === filter;
+            row.style.display = show ? '' : 'none';
+        });
+    });
+
+    // View order function
+    function viewOrder(orderId) {
+        Swal.fire({
+            title: 'Order Details',
+            text: `Viewing purchase order #${orderId}`,
+            icon: 'info',
+            confirmButtonColor: '#1632af',
+            timer: 3000,
+            timerProgressBar: true
+        });
+    }
+
+    // Receive order function
+    function receiveOrder(orderId) {
+        Swal.fire({
+            title: 'Mark as Received?',
+            text: 'This will confirm that the order has been received.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, receive it',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Processing...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                setTimeout(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Received!',
+                        text: 'Order has been marked as received.',
+                        confirmButtonColor: '#1632af',
+                        timer: 2000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        location.reload();
+                    });
+                }, 1500);
+            }
+        });
+    }
+
+    // Export orders
+    function exportOrders() {
+        Swal.fire({
+            title: 'Export Orders',
+            text: 'Exporting purchase orders as CSV...',
+            icon: 'info',
+            confirmButtonColor: '#1632af',
+            timer: 2000,
+            timerProgressBar: true
+        });
+    }
+
+    // Print table
+    function printTable() {
+        window.print();
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+F to focus search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            e.preventDefault();
+            document.getElementById('searchOrders').focus();
+        }
+        // Escape to clear search
+        if (e.key === 'Escape') {
+            const search = document.getElementById('searchOrders');
+            if (document.activeElement === search) {
+                search.value = '';
+                search.dispatchEvent(new Event('keyup'));
+                search.blur();
+            }
+        }
+    });
+
+    console.log('💡 Keyboard shortcuts: Ctrl+F (Search), Esc (Clear search)');
+
+    // Show total count after filtering
+    document.querySelectorAll('#filterStatus, #filterDate').forEach(el => {
+        el.addEventListener('change', function() {
+            const visible = document.querySelectorAll('.purchase-row[style*="display: block"], .purchase-row:not([style*="display: none"])');
+            const total = document.querySelectorAll('.purchase-row').length;
+            const count = visible.length;
+            
+            if (count < total) {
+                const badge = document.querySelector('.card-header .badge');
+                if (badge) {
+                    badge.textContent = `${count} of ${total} orders`;
+                }
+            } else {
+                const badge = document.querySelector('.card-header .badge');
+                if (badge) {
+                    badge.textContent = `${total} orders`;
+                }
+            }
+        });
+    });
+</script>
+
+{% endblock %}

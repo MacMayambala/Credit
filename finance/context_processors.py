@@ -1,20 +1,11 @@
 # finance/context_processors.py
 
 from decimal import Decimal
-
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
-
-from .models import (
-    Loan,
-    SMSConfig,
-    SavingsAccount,
-    GeneralLedger,
-)
-
+from .models import Loan, SMSConfig, SavingsAccount, GeneralLedger, Company
 
 def sacco_stats(request):
-
     if not request.user.is_authenticated:
         return {}
 
@@ -56,6 +47,10 @@ def sacco_stats(request):
         "liquidity_ratio": 0,
     }
 
-
-
-
+def company_context(request):
+    """
+    Makes the Company instance available globally.
+    """
+    return {
+        'company': Company.get_company()
+    }

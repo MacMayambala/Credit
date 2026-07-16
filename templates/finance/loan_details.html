@@ -1,91 +1,699 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
+{% block title %}Loan #{{ loan.loan_reference|default:"Draft" }} | {{ company.name }}{% endblock %}
+
 {% block content %}
-<div class="container-fluid p-0">
-    <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+
+<style>
+    :root {
+        --brand-cobalt: #1632af;
+        --brand-cobalt-dark: #0f248a;
+        --brand-cobalt-light: #2a4ad8;
+        --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+        --brand-cobalt-glow: rgba(22, 50, 175, 0.12);
+        --border-color: #e2e8f0;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --bg-body: #f1f5f9;
+        --card-bg: #ffffff;
+        --hover-bg: #f8fafc;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --radius: 16px;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+        --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+        --shadow-lg: 0 20px 50px rgba(0,0,0,0.08);
+    }
+
+    body {
+        background: var(--bg-body);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .loan-detail-wrapper {
+        max-width: 1340px;
+        margin: 0 auto;
+        padding: 1.5rem 1.5rem 3rem;
+    }
+
+    /* ============================================
+       HEADER & BREADCRUMB
+       ============================================ */
+    .loan-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .loan-header h2 {
+        font-weight: 800;
+        font-size: 1.6rem;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .loan-header h2 i {
+        color: var(--brand-cobalt);
+    }
+
+    .breadcrumb-custom {
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+    }
+
+    .breadcrumb-custom .breadcrumb-item a {
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .breadcrumb-custom .breadcrumb-item a:hover {
+        color: var(--brand-cobalt);
+    }
+
+    .breadcrumb-custom .breadcrumb-item.active {
+        color: var(--brand-cobalt);
+    }
+
+    .breadcrumb-custom .breadcrumb-item+.breadcrumb-item::before {
+        content: "›";
+        font-size: 1.2rem;
+        color: var(--text-muted);
+    }
+
+    /* ============================================
+       STATUS BADGE
+       ============================================ */
+    .badge-status {
+        padding: 0.4rem 1.2rem;
+        border-radius: 100px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .badge-approved {
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+        border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .badge-pending {
+        background: rgba(245, 158, 11, 0.12);
+        color: #f59e0b;
+        border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    .badge-rejected {
+        background: rgba(239, 68, 68, 0.12);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .badge-disbursed {
+        background: rgba(59, 130, 246, 0.12);
+        color: #3b82f6;
+        border-color: rgba(59, 130, 246, 0.2);
+    }
+
+    .badge-defaulted {
+        background: rgba(239, 68, 68, 0.12);
+        color: #dc2626;
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .badge-closed {
+        background: rgba(100, 116, 139, 0.12);
+        color: #64748b;
+        border-color: rgba(100, 116, 139, 0.2);
+    }
+
+    /* ============================================
+       CARDS
+       ============================================ */
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .card-header {
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+        padding: 0.9rem 1.5rem;
+    }
+
+    .card-header h6 {
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .card-header h6 i {
+        color: var(--brand-cobalt);
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .card-header-cobalt {
+        background: var(--brand-cobalt);
+        border-bottom: none;
+    }
+
+    .card-header-cobalt h6 {
+        color: #ffffff;
+    }
+    .card-header-cobalt h6 i {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* ============================================
+       INFO BOXES
+       ============================================ */
+    .info-box {
+        background: var(--bg-body);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        transition: background 0.2s ease;
+    }
+
+    .info-box:hover {
+        background: var(--brand-cobalt-bg);
+    }
+
+    .info-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+        font-size: 1.1rem;
+    }
+
+    /* ============================================
+       FINANCIAL SUMMARY
+       ============================================ */
+    .financial-summary .balance-amount {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--brand-cobalt);
+        letter-spacing: -0.02em;
+    }
+
+    .financial-summary .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .financial-summary .stat-row:last-child {
+        border-bottom: none;
+    }
+
+    .financial-summary .stat-label {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .financial-summary .stat-value {
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    /* ============================================
+       PROGRESS BAR
+       ============================================ */
+    .progress-bar-custom {
+        height: 8px;
+        border-radius: 10px;
+        background: var(--bg-body);
+        overflow: hidden;
+        margin-top: 0.25rem;
+    }
+
+    .progress-bar-custom .progress-fill {
+        height: 100%;
+        border-radius: 10px;
+        background: linear-gradient(90deg, var(--brand-cobalt), var(--brand-cobalt-light));
+        transition: width 0.6s ease;
+    }
+
+    /* ============================================
+       LIST GROUP (for guarantors)
+       ============================================ */
+    .list-group-flush .list-group-item {
+        border-color: var(--border-color);
+        background: transparent;
+        padding: 0.9rem 1.5rem;
+    }
+
+    .list-group-flush .list-group-item:first-child {
+        border-top: none;
+    }
+
+    .list-group-flush .list-group-item:last-child {
+        border-bottom: none;
+    }
+
+    /* ============================================
+       AMORTIZATION SCHEDULE TABLE
+       ============================================ */
+    .schedule-table {
+        width: 100%;
+        font-size: 0.9rem;
+        border-collapse: collapse;
+    }
+
+    .schedule-table thead th {
+        background: var(--bg-body);
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        padding: 0.7rem 1rem;
+        border-bottom: 2px solid var(--border-color);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+
+    .schedule-table tbody td {
+        padding: 0.7rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+
+    .schedule-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .schedule-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .schedule-table .badge-status {
+        padding: 0.15rem 0.7rem;
+        font-size: 0.55rem;
+    }
+
+    .schedule-table .badge-status.paid {
+        background: rgba(16, 185, 129, 0.12);
+        color: var(--success);
+    }
+
+    .schedule-table .badge-status.pending {
+        background: rgba(245, 158, 11, 0.12);
+        color: var(--warning);
+    }
+
+    .schedule-table .badge-status.overdue {
+        background: rgba(239, 68, 68, 0.12);
+        color: var(--danger);
+    }
+
+    .schedule-table .text-end { text-align: right; }
+    .schedule-table .text-center { text-align: center; }
+    .schedule-table .fw-bold { font-weight: 700; }
+    .schedule-table .text-success { color: var(--success); }
+    .schedule-table .text-danger { color: var(--danger); }
+
+    /* ============================================
+       MANUAL PENALTIES CARD
+       ============================================ */
+    .manual-penalties-card .card-header {
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .btn-sm-outline-danger {
+        padding: 0.15rem 0.7rem;
+        font-size: 0.65rem;
+        border-radius: 100px;
+        background: transparent;
+        color: var(--danger);
+        border: 1.5px solid var(--danger);
+        font-weight: 700;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+    }
+
+    .btn-sm-outline-danger:hover {
+        background: var(--danger);
+        color: #ffffff;
+    }
+
+    .btn-warning-solid {
+        background: var(--warning);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        padding: 0.4rem 1.2rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+        text-decoration: none;
+    }
+
+    .btn-warning-solid:hover {
+        background: #d97706;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+        color: #ffffff;
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 992px) {
+        .loan-header h2 {
+            font-size: 1.3rem;
+        }
+        .financial-summary .balance-amount {
+            font-size: 1.6rem;
+        }
+        .loan-detail-wrapper {
+            padding: 1rem;
+        }
+        .schedule-table {
+            font-size: 0.8rem;
+        }
+        .schedule-table thead th,
+        .schedule-table tbody td {
+            padding: 0.5rem 0.7rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .loan-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .loan-header .text-end {
+            text-align: left !important;
+            width: 100%;
+        }
+        .card-body {
+            padding: 1.25rem;
+        }
+        .card-header {
+            padding: 0.75rem 1.25rem;
+        }
+        .row.g-4 > div {
+            margin-bottom: 1rem;
+        }
+        .col-md-6.border-end {
+            border-right: none !important;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        .financial-summary .balance-amount {
+            font-size: 1.3rem;
+        }
+        .info-icon {
+            width: 34px;
+            height: 34px;
+            font-size: 0.9rem;
+        }
+        .list-group-flush .list-group-item {
+            padding: 0.7rem 1.25rem;
+        }
+        .schedule-table {
+            font-size: 0.7rem;
+        }
+        .schedule-table thead th,
+        .schedule-table tbody td {
+            padding: 0.3rem 0.5rem;
+        }
+        .schedule-table .badge-status {
+            font-size: 0.45rem;
+            padding: 0.1rem 0.4rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .loan-header h2 {
+            font-size: 1.1rem;
+        }
+        .badge-status {
+            font-size: 0.6rem;
+            padding: 0.3rem 0.8rem;
+        }
+        .financial-summary .balance-amount {
+            font-size: 1.1rem;
+        }
+        .card-body {
+            padding: 1rem;
+        }
+        .card-header {
+            padding: 0.6rem 1rem;
+        }
+        .d-flex.gap-3 {
+            gap: 0.75rem !important;
+        }
+        .info-box .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.25rem;
+        }
+        .row.g-4 .col-md-7,
+        .row.g-4 .col-md-5 {
+            text-align: center;
+        }
+        .schedule-table {
+            font-size: 0.6rem;
+        }
+        .schedule-table thead th,
+        .schedule-table tbody td {
+            padding: 0.2rem 0.3rem;
+        }
+        .btn-warning-solid {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.8rem;
+        }
+        .btn-sm-outline-danger {
+            font-size: 0.55rem;
+            padding: 0.1rem 0.4rem;
+        }
+    }
+
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+        animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .card:nth-child(2) { animation-delay: 0.08s; }
+    .card:nth-child(3) { animation-delay: 0.16s; }
+    .card:nth-child(4) { animation-delay: 0.24s; }
+</style>
+
+<div class="loan-detail-wrapper">
+
+    <!-- ==========================================
+    HEADER
+    ========================================== -->
+    <div class="loan-header">
         <div>
-            <h2 class="fw-bold mb-1" style="color: var(--brand-cobalt);">Loan: {{ loan.loan_reference|default:"Draft" }}</h2>
+            <h2>
+                <i class="bi bi-bank2"></i>
+                Loan: {{ loan.loan_reference|default:"Draft" }}
+            </h2>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{% url 'loan_list' %}" class="text-decoration-none">Loans</a></li>
-                    <li class="breadcrumb-item active">{{ loan.member.get_full_name }}</li>
+                <ol class="breadcrumb breadcrumb-custom mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'loan_list' %}"><i class="bi bi-list-ul me-1"></i> Loans</a>
+                    </li>
+                    <li class="breadcrumb-item active">
+                        {{ loan.member.get_full_name }}
+                    </li>
                 </ol>
             </nav>
         </div>
-        
         <div class="text-end">
-            <span class="badge rounded-pill px-3 py-2 fs-6 {% if loan.status == 'approved' %}bg-success-subtle text-success border border-success{% elif loan.status == 'pending' %}bg-warning-subtle text-warning border border-warning{% else %}bg-danger-subtle text-danger border border-danger{% endif %}">
-                <i class="bi bi-circle-fill me-1 small"></i> {{ loan.get_status_display }}
-            </span>
+            {% if loan.status == 'approved' or loan.status == 'active' %}
+                <span class="badge-status badge-approved">
+                    <i class="bi bi-check-circle-fill"></i> {{ loan.get_status_display }}
+                </span>
+            {% elif loan.status == 'pending' %}
+                <span class="badge-status badge-pending">
+                    <i class="bi bi-clock-history"></i> {{ loan.get_status_display }}
+                </span>
+            {% elif loan.status == 'rejected' %}
+                <span class="badge-status badge-rejected">
+                    <i class="bi bi-x-circle-fill"></i> {{ loan.get_status_display }}
+                </span>
+            {% elif loan.status == 'defaulted' %}
+                <span class="badge-status badge-defaulted">
+                    <i class="bi bi-exclamation-triangle-fill"></i> {{ loan.get_status_display }}
+                </span>
+            {% elif loan.status == 'closed' %}
+                <span class="badge-status badge-closed">
+                    <i class="bi bi-check2-all"></i> {{ loan.get_status_display }}
+                </span>
+            {% else %}
+                <span class="badge-status badge-disbursed">
+                    <i class="bi bi-credit-card"></i> {{ loan.get_status_display }}
+                </span>
+            {% endif %}
         </div>
     </div>
 
+    <!-- ==========================================
+    MAIN GRID
+    ========================================== -->
     <div class="row g-4">
-        <!-- LEFT COLUMN: Financial Dashboard -->
+
+        <!-- LEFT COLUMN: Financial Summary + Guarantors -->
         <div class="col-xl-4 col-lg-5">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-                <div class="card-header bg-primary py-3 text-white border-0" style="background-color: var(--brand-cobalt) !important;">
-                    <h6 class="mb-0 fw-bold"><i class="bi bi-pie-chart-fill me-2"></i>Financial Summary</h6>
+
+            <!-- Financial Summary Card -->
+            <div class="card mb-4">
+                <div class="card-header card-header-cobalt">
+                    <h6 class="text-white">
+                        <i class="bi bi-pie-chart-fill me-2"></i> Financial Summary
+                    </h6>
                 </div>
-                <div class="card-body p-4">
-                    <div class="text-center mb-4">
-                        <small class="text-uppercase fw-bold text-secondary tracking-wider" style="font-size: 0.7rem; letter-spacing: 1px;">Current Outstanding Balance</small>
-                        <h2 class="fw-bold mt-1 mb-0" style="color: var(--brand-cobalt);">UGX {{ loan.balance|floatformat:2|intcomma }}</h2>
+                <div class="card-body financial-summary">
+                    <div class="text-center mb-3">
+                        <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem; letter-spacing: 0.08em;">
+                            Current Outstanding Balance
+                        </small>
+                        <div class="balance-amount">UGX {{ loan.balance|floatformat:0|intcomma }}</div>
                     </div>
-                    
-                    <div class="p-3 rounded-3 mb-3" style="background: var(--hover-bg);">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-secondary small">Initial Principal</span>
-                            <span class="fw-bold">UGX {{ loan.principal_amount|floatformat:2|intcomma }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-secondary small">Interest Rate</span>
-                            <span class="fw-bold">{{ loan.interest_rate }}%</span>
-                        </div>
+
+                    <div class="info-box mb-3">
                         <div class="d-flex justify-content-between">
+                            <span class="text-secondary small">Initial Principal</span>
+                            <span class="fw-bold">UGX {{ loan.principal_amount|floatformat:0|intcomma }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <span class="text-secondary small">Interest Rate</span>
+                            <span class="fw-bold" style="color: var(--brand-cobalt);">{{ loan.interest_rate }}%</span>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
                             <span class="text-secondary small">Tenure</span>
                             <span class="fw-bold">{{ loan.period_months }} Months</span>
                         </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-danger-subtle p-2 rounded-circle me-2"><i class="bi bi-graph-up text-danger small"></i></div>
-                                <span class="small">Interest Balance</span>
-                            </div>
-                            <span class="fw-bold text-danger">{{ loan.interest_balance|floatformat:2|intcomma }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center py-2">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-success-subtle p-2 rounded-circle me-2"><i class="bi bi-cash-stack text-success small"></i></div>
-                                <span class="small">Principal Balance</span>
-                            </div>
-                            <span class="fw-bold text-success">{{ loan.principal_balance|floatformat:2|intcomma }}</span>
-                        </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <span class="p-1 rounded-circle me-1" style="background: rgba(239,68,68,0.1);">
+                                <i class="bi bi-graph-up text-danger small"></i>
+                            </span>
+                            Interest Balance
+                        </span>
+                        <span class="stat-value text-danger">UGX {{ loan.interest_balance|floatformat:0|intcomma }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <span class="p-1 rounded-circle me-1" style="background: rgba(16,185,129,0.1);">
+                                <i class="bi bi-cash-stack text-success small"></i>
+                            </span>
+                            Principal Balance
+                        </span>
+                        <span class="stat-value text-success">UGX {{ loan.principal_balance|floatformat:0|intcomma }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">
+                            <span class="p-1 rounded-circle me-1" style="background: rgba(245,158,11,0.1);">
+                                <i class="bi bi-clock-history text-warning small"></i>
+                            </span>
+                            Arrears (if any)
+                        </span>
+                        <span class="stat-value text-warning">UGX {{ loan.arrears_balance|floatformat:0|intcomma }}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Guarantors Section -->
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-header py-3 bg-white border-bottom">
-                    <h6 class="mb-0 fw-bold"><i class="bi bi-shield-check me-2 text-primary"></i>Loan Guarantors</h6>
+            <!-- Guarantors Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="bi bi-shield-check"></i> Loan Guarantors</h6>
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
-                        <div class="list-group-item px-4 py-3 border-0">
-                            <p class="text-uppercase text-secondary mb-1 fw-bold" style="font-size: 0.65rem;">Primary Guarantor</p>
-                            <h6 class="mb-0 fw-bold text-primary">{{ loan.guarantor_1_name }}</h6>
-                            <small class="text-muted"><i class="bi bi-telephone me-1"></i> {{ loan.guarantor_1_phone }}</small>
+                        <div class="list-group-item">
+                            <span class="text-uppercase fw-bold text-muted" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                Primary Guarantor
+                            </span>
+                            <h6 class="fw-bold mb-0" style="color: var(--brand-cobalt);">
+                                {{ loan.guarantor_1_name|default:"—" }}
+                            </h6>
+                            <small class="text-muted">
+                                <i class="bi bi-telephone me-1"></i> 
+                                {{ loan.guarantor_1_phone|default:"—" }}
+                            </small>
                         </div>
                         {% if loan.guarantor_2_name %}
-                        <div class="list-group-item px-4 py-3 border-top">
-                            <p class="text-uppercase text-secondary mb-1 fw-bold" style="font-size: 0.65rem;">Secondary Guarantor</p>
-                            <h6 class="mb-0 fw-bold">{{ loan.guarantor_2_name }}</h6>
-                            <small class="text-muted"><i class="bi bi-telephone me-1"></i> {{ loan.guarantor_2_phone }}</small>
+                        <div class="list-group-item border-top">
+                            <span class="text-uppercase fw-bold text-muted" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                Secondary Guarantor
+                            </span>
+                            <h6 class="fw-bold mb-0">{{ loan.guarantor_2_name }}</h6>
+                            <small class="text-muted">
+                                <i class="bi bi-telephone me-1"></i> 
+                                {{ loan.guarantor_2_phone|default:"—" }}
+                            </small>
+                        </div>
+                        {% endif %}
+                        {% if not loan.guarantor_1_name and not loan.guarantor_2_name %}
+                        <div class="list-group-item text-center text-muted py-4">
+                            <i class="bi bi-info-circle me-1"></i> No guarantors recorded
                         </div>
                         {% endif %}
                     </div>
@@ -93,101 +701,296 @@
             </div>
         </div>
 
-        <!-- RIGHT COLUMN: Application Details & Collateral -->
+        <!-- RIGHT COLUMN: Loan Details + Collateral + Contact + Schedule + Penalties -->
         <div class="col-xl-8 col-lg-7">
-            <!-- Loan Info Card -->
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-body p-4">
-                    <h6 class="fw-bold mb-4 border-bottom pb-2">Loan Application Details</h6>
+
+            <!-- Loan Application Details -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="bi bi-file-text"></i> Loan Application Details</h6>
+                </div>
+                <div class="card-body">
                     <div class="row g-4">
                         <div class="col-md-6">
                             <div class="d-flex gap-3 mb-4">
-                                <div class="bg-light rounded-3 p-3"><i class="bi bi-person-badge text-primary fs-4"></i></div>
+                                <div class="info-icon">
+                                    <i class="bi bi-person-badge"></i>
+                                </div>
                                 <div>
-                                    <label class="text-secondary small d-block">Applying Member</label>
-                                    <a href="{% url 'member_profile' loan.member.id %}" class="fw-bold text-decoration-none text-dark">{{ loan.member.get_full_name }}</a>
+                                    <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                        Applying Member
+                                    </span>
+                                    <a href="{% url 'member_profile' loan.member.id %}" class="fw-bold text-decoration-none" style="color: var(--text-primary);">
+                                        {{ loan.member.get_full_name }}
+                                    </a>
                                 </div>
                             </div>
                             <div class="d-flex gap-3">
-                                <div class="bg-light rounded-3 p-3"><i class="bi bi-briefcase text-primary fs-4"></i></div>
+                                <div class="info-icon">
+                                    <i class="bi bi-briefcase"></i>
+                                </div>
                                 <div>
-                                    <label class="text-secondary small d-block">Loan Product</label>
+                                    <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                        Loan Product
+                                    </span>
                                     <span class="fw-bold">{{ loan.get_product_type_display }}</span>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="d-flex gap-3 mb-4">
-                                <div class="bg-light rounded-3 p-3"><i class="bi bi-person-gear text-primary fs-4"></i></div>
+                                <div class="info-icon">
+                                    <i class="bi bi-person-gear"></i>
+                                </div>
                                 <div>
-                                    <label class="text-secondary small d-block">Loan Applicant / Officer</label>
+                                    <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                        Loan Officer
+                                    </span>
                                     <span class="fw-bold">{{ loan.officer.get_full_name|default:loan.officer.username }}</span>
                                 </div>
                             </div>
                             <div class="d-flex gap-3">
-                                <div class="bg-light rounded-3 p-3"><i class="bi bi-calendar-check text-primary fs-4"></i></div>
+                                <div class="info-icon">
+                                    <i class="bi bi-calendar-check"></i>
+                                </div>
                                 <div>
-                                    <label class="text-secondary small d-block">Approval & Disbursement</label>
-                                    <span class="fw-bold text-success">{{ loan.disbursed_date|default:"Awaiting Approval" }}</span>
+                                    <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                        Disbursement Date
+                                    </span>
+                                    <span class="fw-bold text-success">
+                                        {{ loan.disbursed_date|date:"d M, Y"|default:"Awaiting Approval" }}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="progress my-3" style="height: 10px;">
-                    <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio total_paid total_payable 100 %}%"></div>
+
+                    <!-- Repayment Progress -->
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small text-muted">Repayment Progress</span>
+                            <span class="small fw-bold" style="color: var(--brand-cobalt);">
+                                {% widthratio total_paid total_payable 100 %}%
+                            </span>
+                        </div>
+                        <div class="progress-bar-custom">
+                            <div class="progress-fill" style="width: {% widthratio total_paid total_payable 100 %}%;"></div>
+                        </div>
                     </div>
-                    
-                    <div class="mt-4 p-3 rounded-3 bg-light border">
-                        <label class="text-uppercase text-secondary fw-bold mb-1" style="font-size: 0.65rem;">Statement of Purpose</label>
-                        <p class="mb-0 small text-dark fst-italic">"{{ loan.purpose|default:"No purpose description provided for this loan application." }}"</p>
+
+                    <!-- Purpose -->
+                    <div class="mt-4 p-3 rounded-3" style="background: var(--hover-bg); border: 1px solid var(--border-color);">
+                        <span class="text-uppercase fw-bold text-muted" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                            <i class="bi bi-quote me-1"></i> Statement of Purpose
+                        </span>
+                        <p class="mb-0 small" style="color: var(--text-primary); font-style: italic;">
+                            "{{ loan.purpose|default:"No purpose description provided for this loan application." }}"
+                        </p>
                     </div>
                 </div>
             </div>
 
             <!-- Collateral Card -->
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-header py-3 bg-white border-bottom">
-                    <h6 class="mb-0 fw-bold text-info"><i class="bi bi-safe2-fill me-2"></i>Security & Collateral</h6>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="bi bi-safe2-fill"></i> Security & Collateral</h6>
                 </div>
-                <div class="card-body p-4">
-                    <div class="row align-items-center">
+                <div class="card-body">
+                    <div class="row align-items-center g-4">
                         <div class="col-md-7">
                             <h6 class="fw-bold mb-1">{{ loan.collateral_type|default:"No Collateral" }}</h6>
-                            <p class="text-secondary small mb-3">{{ loan.collateral_description|default:"No technical details provided." }}</p>
-                            <div class="d-flex gap-4">
+                            <p class="text-muted small mb-3">
+                                {{ loan.collateral_description|default:"No technical details provided." }}
+                            </p>
+                            <div class="d-flex flex-wrap gap-4">
                                 <div>
-                                    <label class="text-secondary small d-block">Estimated Value</label>
-                                    <span class="fw-bold">UGX {{ loan.collateral_value|intcomma }}</span>
+                                    <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                        Estimated Value
+                                    </span>
+                                    <span class="fw-bold" style="color: var(--brand-cobalt);">
+                                        UGX {{ loan.collateral_value|floatformat:0|intcomma|default:"0" }}
+                                    </span>
                                 </div>
+                                {% if loan.principal_amount %}
                                 <div class="border-start ps-4">
-                                    <label class="text-secondary small d-block">Security Ratio</label>
-                                    <span class="fw-bold text-primary">{% widthratio loan.collateral_value loan.principal_amount 100 %}% Coverage</span>
+                                    <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                        Security Ratio
+                                    </span>
+                                    <span class="fw-bold" style="color: var(--brand-cobalt);">
+                                        {% widthratio loan.collateral_value loan.principal_amount 100 %}% Coverage
+                                    </span>
                                 </div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-5 text-center d-none d-md-block">
-                            <i class="bi bi-file-earmark-lock text-light" style="font-size: 5rem;"></i>
+                            <i class="bi bi-file-earmark-lock" style="font-size: 4rem; color: var(--text-muted); opacity: 0.25;"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Contact/Location Card -->
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <div class="row">
+            <!-- Contact / Location Card -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
                         <div class="col-md-6 border-end">
-                            <label class="text-secondary small d-block"><i class="bi bi-geo-alt-fill me-1"></i> Physical / Business Location</label>
+                            <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                <i class="bi bi-geo-alt-fill me-1"></i> Physical / Business Location
+                            </span>
                             <p class="fw-medium mb-0">{{ loan.location|default:"Not specified" }}</p>
                         </div>
                         <div class="col-md-6 ps-md-4">
-                            <label class="text-secondary small d-block"><i class="bi bi-person-video2 me-1"></i> Alternative Contact</label>
-                            <p class="fw-medium mb-0">{{ loan.contact_person|default:"None" }} ({{ loan.contact_phone|default:"N/A" }})</p>
+                            <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                <i class="bi bi-person-video2 me-1"></i> Alternative Contact
+                            </span>
+                            <p class="fw-medium mb-0">
+                                {{ loan.contact_person|default:"None" }} 
+                                <span class="text-muted small">({{ loan.contact_phone|default:"N/A" }})</span>
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- ==========================================
+            MANUAL PENALTIES CARD
+            ========================================== -->
+            <div class="card manual-penalties-card mb-4">
+                <div class="card-header">
+                    <h6>
+                        <i class="bi bi-exclamation-triangle" style="color: var(--danger);"></i>
+                        Manual Penalties
+                        {% if total_manual_penalty > 0 %}
+                            <span class="badge bg-danger text-white ms-2">{{ total_manual_penalty|floatformat:0|intcomma }}</span>
+                        {% endif %}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if perms.finance.can_apply_manual_penalty %}
+                    <div class="mb-3">
+                        <a href="{% url 'apply_manual_penalty' loan.id %}" class="btn-warning-solid">
+                            <i class="bi bi-plus-circle"></i> Apply Manual Penalty
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    {% if manual_penalties %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" style="font-size: 0.85rem;">
+                            <thead>
+                                <tr>
+                                    <th>Amount (UGX)</th>
+                                    <th>Reason</th>
+                                    <th>Applied By</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for penalty in manual_penalties %}
+                                <tr>
+                                    <td class="fw-bold text-danger">{{ penalty.amount|floatformat:0|intcomma }}</td>
+                                    <td>{{ penalty.reason|truncatechars:50 }}</td>
+                                    <td>{{ penalty.applied_by.get_full_name|default:penalty.applied_by.username }}</td>
+                                    <td>{{ penalty.applied_date|date:"d M Y" }}</td>
+                                    <td>
+                                        {% if perms.finance.can_waive_penalty %}
+                                        <a href="{% url 'waive_manual_penalty' penalty.id %}" class="btn-sm-outline-danger">
+                                            <i class="bi bi-check-circle"></i> Waive
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i> No active manual penalties on this loan.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- ==========================================
+            AMORTIZATION SCHEDULE
+            ========================================== -->
+            <div class="card">
+                <div class="card-header">
+                    <h6>
+                        <i class="bi bi-list-ul"></i> Amortization Schedule
+                        <span class="text-muted small fw-normal ms-2">Officer: {{ loan.officer.get_full_name|default:loan.officer.username }}</span>
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="schedule-table">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">#</th>
+                                    <th>Due Date</th>
+                                    <th class="text-end">Principal</th>
+                                    <th class="text-end">Interest</th>
+                                    <th class="text-end">Penalty</th>
+                                    <th class="text-end">Balance</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in schedule_data %}
+                                <tr>
+                                    <td class="ps-4 text-muted">{{ forloop.counter }}</td>
+                                    <td class="fw-bold">{{ item.due_date|date:"d M, Y" }}</td>
+                                    <td class="text-end">UGX {{ item.principal_portion|floatformat:0|intcomma }}</td>
+                                    <td class="text-end">UGX {{ item.interest_portion|floatformat:0|intcomma }}</td>
+                                    <td class="text-end">
+                                        {% if item.penalty_amount > 0 %}
+                                            <span class="text-danger">UGX {{ item.penalty_amount|floatformat:0|intcomma }}</span>
+                                        {% else %}
+                                            UGX 0
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end fw-bold {% if item.paid %}text-success{% else %}text-danger{% endif %}">
+                                        UGX {{ item.balance|floatformat:0|intcomma }}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if item.paid %}
+                                            <span class="badge-status paid"><i class="bi bi-check-circle-fill"></i> Paid</span>
+                                        {% elif item.is_overdue %}
+                                            <span class="badge-status overdue"><i class="bi bi-exclamation-triangle-fill"></i> Overdue</span>
+                                        {% else %}
+                                            <span class="badge-status pending"><i class="bi bi-clock"></i> Pending</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-5 text-muted">
+                                        <i class="bi bi-info-circle fs-2 d-block mb-2 opacity-25"></i>
+                                        No schedule generated for this loan yet.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
+
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                window.location.href = "{% url 'loan_list' %}";
+            }
+        });
+        console.log('💡 Keyboard shortcut: Esc (Back to Loan List)');
+    });
+</script>
+
 {% endblock %}

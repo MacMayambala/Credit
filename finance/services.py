@@ -22,6 +22,8 @@ class LoanRepaymentEngineService:
         Scans, isolates, and sequentially processes due installments against configurations.
         Optimized for large transaction loops.
         """
+        from decimal import Decimal
+        
         start_time = timezone.now()
         summary_date = start_time.date()
         
@@ -31,6 +33,10 @@ class LoanRepaymentEngineService:
         if not config or not config.is_enabled:
             logger.info("Automated repayment batch engine skipped. (Disabled/Unconfigured)")
             return {"status": "skipped"}
+
+        # ---- FIX: Ensure all Decimal fields are Decimal, not float ----
+        summary.total_recovered = Decimal(str(summary.total_recovered or 0))
+        # (total_processed is integer, no issue)
 
         # Calculate grace period window cut-off
         due_threshold = summary_date - timedelta(days=config.grace_period_days)
@@ -47,8 +53,17 @@ class LoanRepaymentEngineService:
             summary.total_processed += 1
             result = cls._process_single_installment_recovery(inst)
             
-            # Aggregate Daily Metrics
-            summary.total_recovered += result['recovered']
+            # Ensure recovered is Decimal
+            recovered = result.get('recovered', Decimal('0.00'))
+            if not isinstance(recovered, Decimal):
+                try:
+                    recovered = Decimal(str(recovered))
+                except:
+                    recovered = Decimal('0.00')
+            
+            # Now both are Decimal, safe to add
+            summary.total_recovered += recovered
+            
             if result['status'] == 'success':
                 pass 
             elif result['status'] == 'partial':
@@ -56,7 +71,7 @@ class LoanRepaymentEngineService:
             elif result['status'] == 'failed':
                 summary.failed_deductions += 1
             
-            if result['loan_closed']:
+            if result.get('loan_closed', False):
                 summary.closed_loans += 1
 
         end_time = timezone.now()
@@ -64,57 +79,80 @@ class LoanRepaymentEngineService:
         summary.save()
         
         return {"status": "completed", "processed": summary.total_processed}
-
     @classmethod
     def _process_single_installment_recovery(cls, installment: Installment) -> dict:
         """
         Atomically executes collection operations on an individual loan installment record.
         """
+        from decimal import Decimal
+        from .models import AccountingEngine  # Import AccountingEngine
+        
         loan = installment.loan
         member = loan.member
         result = {'recovered': Decimal('0.00'), 'status': 'failed', 'loan_closed': False}
 
         try:
             with transaction.atomic():
-                # Acquire explicit PostgreSQL row-level locks on relevant balances to block API race conditions
+                # Acquire explicit PostgreSQL row-level locks on relevant balances
                 savings_acc = SavingsAccount.objects.select_for_update().get(member=member)
                 loan_locked = Loan.objects.select_for_update().get(pk=loan.pk)
                 inst_locked = Installment.objects.select_for_update().get(pk=installment.pk)
 
                 bal_before = savings_acc.balance
-                due_amount = inst_locked.amount_remaining
+                
+                # Calculate amount due
+                amount_due = (
+                    (inst_locked.principal_portion or Decimal('0.00')) + 
+                    (inst_locked.interest_portion or Decimal('0.00')) +
+                    (inst_locked.penalty_amount or Decimal('0.00'))
+                )
 
                 if bal_before <= 0:
-                    cls._create_log(loan_locked, inst_locked, bal_before, due_amount, Decimal('0.00'), 'failed')
+                    cls._create_log(loan_locked, inst_locked, bal_before, amount_due, Decimal('0.00'), 'failed')
                     cls._trigger_notification(member, loan_locked, Decimal('0.00'), 'failed')
                     return result
 
                 # Determine legal recovery boundaries (Partial vs Full)
-                recovered_amount = min(bal_before, due_amount)
+                recovered_amount = min(bal_before, amount_due)
                 result['recovered'] = recovered_amount
+
+                # Track allocations for ledger entries
+                penalty_deduction = Decimal('0.00')
+                interest_deduction = Decimal('0.00')
+                principal_deduction = Decimal('0.00')
 
                 # Wallet Balance Deduction
                 savings_acc.balance -= recovered_amount
                 savings_acc.save()
 
-                # Process Financial Ledger Allocation: Interest Balance First, Then Principal Balance
+                # Process Financial Ledger Allocation: Penalty -> Interest -> Principal
                 remaining_allocation = recovered_amount
                 
-                # 1. Deduct Interest
-                interest_deduction = min(remaining_allocation, loan_locked.interest_balance)
-                loan_locked.interest_balance -= interest_deduction
-                inst_locked.interest_portion -= interest_deduction
-                remaining_allocation -= interest_deduction
+                # 1. Deduct Penalty
+                penalty_balance = inst_locked.penalty_amount - inst_locked.penalty_paid
+                if penalty_balance > 0 and remaining_allocation > 0:
+                    penalty_deduction = min(remaining_allocation, penalty_balance)
+                    inst_locked.penalty_paid += penalty_deduction
+                    remaining_allocation -= penalty_deduction
 
-                # 2. Deduct Principal
-                principal_deduction = min(remaining_allocation, loan_locked.principal_balance)
-                loan_locked.principal_balance -= principal_deduction
-                inst_locked.principal_portion -= principal_deduction
-                remaining_allocation -= principal_deduction
+                # 2. Deduct Interest
+                interest_balance = inst_locked.interest_portion - inst_locked.interest_paid
+                if interest_balance > 0 and remaining_allocation > 0:
+                    interest_deduction = min(remaining_allocation, interest_balance)
+                    loan_locked.interest_balance -= interest_deduction
+                    inst_locked.interest_paid += interest_deduction
+                    remaining_allocation -= interest_deduction
+
+                # 3. Deduct Principal
+                principal_balance = inst_locked.principal_portion - inst_locked.principal_paid
+                if principal_balance > 0 and remaining_allocation > 0:
+                    principal_deduction = min(remaining_allocation, principal_balance)
+                    loan_locked.principal_balance -= principal_deduction
+                    inst_locked.principal_paid += principal_deduction
+                    remaining_allocation -= principal_deduction
 
                 # Update operational targets
-                inst_locked.amount_remaining -= recovered_amount
-                if inst_locked.amount_remaining <= 0:
+                if inst_locked.balance <= 0:
                     inst_locked.paid = True
                 inst_locked.save()
 
@@ -124,27 +162,80 @@ class LoanRepaymentEngineService:
                     loan_locked.is_active = False
                     result['loan_closed'] = True
                 elif loan_locked.status == 'arrears' and inst_locked.paid:
-                    # Optional verification fallback check to restore normal status bounds
                     loan_locked.status = 'approved'
                 
                 loan_locked.save()
 
                 # Inject System Audit Ledger Transaction entries
                 ref_code = f"AUTO-REPAY-{loan_locked.loan_reference}-{timezone.now().strftime('%Y%m%d%H%M%S')}"
-                Transaction.objects.create(
+                
+                # Create the transaction record
+                tx_obj = Transaction.objects.create(
                     member=member,
                     loan=loan_locked,
                     amount=recovered_amount,
                     type='repayment',
                     reference=ref_code,
-                    timestamp=timezone.now()
+                    timestamp=timezone.now(),
+                    created_by=None
                 )
+
+                # =====================================================
+                # POST TO GENERAL LEDGER (DOUBLE-ENTRY)
+                # =====================================================
+                
+                # 1. Debit: Savings Account (Liability decreases)
+                AccountingEngine.post_ledger_entry(
+                    account_code="2000",  # Member Savings / Liability
+                    description=f"Auto-repayment deduction for loan {loan_locked.loan_reference}",
+                    reference=ref_code,
+                    debit=recovered_amount,  # Debit liability decreases it
+                    credit=Decimal('0.00'),
+                    transaction_obj=tx_obj,
+                    date_context=timezone.now().date()
+                )
+
+                # 2. Credit: Loan Receivable (Asset decreases)
+                if principal_deduction > 0:
+                    AccountingEngine.post_ledger_entry(
+                        account_code="1200",  # Loan Receivable / Asset
+                        description=f"Principal recovery on loan {loan_locked.loan_reference}",
+                        reference=ref_code,
+                        debit=Decimal('0.00'),
+                        credit=principal_deduction,  # Credit asset decreases it
+                        transaction_obj=tx_obj,
+                        date_context=timezone.now().date()
+                    )
+
+                # 3. Credit: Interest Income (Income increases)
+                if interest_deduction > 0:
+                    AccountingEngine.post_ledger_entry(
+                        account_code="2100",  # Interest Income / Revenue
+                        description=f"Interest income recognized on loan {loan_locked.loan_reference}",
+                        reference=ref_code,
+                        debit=Decimal('0.00'),
+                        credit=interest_deduction,  # Credit income increases it
+                        transaction_obj=tx_obj,
+                        date_context=timezone.now().date()
+                    )
+
+                # 4. Credit: Penalty Income (Income increases)
+                if penalty_deduction > 0:
+                    AccountingEngine.post_ledger_entry(
+                        account_code="2200",  # Penalty Income / Revenue
+                        description=f"Penalty income recognized on loan {loan_locked.loan_reference}",
+                        reference=ref_code,
+                        debit=Decimal('0.00'),
+                        credit=penalty_deduction,  # Credit income increases it
+                        transaction_obj=tx_obj,
+                        date_context=timezone.now().date()
+                    )
 
                 # Evaluate Execution Status Labels for Notifications
                 final_status = 'success' if inst_locked.paid else 'partial'
                 result['status'] = final_status
 
-                cls._create_log(loan_locked, inst_locked, bal_before, due_amount, recovered_amount, final_status)
+                cls._create_log(loan_locked, inst_locked, bal_before, amount_due, recovered_amount, final_status)
                 cls._trigger_notification(member, loan_locked, recovered_amount, final_status)
 
         except Exception as system_exception:
@@ -155,16 +246,22 @@ class LoanRepaymentEngineService:
 
     @classmethod
     def _create_log(cls, loan, inst, bal_before, attempted, recovered, status, err=""):
+        from decimal import Decimal
         AutoRepaymentLog.objects.create(
-            loan=loan, installment=inst, savings_balance_before=bal_before,
-            amount_attempted=attempted, amount_recovered=recovered, status=status, error_message=err
+            loan=loan, 
+            installment=inst, 
+            savings_balance_before=bal_before,
+            amount_attempted=attempted, 
+            amount_recovered=recovered, 
+            status=status, 
+            error_message=err
         )
 
     @classmethod
     def _trigger_notification(cls, member, loan, amount, outcome):
         """
         Placeholder dispatch hook interface matching architectural standards.
-        Replace implementation details with your target notification gateway APIs (e.g., Africa's Talking).
+        Replace implementation details with your target notification gateway APIs.
         """
         message = f"Dear {member.first_name}, automated loan repayment "
         if outcome == 'success':
@@ -175,7 +272,6 @@ class LoanRepaymentEngineService:
             message += f"failed due to insufficient savings balances on your account."
         
         logger.info(f"[SMS Notification Outbox Push] to {member.phone_number}: {message}")
-
 
 #############################################################################################################################
 
@@ -463,3 +559,358 @@ def apply_monthly_penalty(loan):
     ])
 
     return penalty_amount
+# finance/services.py
+import uuid
+import logging
+from decimal import Decimal
+from django.utils import timezone
+from django.db import transaction as db_transaction
+from django.db.models import Sum, Q
+from .models import Transaction, SavingsAccount, Member, Loan, Installment
+
+logger = logging.getLogger(__name__)
+
+
+# finance/services.py
+import uuid
+import logging
+from decimal import Decimal
+from django.utils import timezone
+from django.db import transaction as db_transaction
+from django.db.models import Sum, Q
+from .models import Transaction, SavingsAccount, Member, Loan, Installment
+
+logger = logging.getLogger(__name__)
+
+
+def generate_transaction_ref(prefix="TXN"):
+    """
+    Generate a unique transaction reference.
+    Format: {prefix}-{8 character hex}
+    Example: DEP-A1B2C3D4
+    """
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
+
+
+def process_repayment(loan_id):
+    """
+    Process auto-repayment for a loan using available funds.
+    
+    Args:
+        loan_id: ID of the loan to process
+        
+    Returns:
+        Decimal: Total amount cleared from arrears, or None if no repayment
+    """
+    try:
+        loan = Loan.objects.get(id=loan_id)
+        member = loan.member
+        
+        # Get savings balance
+        savings = SavingsAccount.objects.filter(member=member).first()
+        if not savings or savings.balance <= 0:
+            return Decimal('0')
+        
+        # Get overdue installments
+        overdue_installments = Installment.objects.filter(
+            loan=loan,
+            paid=False,
+            due_date__lte=timezone.now().date()
+        ).order_by('due_date')
+        
+        if not overdue_installments.exists():
+            return Decimal('0')
+        
+        total_cleared = Decimal('0')
+        
+        with db_transaction.atomic():
+            for installment in overdue_installments:
+                if savings.balance <= 0:
+                    break
+                    
+                amount_due = (installment.principal_portion or Decimal('0')) + (installment.interest_portion or Decimal('0'))
+                amount_to_pay = min(amount_due, savings.balance)
+                
+                if amount_to_pay > 0:
+                    # Mark installment as paid
+                    installment.paid = True
+                    installment.paid_date = timezone.now().date()
+                    installment.save()
+                    
+                    # Deduct from savings
+                    savings.balance -= amount_to_pay
+                    savings.save()
+                    
+                    total_cleared += amount_to_pay
+                    
+                    # Create repayment transaction
+                    Transaction.objects.create(
+                        member=member,
+                        loan=loan,
+                        amount=amount_to_pay,
+                        type='repayment',
+                        reference=f"REP-{loan.loan_reference}-{installment.installment_number}",
+                        timestamp=timezone.now(),
+                        created_by=None  # Auto-repayment has no creator
+                    )
+        
+        return total_cleared
+        
+    except Loan.DoesNotExist:
+        logger.error(f"Loan {loan_id} not found")
+        return None
+    except Exception as e:
+        logger.error(f"Error processing repayment for loan {loan_id}: {str(e)}")
+        return None
+
+
+class FinancialTransactionService:
+    """Service class for handling financial transactions"""
+    
+    
+
+    @staticmethod
+    def record_deposit(member, amount, receipt_ref, date=None, created_by=None):
+        """
+        Record a deposit transaction for a member.
+        """
+        print("\n--- FinancialTransactionService.record_deposit ---")
+        print(f"Member: {member.get_full_name()} (ID: {member.id})")
+        print(f"Amount: {amount}")
+        print(f"Receipt Ref: {receipt_ref}")
+        
+        if date is None:
+            date = timezone.now()
+            print(f"Date set to now: {date}")
+        
+        with db_transaction.atomic():
+            print("Creating transaction record...")
+            # Create transaction record
+            transaction = Transaction.objects.create(
+                member=member,
+                loan=None,
+                amount=amount,
+                type='deposit',
+                timestamp=date,
+                reference=receipt_ref,
+                is_reversed=False,
+                created_by=created_by
+            )
+            print(f"Transaction created with ID: {transaction.id}")
+            
+            # Update savings balance
+            print("Updating savings balance...")
+            savings, created = SavingsAccount.objects.get_or_create(
+                member=member,
+                defaults={'balance': Decimal('0.00')}
+            )
+            print(f"Savings account - Created: {created}, Balance before: {savings.balance}")
+            
+            savings.balance += amount
+            savings.save()
+            print(f"Savings account - Balance after: {savings.balance}")
+            
+            # Update member's last transaction date - REMOVED because field doesn't exist
+            # member.last_transaction_date = date
+            # member.save(update_fields=['last_transaction_date'])
+            
+            print("--- record_deposit completed successfully ---\n")
+            return transaction
+    
+    @staticmethod
+    def record_withdrawal(member, amount, reference, date=None, created_by=None):
+        """
+        Record a withdrawal transaction for a member.
+        
+        Args:
+            member: Member instance
+            amount: Decimal amount
+            reference: String reference
+            date: Optional datetime (defaults to now)
+            created_by: User who created the transaction
+            
+        Returns:
+            Transaction: The created transaction record
+        """
+        if date is None:
+            date = timezone.now()
+        
+        with db_transaction.atomic():
+            # Check sufficient balance
+            savings = SavingsAccount.objects.filter(member=member).first()
+            if not savings or savings.balance < amount:
+                raise ValueError(f"Insufficient balance. Available: {savings.balance if savings else 0}")
+            
+            # Create transaction record
+            transaction = Transaction.objects.create(
+                member=member,
+                loan=None,
+                amount=amount,
+                type='withdrawal',
+                timestamp=date,
+                reference=reference,
+                is_reversed=False,
+                created_by=created_by
+            )
+            
+            # Update savings balance
+            savings.balance -= amount
+            savings.save()
+            
+            # Update member's last transaction date
+            member.last_transaction_date = date
+            member.save(update_fields=['last_transaction_date'])
+            
+            return transaction
+    
+    @staticmethod
+    def record_loan_disbursement(member, loan, amount, reference, date=None, created_by=None):
+        """
+        Record a loan disbursement transaction.
+        
+        Args:
+            member: Member instance
+            loan: Loan instance
+            amount: Decimal amount
+            reference: String reference
+            date: Optional datetime (defaults to now)
+            created_by: User who created the transaction
+            
+        Returns:
+            Transaction: The created transaction record
+        """
+        if date is None:
+            date = timezone.now()
+        
+        with db_transaction.atomic():
+            # Create transaction record
+            transaction = Transaction.objects.create(
+                member=member,
+                loan=loan,
+                amount=amount,
+                type='disbursement',
+                timestamp=date,
+                reference=reference,
+                is_reversed=False,
+                created_by=created_by
+            )
+            
+            # Update savings balance (disbursement increases balance)
+            savings = SavingsAccount.objects.filter(member=member).first()
+            if savings:
+                savings.balance += amount
+                savings.save()
+            
+            return transaction
+    
+    @staticmethod
+    def get_member_balance(member):
+        """
+        Get the current balance for a member.
+        
+        Args:
+            member: Member instance
+            
+        Returns:
+            Decimal: Current balance
+        """
+        savings = SavingsAccount.objects.filter(member=member).first()
+        return savings.balance if savings else Decimal('0')
+    
+    @staticmethod
+    def get_transaction_summary(member, start_date=None, end_date=None):
+        """
+        Get transaction summary for a member within date range.
+        
+        Args:
+            member: Member instance
+            start_date: Optional start date
+            end_date: Optional end date
+            
+        Returns:
+            dict: Summary with total deposits, withdrawals, and count
+        """
+        queryset = Transaction.objects.filter(member=member)
+        
+        if start_date:
+            queryset = queryset.filter(timestamp__date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(timestamp__date__lte=end_date)
+        
+        summary = queryset.aggregate(
+            total_deposits=Sum('amount', filter=Q(type='deposit')),
+            total_withdrawals=Sum('amount', filter=Q(type='withdrawal')),
+            total_repayments=Sum('amount', filter=Q(type='repayment')),
+        )
+        
+        return {
+            'total_deposits': summary['total_deposits'] or Decimal('0'),
+            'total_withdrawals': summary['total_withdrawals'] or Decimal('0'),
+            'total_repayments': summary['total_repayments'] or Decimal('0'),
+            'total_transactions': queryset.count()
+        }
+    
+    @staticmethod
+    def get_transactions_by_type(member, transaction_type):
+        """
+        Get all transactions of a specific type for a member.
+        
+        Args:
+            member: Member instance
+            transaction_type: String transaction type ('deposit', 'withdrawal', etc.)
+            
+        Returns:
+            QuerySet: Filtered transactions
+        """
+        return Transaction.objects.filter(
+            member=member,
+            type=transaction_type
+        ).order_by('-timestamp')
+    
+    @staticmethod
+    def reverse_transaction(transaction_id, reason="", reversed_by=None):
+        """
+        Reverse a transaction.
+        
+        Args:
+            transaction_id: ID of the transaction to reverse
+            reason: Reason for reversal
+            reversed_by: User performing the reversal
+            
+        Returns:
+            Transaction: The reversed transaction
+        """
+        with db_transaction.atomic():
+            original = Transaction.objects.get(id=transaction_id)
+            
+            if original.is_reversed:
+                raise ValueError("Transaction already reversed")
+            
+            # Reverse the effect on savings balance
+            savings = SavingsAccount.objects.filter(member=original.member).first()
+            if savings:
+                if original.type == 'deposit':
+                    savings.balance -= original.amount
+                elif original.type == 'withdrawal':
+                    savings.balance += original.amount
+                elif original.type == 'disbursement':
+                    savings.balance -= original.amount
+                savings.save()
+            
+            # Mark original as reversed
+            original.is_reversed = True
+            original.save()
+            
+            # Create reversal transaction
+            reversal = Transaction.objects.create(
+                member=original.member,
+                loan=original.loan,
+                amount=original.amount,
+                type='repayment',  # Or create a 'reversal' type if added to choices
+                timestamp=timezone.now(),
+                reference=f"REV-{original.reference}",
+                is_reversed=False,
+                created_by=reversed_by
+            )
+            
+            return reversal

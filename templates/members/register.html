@@ -1,157 +1,796 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Member Onboarding | {{ company.name }}{% endblock %}
 
 {% block content %}
-<!-- Professional Typography Import -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
     :root {
-        --ms-primary: #1e40af;
-        --ms-border: #e2e8f0;
-        --ms-text-main: #1e293b;
-        --ms-text-muted: #64748b;
-        --ms-bg-alt: #f1f5f9;
+        --brand-cobalt: #1632af;
+        --brand-cobalt-dark: #0f248a;
+        --brand-cobalt-light: #2a4ad8;
+        --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+        --brand-cobalt-glow: rgba(22, 50, 175, 0.12);
+        --border-color: #e2e8f0;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --bg-body: #f1f5f9;
+        --card-bg: #ffffff;
+        --hover-bg: #f8fafc;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+        --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+        --shadow-lg: 0 20px 50px rgba(0,0,0,0.08);
+        --radius: 16px;
+        --radius-sm: 12px;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
     }
 
     body {
-        background-color: #f8fafc;
-        font-family: 'Inter', sans-serif;
-        color: var(--ms-text-main);
+        background: var(--bg-body);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
     }
 
-    /* Layout & Cards */
-    .onboarding-card {
-        border-radius: 20px;
-        border: 1px solid var(--ms-border);
-    }
-
-    .form-section-header {
-        border-left: 4px solid var(--ms-primary);
-        padding-left: 1rem;
+    /* ============================================
+       PAGE HEADER & BREADCRUMB
+       ============================================ */
+    .page-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1.5rem;
         margin-bottom: 2rem;
     }
 
-    /* Form Controls */
-    .form-label {
-        font-size: 0.8rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.025em;
-        color: var(--ms-text-muted);
-        margin-bottom: 0.5rem;
+    .page-header h2 {
+        font-size: 1.6rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
     }
 
-    .form-control, .input-group-text {
-        border-color: var(--ms-border);
-        padding: 0.75rem 1rem;
-        font-size: 0.95rem;
-        transition: all 0.2s ease;
+    .page-header h2 i {
+        color: var(--brand-cobalt);
     }
 
-    .form-control:focus {
-        border-color: var(--ms-primary);
-        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.08);
+    .page-subtitle {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
     }
 
-    /* KYC Box Styling */
-    .kyc-upload-box {
-        border: 2px dashed var(--ms-border);
-        border-radius: 16px;
-        background: #ffffff;
-        transition: all 0.2s ease;
-        cursor: pointer;
+    .breadcrumb-custom {
+        font-size: 0.85rem;
+        background: transparent;
+        padding: 0;
+        margin-bottom: 0.25rem;
     }
 
-    .kyc-upload-box:hover {
-        border-color: var(--ms-primary);
-        background-color: #f0f7ff;
-    }
-
-    .kyc-upload-box i {
-        color: #94a3b8;
+    .breadcrumb-custom .breadcrumb-item a {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-weight: 500;
         transition: color 0.2s ease;
     }
 
-    .kyc-upload-box:hover i {
-        color: var(--ms-primary);
+    .breadcrumb-custom .breadcrumb-item a:hover {
+        color: var(--brand-cobalt);
     }
 
-    /* Buttons */
-    .btn-onboard {
-        background-color: var(--ms-primary);
-        padding: 1rem 2.5rem;
+    .breadcrumb-custom .breadcrumb-item.active {
+        color: var(--brand-cobalt);
+        font-weight: 600;
+    }
+
+    .breadcrumb-custom .breadcrumb-item+.breadcrumb-item::before {
+        content: "›";
+        font-size: 1.2rem;
+        color: var(--text-muted);
+    }
+
+    /* ============================================
+       MAIN CARD
+       ============================================ */
+    .onboarding-card {
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        box-shadow: var(--shadow-sm);
+        transition: box-shadow 0.3s ease;
+    }
+
+    .onboarding-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .onboarding-card .card-body {
+        padding: 2.5rem;
+    }
+
+    /* ============================================
+       FORM SECTIONS
+       ============================================ */
+    .form-section-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding: 0.75rem 1.25rem;
+        background: var(--brand-cobalt-bg);
+        border-radius: var(--radius-sm);
+        border-left: 4px solid var(--brand-cobalt);
+        animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .form-section-header:nth-child(2) { animation-delay: 0.08s; }
+    .form-section-header:nth-child(3) { animation-delay: 0.16s; }
+
+    .form-section-header .step-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: var(--brand-cobalt);
+        color: #ffffff;
         font-weight: 700;
+        font-size: 0.8rem;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .form-section-header .step-content {
+        flex: 1;
+    }
+
+    .form-section-header .step-content h6 {
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--brand-cobalt);
+        margin: 0;
+    }
+
+    .form-section-header .step-content h5 {
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: var(--text-primary);
+        margin: 0;
         letter-spacing: -0.01em;
-        border-radius: 12px;
-        box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.2);
+    }
+
+    /* ============================================
+       FORM CONTROLS
+       ============================================ */
+    .form-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        margin-bottom: 0.3rem;
+        display: block;
+    }
+
+    .form-label .required {
+        color: var(--danger);
+        margin-left: 2px;
+    }
+
+    .form-control,
+    .input-group-text {
+        border: 1px solid var(--border-color);
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        border-radius: var(--radius-sm);
+        background: var(--card-bg);
+        color: var(--text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .form-control:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+        outline: none;
+    }
+
+    .form-control.bg-light {
+        background: var(--bg-body) !important;
+        color: var(--text-secondary);
+    }
+
+    .input-group .input-group-text {
+        background: var(--bg-body);
+        border-right: none;
+        border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .input-group .form-control {
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        border-left: none;
+    }
+
+    .input-group .form-control:focus {
+        border-left: none;
+    }
+
+    .form-control::placeholder {
+        color: var(--text-muted);
+        font-weight: 400;
+    }
+
+    .form-text {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 0.2rem;
+    }
+
+    .form-text i {
+        margin-right: 0.2rem;
+    }
+
+    /* ============================================
+       FLATPICKR DATE PICKER STYLES
+       ============================================ */
+    /* Input field */
+    .flatpickr-input {
+        border: 1px solid var(--border-color) !important;
+        padding: 0.6rem 1rem !important;
+        font-size: 0.9rem !important;
+        border-radius: var(--radius-sm) !important;
+        background: var(--card-bg) !important;
+        color: var(--text-primary) !important;
+        transition: all 0.2s ease !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        width: 100% !important;
+    }
+
+    .flatpickr-input:focus {
+        border-color: var(--brand-cobalt) !important;
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow) !important;
+    }
+
+    .flatpickr-input:disabled {
+        background: var(--bg-body) !important;
+        color: var(--text-muted) !important;
+        cursor: not-allowed;
+    }
+
+    .flatpickr-input::placeholder {
+        color: var(--text-muted);
+        font-weight: 400;
+    }
+
+    /* Calendar wrapper */
+    .flatpickr-calendar {
+        border-radius: var(--radius-sm) !important;
+        box-shadow: var(--shadow-md) !important;
+        border: 1px solid var(--border-color) !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        background: var(--card-bg) !important;
+        padding: 0.5rem !important;
+        width: 320px !important;
+    }
+
+    .flatpickr-calendar .flatpickr-days {
+        width: 100% !important;
+    }
+
+    .flatpickr-calendar .dayContainer {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Month header */
+    .flatpickr-month {
+        background: var(--card-bg) !important;
+        color: var(--text-primary) !important;
+        padding: 0.5rem 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    .flatpickr-current-month {
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        color: var(--text-primary) !important;
+        padding: 0 !important;
+    }
+
+    .flatpickr-current-month .flatpickr-monthDropdown-months {
+        color: var(--text-primary) !important;
+        font-weight: 700 !important;
+        background: var(--card-bg) !important;
+        border: none !important;
+        padding: 0.2rem 0.5rem !important;
+        border-radius: 6px !important;
+        font-size: 1rem !important;
+    }
+
+    .flatpickr-current-month input.cur-year {
+        color: var(--text-primary) !important;
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        background: transparent !important;
+        border: none !important;
+        width: 50px !important;
+    }
+
+    .flatpickr-current-month .numInputWrapper {
+        background: transparent !important;
+    }
+
+    /* Navigation arrows */
+    .flatpickr-months .flatpickr-prev-month,
+    .flatpickr-months .flatpickr-next-month {
+        color: var(--text-muted) !important;
+        padding: 0.5rem !important;
+        fill: var(--text-muted) !important;
+    }
+
+    .flatpickr-months .flatpickr-prev-month:hover,
+    .flatpickr-months .flatpickr-next-month:hover {
+        color: var(--brand-cobalt) !important;
+        fill: var(--brand-cobalt) !important;
+        background: var(--brand-cobalt-bg) !important;
+        border-radius: 50% !important;
+    }
+
+    /* Weekdays */
+    .flatpickr-weekday {
+        color: var(--text-muted) !important;
+        font-weight: 700 !important;
+        font-size: 0.7rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.04em !important;
+    }
+
+    /* Days */
+    .flatpickr-day {
+        border-radius: 50% !important;
+        color: var(--text-primary) !important;
+        font-weight: 500 !important;
+        font-size: 0.9rem !important;
+        transition: all 0.2s ease !important;
+        width: 36px !important;
+        height: 36px !important;
+        line-height: 36px !important;
+        margin: 2px !important;
+    }
+
+    .flatpickr-day:hover {
+        background: var(--brand-cobalt-bg) !important;
+        border-color: var(--brand-cobalt) !important;
+    }
+
+    .flatpickr-day.selected,
+    .flatpickr-day.selected:hover {
+        background: var(--brand-cobalt) !important;
+        border-color: var(--brand-cobalt) !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 10px rgba(22, 50, 175, 0.25) !important;
+    }
+
+    .flatpickr-day.today {
+        border-color: var(--brand-cobalt) !important;
+        color: var(--brand-cobalt) !important;
+        background: var(--brand-cobalt-bg) !important;
+    }
+
+    .flatpickr-day.today.selected {
+        color: #ffffff !important;
+        background: var(--brand-cobalt) !important;
+    }
+
+    .flatpickr-day.disabled,
+    .flatpickr-day.disabled:hover {
+        color: var(--text-muted) !important;
+        opacity: 0.5 !important;
+    }
+
+    .flatpickr-day.inRange {
+        background: var(--brand-cobalt-bg) !important;
+        border-color: var(--brand-cobalt-bg) !important;
+        color: var(--text-primary) !important;
+    }
+
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange {
+        background: var(--brand-cobalt) !important;
+        border-color: var(--brand-cobalt) !important;
+        color: #ffffff !important;
+    }
+
+    /* Footer (today button) */
+    .flatpickr-footer {
+        display: none !important;
+    }
+
+    /* ============================================
+       KYC UPLOAD BOXES
+       ============================================ */
+    .kyc-upload-box {
+        border: 2px dashed var(--border-color);
+        border-radius: var(--radius-sm);
+        background: var(--card-bg);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        padding: 1.75rem 1.5rem;
+        text-align: center;
+        position: relative;
+        min-height: 140px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+
+    .kyc-upload-box:hover {
+        border-color: var(--brand-cobalt);
+        background: var(--brand-cobalt-bg);
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .kyc-upload-box i {
+        font-size: 2.2rem;
+        color: var(--text-muted);
+        transition: all 0.3s ease;
+    }
+
+    .kyc-upload-box:hover i {
+        color: var(--brand-cobalt);
+        transform: scale(1.05);
+    }
+
+    .kyc-upload-box .label-text {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        margin-top: 0.2rem;
+    }
+
+    .kyc-upload-box .sub-text {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+    }
+
+    .kyc-upload-box input[type="file"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    /* ============================================
+       BUTTONS
+       ============================================ */
+    .btn-onboard {
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        padding: 0.8rem 2.5rem;
+        font-weight: 700;
+        font-size: 0.85rem;
+        letter-spacing: 0.04em;
+        border-radius: var(--radius-sm);
+        border: none;
+        box-shadow: 0 4px 15px rgba(22, 50, 175, 0.2);
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     .btn-onboard:hover {
-        background-color: #1e3a8a;
-        transform: translateY(-1px);
+        background: var(--brand-cobalt-dark);
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
+    }
+
+    .btn-outline-secondary {
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1.5px solid var(--border-color);
+        font-weight: 600;
+        padding: 0.5rem 1.25rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .btn-outline-secondary:hover {
+        background: var(--brand-cobalt-bg);
+        border-color: var(--brand-cobalt);
+        color: var(--brand-cobalt);
+        transform: translateY(-2px);
+    }
+
+    .btn-discard {
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .btn-discard:hover {
+        background: rgba(239, 68, 68, 0.08);
+        color: var(--danger);
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 992px) {
+        .onboarding-card .card-body {
+            padding: 2rem;
+        }
+        .page-header h2 {
+            font-size: 1.4rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .page-header .d-flex {
+            width: 100%;
+        }
+        .page-header .d-flex .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        .onboarding-card .card-body {
+            padding: 1.5rem;
+        }
+        .form-section-header {
+            padding: 0.6rem 1rem;
+        }
+        .form-section-header .step-badge {
+            width: 28px;
+            height: 28px;
+            font-size: 0.7rem;
+        }
+        .form-section-header .step-content h5 {
+            font-size: 0.9rem;
+        }
+        .kyc-upload-box {
+            min-height: 120px;
+            padding: 1.25rem;
+        }
+        .btn-onboard {
+            width: 100%;
+            justify-content: center;
+        }
+        .row.g-4 {
+            --bs-gutter-y: 1rem;
+        }
+        .flatpickr-calendar {
+            width: 280px !important;
+        }
+        .flatpickr-day {
+            width: 32px !important;
+            height: 32px !important;
+            line-height: 32px !important;
+            font-size: 0.8rem !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .container-fluid {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        .onboarding-card .card-body {
+            padding: 1rem;
+        }
+        .form-section-header .step-content h5 {
+            font-size: 0.85rem;
+        }
+        .kyc-upload-box {
+            min-height: 100px;
+            padding: 1rem;
+        }
+        .kyc-upload-box i {
+            font-size: 1.8rem;
+        }
+        .kyc-upload-box .label-text {
+            font-size: 0.75rem;
+        }
+        .kyc-upload-box .sub-text {
+            font-size: 0.6rem;
+        }
+        .flatpickr-calendar {
+            width: 260px !important;
+        }
+        .flatpickr-day {
+            width: 28px !important;
+            height: 28px !important;
+            line-height: 28px !important;
+            font-size: 0.75rem !important;
+        }
+    }
+
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .onboarding-card {
+        animation: fadeInUp 0.4s ease forwards;
+    }
+
+    /* ============================================
+       PRINT STYLES
+       ============================================ */
+    @media print {
+        .btn-onboard,
+        .btn-outline-secondary,
+        .btn-discard {
+            display: none !important;
+        }
+        .kyc-upload-box {
+            border: 1px solid #ccc;
+        }
+        .form-control {
+            border: 1px solid #ccc;
+            background: transparent !important;
+        }
+        .onboarding-card {
+            box-shadow: none !important;
+        }
+        .flatpickr-input {
+            border: 1px solid #ccc !important;
+            background: transparent !important;
+        }
     }
 </style>
 
-<div class="container-fluid py-5 px-lg-5">
-    
-    <!-- Breadcrumb & Title -->
-    <div class="mb-5">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-2" style="font-size: 0.85rem;">
-                <li class="breadcrumb-item"><a href="{% url 'customer_list' %}" class="text-decoration-none fw-medium text-muted">Members</a></li>
-                <li class="breadcrumb-item active fw-bold text-primary">New Registration</li>
-            </ol>
-        </nav>
-        <h2 class="fw-bold text-dark ls-tight mb-1">Member Onboarding</h2>
-        <p class="text-muted mb-0">Create a new digital profile and verify identity documents.</p>
+<div class="container-fluid py-4 py-lg-5 px-3 px-lg-5">
+
+    <!-- ==========================================
+    PAGE HEADER
+    ========================================== -->
+    <div class="page-header">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb breadcrumb-custom mb-1">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'customer_list' %}">
+                            <i class="bi bi-people me-1"></i> Members
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        <i class="bi bi-person-plus me-1"></i> New Registration
+                    </li>
+                </ol>
+            </nav>
+            <h2>
+                <i class="bi bi-person-badge"></i>
+                Member Onboarding
+            </h2>
+            <div class="page-subtitle">
+                <i class="bi bi-info-circle"></i>
+                Create a new digital profile and verify identity documents
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'customer_list' %}" class="btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i>
+                Back to Members
+            </a>
+        </div>
     </div>
 
+    <!-- ==========================================
+    MAIN FORM
+    ========================================== -->
     <div class="row">
         <div class="col-xl-10">
-            <div class="card onboarding-card shadow-sm border-0">
-                <div class="card-body p-4 p-md-5">
+            <div class="card onboarding-card border-0">
+                <div class="card-body">
                     <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
                         {% csrf_token %}
 
                         <!-- Section 1: Basic Bio -->
                         <div class="form-section-header">
-                            <h6 class="text-primary fw-bold text-uppercase small mb-1" style="letter-spacing: 0.1em;">Phase 01</h6>
-                            <h5 class="fw-bold text-dark mb-0">Basic Information</h5>
+                            <div class="step-badge">1</div>
+                            <div class="step-content">
+                                <h6><i class="bi bi-person me-1"></i> Phase 01</h6>
+                                <h5>Basic Information</h5>
+                            </div>
                         </div>
 
                         <div class="row g-4 mb-5">
                             <div class="col-md-4">
                                 <label class="form-label">Member ID</label>
-                                <input type="text" class="form-control bg-light fw-bold" placeholder="Auto-generated (KALXXXXX)" readonly>
-                                <small class="text-muted">The system will assign a KAL ID automatically.</small>
+                                <input type="text" class="form-control bg-light fw-bold" value="Auto-generated (KALXXXXX)" readonly>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle"></i>The system will assign a KAL ID automatically.
+                                </div>
                             </div>
-                            
+
                             <div class="col-md-4">
-                                <label class="form-label">First Name</label>
-                                <input type="text" name="first_name" class="form-control rounded-3" placeholder="Enter first name" required>
+                                <label class="form-label">First Name <span class="required">*</span></label>
+                                <input type="text" name="first_name" class="form-control" placeholder="Enter first name" required>
+                                <div class="invalid-feedback">Please enter first name</div>
                             </div>
-                            
+
                             <div class="col-md-4">
-                                <label class="form-label">Last Name</label>
-                                <input type="text" name="last_name" class="form-control rounded-3" placeholder="Enter last name" required>
+                                <label class="form-label">Last Name <span class="required">*</span></label>
+                                <input type="text" name="last_name" class="form-control" placeholder="Enter last name" required>
+                                <div class="invalid-feedback">Please enter last name</div>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Phone Number</label>
+                                <label class="form-label">Phone Number <span class="required">*</span></label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-phone"></i></span>
+                                    <span class="input-group-text"><i class="bi bi-phone"></i></span>
                                     <input type="tel" name="phone_number" class="form-control" placeholder="+256..." required>
+                                    <div class="invalid-feedback">Please enter a valid phone number</div>
                                 </div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Email Address <span class="text-muted fw-normal">(Optional)</span></label>
-                                <input type="email" name="email" class="form-control" placeholder="example@mail.com">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" name="email" class="form-control" placeholder="example@mail.com">
+                                </div>
                             </div>
 
                             <div class="col-md-4">
                                 <label class="form-label">Date of Birth</label>
-                                <input type="date" name="dob" class="form-control">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+                                    <input type="text" name="dob" class="form-control flatpickr-date" placeholder="Select date of birth">
+                                </div>
                             </div>
 
                             <div class="col-md-4">
@@ -167,75 +806,143 @@
 
                         <!-- Section 2: Location -->
                         <div class="form-section-header">
-                            <h6 class="text-primary fw-bold text-uppercase small mb-1" style="letter-spacing: 0.1em;">Phase 02</h6>
-                            <h5 class="fw-bold text-dark mb-0">Physical Address</h5>
+                            <div class="step-badge">2</div>
+                            <div class="step-content">
+                                <h6><i class="bi bi-geo-alt me-1"></i> Phase 02</h6>
+                                <h5>Physical Address</h5>
+                            </div>
                         </div>
 
                         <div class="row g-4 mb-5">
                             <div class="col-12">
                                 <label class="form-label">Residence Description</label>
-                                <textarea name="physical_address" class="form-control rounded-4" rows="2" placeholder="Building, Street, Landmark..."></textarea>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-house"></i></span>
+                                    <textarea name="physical_address" class="form-control" rows="2" placeholder="Building, Street, Landmark..." style="resize: vertical; min-height: 60px;"></textarea>
+                                </div>
                             </div>
 
                             <div class="col-md-4">
                                 <label class="form-label">Village</label>
-                                <input type="text" name="village" class="form-control">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-pin-map"></i></span>
+                                    <input type="text" name="village" class="form-control" placeholder="Enter village">
+                                </div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Parish</label>
-                                <input type="text" name="parish" class="form-control">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-pin-map"></i></span>
+                                    <input type="text" name="parish" class="form-control" placeholder="Enter parish">
+                                </div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">District</label>
-                                <input type="text" name="district" class="form-control">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-pin-map"></i></span>
+                                    <input type="text" name="district" class="form-control" placeholder="Enter district">
+                                </div>
                             </div>
                         </div>
 
                         <!-- Section 3: KYC -->
                         <div class="form-section-header">
-                            <h6 class="text-primary fw-bold text-uppercase small mb-1" style="letter-spacing: 0.1em;">Phase 03</h6>
-                            <h5 class="fw-bold text-dark mb-0">Digital Verification</h5>
+                            <div class="step-badge">3</div>
+                            <div class="step-content">
+                                <h6><i class="bi bi-shield-check me-1"></i> Phase 03</h6>
+                                <h5>Digital Verification</h5>
+                            </div>
                         </div>
 
                         <div class="row g-4 mb-5">
                             <div class="col-md-4">
-                                <div class="kyc-upload-box text-center p-4">
-                                    <i class="bi bi-person-bounding-box fs-2 mb-2 d-block"></i>
-                                    <span class="d-block fw-bold small text-dark mb-2">Passport Photo</span>
-                                    <input type="file" name="photo" class="form-control form-control-sm border-0 bg-light" accept="image/*">
+                                <div class="kyc-upload-box">
+                                    <i class="bi bi-person-bounding-box"></i>
+                                    <span class="label-text">Passport Photo</span>
+                                    <span class="sub-text">Upload a recent passport photo</span>
+                                    <input type="file" name="photo" accept="image/*">
                                 </div>
                             </div>
 
                             <div class="col-md-4">
-                                <div class="kyc-upload-box text-center p-4">
-                                    <i class="bi bi-card-heading fs-2 mb-2 d-block"></i>
-                                    <span class="d-block fw-bold small text-dark mb-2">National ID (Front)</span>
-                                    <input type="file" name="id_front" class="form-control form-control-sm border-0 bg-light" accept="image/*">
+                                <div class="kyc-upload-box">
+                                    <i class="bi bi-card-heading"></i>
+                                    <span class="label-text">National ID (Front)</span>
+                                    <span class="sub-text">Upload front side of ID</span>
+                                    <input type="file" name="id_front" accept="image/*">
                                 </div>
                             </div>
 
                             <div class="col-md-4">
-                                <div class="kyc-upload-box text-center p-4">
-                                    <i class="bi bi-vector-pen fs-2 mb-2 d-block"></i>
-                                    <span class="d-block fw-bold small text-dark mb-2">Digital Signature</span>
-                                    <input type="file" name="signature" class="form-control form-control-sm border-0 bg-light" accept="image/*">
+                                <div class="kyc-upload-box">
+                                    <i class="bi bi-vector-pen"></i>
+                                    <span class="label-text">Digital Signature</span>
+                                    <span class="sub-text">Upload your digital signature</span>
+                                    <input type="file" name="signature" accept="image/*">
                                 </div>
                             </div>
                         </div>
 
                         <!-- Submit Area -->
-                        <div class="pt-4 border-top d-flex align-items-center flex-wrap gap-3">
-                            <button type="submit" class="btn btn-primary btn-onboard">
-                                <i class="bi bi-shield-check me-2"></i> COMPLETE ONBOARDING
+                        <div class="pt-4 border-top d-flex flex-wrap align-items-center gap-3" style="border-color: var(--border-color) !important;">
+                            <button type="submit" class="btn-onboard">
+                                <i class="bi bi-shield-check"></i>
+                                <span>Complete Onboarding</span>
                             </button>
-                            <a href="{% url 'customer_list' %}" class="btn btn-link text-muted fw-bold text-decoration-none">
-                                DISCARD CHANGES
+                            <a href="{% url 'customer_list' %}" class="btn-discard">
+                                <i class="bi bi-x-circle"></i>
+                                Discard Changes
                             </a>
+                            <span class="text-muted small ms-auto">
+                                <i class="bi bi-lock me-1"></i>
+                                All data is encrypted and secure
+                            </span>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
 </div>
+
+<!-- Bootstrap Validation Script -->
+<script>
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+
+<!-- Flatpickr Initialisation -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr('.flatpickr-date', {
+                dateFormat: 'Y-m-d',
+                allowInput: true,
+                altInput: true,
+                altFormat: 'd M Y',
+                maxDate: 'today',
+                disableMobile: true,
+                placeholder: 'Select date of birth',
+                onChange: function(selectedDates, dateStr, instance) {
+                    // Optional: add any custom logic here
+                }
+            });
+        } else {
+            console.warn('Flatpickr library not loaded. Please check your base.html includes flatpickr.');
+        }
+    });
+</script>
+
 {% endblock %}

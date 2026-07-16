@@ -1,137 +1,592 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit Staff{% else %}Register Staff{% endif %} | {{ company.name }}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-10 col-lg-8 col-xl-6">
-        <!-- Header Section -->
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <div class="d-flex align-items-center">
-                <a href="{% url 'user_list' %}" class="btn btn-outline-secondary btn-sm rounded-circle me-3" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                    <i class="bi bi-arrow-left"></i>
-                </a>
-                <div>
-                    <h2 class="fw-bold mb-0" style="color: var(--text-primary); letter-spacing: -1px;">
-                        {% if object %}Edit Staff Details{% else %}Register New Staff{% endif %}
-                    </h2>
-                    <p class="text-muted small mb-0">Manage system access and roles for MAC Tech Personnel</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Form Card -->
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-            <div class="card-body p-4 p-md-5">
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    
-                    {% for field in form %}
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-uppercase" style="letter-spacing: 0.5px; color: var(--text-secondary);">
-                            {{ field.label }}
-                        </label>
-                        
-                        {% if field.errors %}
-                            {% for error in field.errors %}
-                                <div class="text-danger small fw-bold mb-1"><i class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-
-                        {# UPDATED: Applied styling to both 'groups' and 'allowed_modules' #}
-                        <div class="{% if field.name == 'groups' or field.name == 'allowed_modules' %}p-3 rounded-3 border{% endif %}" 
-                             style="{% if field.name == 'groups' or field.name == 'allowed_modules' %}background-color: #f8fafc; border-color: var(--border-color) !important;{% endif %}">
-                            
-                            {% if field.name == 'groups' %}
-                                <p class="small text-muted mb-3"><i class="bi bi-shield-check me-1"></i> Assign one or more functional roles:</p>
-                                <div class="custom-group-select">
-                                    {{ field }}
-                                </div>
-                            
-                            {# NEW: Added logic for Module selection styling #}
-                            {% elif field.name == 'allowed_modules' %}
-                                <p class="small text-muted mb-3"><i class="bi bi-cpu me-1"></i> Enable specific feature modules:</p>
-                                <div class="custom-group-select">
-                                    {{ field }}
-                                </div>
-
-                            {% elif field.name == 'is_staff' or field.field.widget.input_type == 'checkbox' %}
-                                <div class="form-check form-switch custom-switch">
-                                    {{ field }}
-                                    <label class="form-check-label ms-2 text-muted small">Grant Administrative Privileges</label>
-                                </div>
-                            {% else %}
-                                <input type="{{ field.field.widget.input_type|default:'text' }}" 
-                                       name="{{ field.name }}" 
-                                       class="form-control form-control-lg border-2 {% if field.errors %}is-invalid{% endif %}"
-                                       style="border-color: var(--border-color); font-size: 0.95rem; border-radius: 10px;"
-                                       value="{{ field.value|default:'' }}"
-                                       placeholder="Enter {{ field.label|lower }}..."
-                                       required>
-                            {% endif %}
-                        </div>
-                        
-                        {% if field.help_text %}
-                            <div class="form-text text-muted small">{{ field.help_text }}</div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-
-                    <div class="mt-5 pt-3 border-top" style="border-color: var(--border-color) !important;">
-                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm border-0" 
-                                style="background-color: var(--brand-cobalt);">
-                            <i class="bi bi-check2-circle me-2"></i> 
-                            {% if object %}UPDATE STAFF RECORD{% else %}PROVISION ACCOUNT{% endif %}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
-        <div class="text-center mt-4">
-            <p class="small text-muted">
-                <i class="bi bi-info-circle-fill me-1" style="color: var(--brand-cobalt);"></i> 
-                Credentials will be managed securely via the system's recovery protocol.
-            </p>
-        </div>
-    </div>
-</div>
 
 <style>
-    /* Styling for the Multiple Choice Select (Groups and Modules) */
-    .custom-group-select select {
-        height: 160px !important;
-        border: 1px solid var(--border-color) !important;
-        border-radius: 8px !important;
-        background: #ffffff !important;
-        padding: 5px;
+    :root {
+        --brand-cobalt: #1632af;
+        --brand-cobalt-dark: #0f248a;
+        --brand-cobalt-light: #2a4ad8;
+        --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+        --brand-cobalt-glow: rgba(22, 50, 175, 0.12);
+        --border-color: #e2e8f0;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --bg-body: #f1f5f9;
+        --card-bg: #ffffff;
+        --hover-bg: #f8fafc;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+        --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+        --shadow-lg: 0 20px 50px rgba(0,0,0,0.08);
+        --radius: 16px;
+        --radius-sm: 12px;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+    }
+
+    body {
+        background: var(--bg-body);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .staff-wrapper {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 1.5rem 1.5rem 3rem;
+    }
+
+    /* ============================================
+       PAGE HEADER
+       ============================================ */
+    .page-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+    }
+
+    .page-header .back-link {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--card-bg);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        transition: all 0.25s ease;
+        text-decoration: none;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .page-header .back-link:hover {
+        background: var(--brand-cobalt-bg);
+        border-color: var(--brand-cobalt);
+        color: var(--brand-cobalt);
+        transform: translateX(-3px);
+    }
+
+    .page-header h2 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .page-header h2 i {
+        color: var(--brand-cobalt);
+    }
+
+    .page-header .subtitle {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 0.1rem;
+    }
+
+    /* ============================================
+       MAIN CARD
+       ============================================ */
+    .staff-card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .staff-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .staff-card .card-body {
+        padding: 2.5rem;
+    }
+
+    /* ============================================
+       FORM CONTROLS
+       ============================================ */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group:last-of-type {
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        margin-bottom: 0.3rem;
+        display: block;
+    }
+
+    .form-label .required {
+        color: var(--danger);
+        margin-left: 2px;
+    }
+
+    .form-control {
+        border: 1px solid var(--border-color);
+        padding: 0.65rem 1rem;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        border-radius: var(--radius-sm);
+        background: var(--card-bg);
+        color: var(--text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         width: 100%;
+    }
+
+    .form-control:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
         outline: none;
     }
-    
-    .custom-group-select select option {
-        padding: 10px 15px;
+
+    .form-control.is-invalid {
+        border-color: var(--danger);
+    }
+
+    .form-control.is-invalid:focus {
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: var(--text-muted);
+        font-weight: 400;
+    }
+
+    .form-text {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 0.2rem;
+    }
+
+    .form-text i {
+        margin-right: 0.2rem;
+    }
+
+    /* Error messages */
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .errorlist li {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--danger);
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .errorlist li i {
+        font-size: 0.8rem;
+    }
+
+    /* ============================================
+       MULTI-SELECT (Groups & Modules)
+       ============================================ */
+    .multi-select-wrapper {
+        background: var(--bg-body);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem;
+        transition: border-color 0.2s ease;
+    }
+
+    .multi-select-wrapper:focus-within {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+    }
+
+    .multi-select-wrapper .select-hint {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        padding: 0 0.5rem 0.5rem 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .multi-select-wrapper select {
+        width: 100%;
+        min-height: 120px;
+        border: none;
+        background: transparent;
+        padding: 0.3rem 0.2rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        outline: none;
+    }
+
+    .multi-select-wrapper select option {
+        padding: 0.5rem 0.8rem;
         margin: 2px 0;
         border-radius: 6px;
         font-weight: 500;
         color: var(--text-secondary);
-        transition: all 0.2s;
+        transition: all 0.15s ease;
     }
-    
-    .custom-group-select select option:checked {
-        /* Using !important to override default browser blue */
+
+    .multi-select-wrapper select option:checked {
         background: var(--brand-cobalt) linear-gradient(0deg, var(--brand-cobalt) 0%, var(--brand-cobalt) 100%) !important;
-        color: white !important;
+        color: #ffffff !important;
     }
 
-    /* Input Focus States */
-    .form-control:focus {
-        border-color: var(--brand-cobalt) !important;
-        box-shadow: 0 0 0 4px rgba(22, 50, 175, 0.1);
+    .multi-select-wrapper select option:hover {
+        background: var(--brand-cobalt-bg);
     }
 
-    /* Toggle/Switch Styling */
+    /* ============================================
+       SWITCH (Checkbox fields)
+       ============================================ */
+    .switch-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--bg-body);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        transition: border-color 0.2s ease;
+    }
+
+    .switch-wrapper:focus-within {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+    }
+
+    .form-check-input {
+        width: 44px;
+        height: 24px;
+        flex-shrink: 0;
+        border-radius: 100px;
+        border: 2px solid var(--border-color);
+        background: var(--card-bg);
+        cursor: pointer;
+        transition: all 0.25s ease;
+        position: relative;
+        appearance: none;
+        -webkit-appearance: none;
+    }
+
+    .form-check-input::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        transition: all 0.25s ease;
+    }
+
     .form-check-input:checked {
-        background-color: var(--brand-cobalt);
+        background: var(--brand-cobalt);
         border-color: var(--brand-cobalt);
     }
+
+    .form-check-input:checked::after {
+        transform: translateX(20px);
+        background: #ffffff;
+    }
+
+    .form-check-input:focus {
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+        outline: none;
+    }
+
+    .switch-wrapper .switch-label {
+        font-weight: 500;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    /* ============================================
+       SUBMIT BUTTON
+       ============================================ */
+    .btn-submit {
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        padding: 0.8rem 2rem;
+        border-radius: var(--radius-sm);
+        transition: all 0.25s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        width: 100%;
+        box-shadow: 0 4px 15px rgba(22, 50, 175, 0.2);
+    }
+
+    .btn-submit:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
+        color: #ffffff;
+    }
+
+    /* ============================================
+       FOOTER NOTE
+       ============================================ */
+    .footer-note {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: var(--brand-cobalt-bg);
+        border-radius: var(--radius-sm);
+        border: 1px solid rgba(22, 50, 175, 0.08);
+    }
+
+    .footer-note p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .footer-note p i {
+        color: var(--brand-cobalt);
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 768px) {
+        .staff-wrapper {
+            padding: 1rem;
+        }
+        .staff-card .card-body {
+            padding: 1.5rem;
+        }
+        .page-header h2 {
+            font-size: 1.2rem;
+        }
+        .page-header .back-link {
+            width: 34px;
+            height: 34px;
+            font-size: 1rem;
+        }
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        .multi-select-wrapper select {
+            min-height: 100px;
+            font-size: 0.8rem;
+        }
+        .multi-select-wrapper select option {
+            padding: 0.4rem 0.6rem;
+        }
+        .btn-submit {
+            padding: 0.65rem 1.5rem;
+            font-size: 0.8rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .staff-card .card-body {
+            padding: 1rem;
+        }
+        .page-header h2 {
+            font-size: 1.1rem;
+        }
+        .form-control {
+            font-size: 0.85rem;
+            padding: 0.5rem 0.75rem;
+        }
+        .switch-wrapper {
+            padding: 0.4rem 0.6rem;
+        }
+        .form-check-input {
+            width: 38px;
+            height: 20px;
+        }
+        .form-check-input::after {
+            width: 14px;
+            height: 14px;
+        }
+        .form-check-input:checked::after {
+            transform: translateX(18px);
+        }
+        .multi-select-wrapper select {
+            min-height: 80px;
+        }
+        .footer-note {
+            padding: 0.75rem;
+        }
+        .footer-note p {
+            font-size: 0.7rem;
+        }
+    }
+
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .staff-card {
+        animation: fadeInUp 0.4s ease forwards;
+    }
+
+    /* ============================================
+       PRINT STYLES
+       ============================================ */
+    @media print {
+        .btn-submit {
+            display: none !important;
+        }
+        .staff-card {
+            box-shadow: none !important;
+            border: 1px solid #ccc !important;
+        }
+        .form-control {
+            border: 1px solid #ccc !important;
+            background: transparent !important;
+        }
+        .multi-select-wrapper {
+            border: 1px solid #ccc !important;
+        }
+    }
 </style>
+
+<div class="staff-wrapper">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <a href="{% url 'user_list' %}" class="back-link" title="Back to User List">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <h2>
+                <i class="bi bi-person-badge"></i>
+                {% if object %}Edit Staff Details{% else %}Register New Staff{% endif %}
+            </h2>
+            <div class="subtitle">
+                <i class="bi bi-info-circle me-1"></i>
+                {% if object %}Update system access and roles for staff member{% else %}Provision a new staff account with appropriate permissions{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Form Card -->
+    <div class="staff-card">
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                {% for field in form %}
+                <div class="form-group">
+                    <label class="form-label">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="required">*</span>{% endif %}
+                    </label>
+
+                    {% if field.errors %}
+                    <ul class="errorlist">
+                        {% for error in field.errors %}
+                        <li><i class="bi bi-exclamation-circle"></i> {{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
+                    <!-- ========================================
+                    MULTI-SELECT FIELDS (Groups & Modules)
+                    ======================================== -->
+                    {% if field.name == 'groups' or field.name == 'allowed_modules' %}
+                    <div class="multi-select-wrapper">
+                        <div class="select-hint">
+                            <i class="bi {% if field.name == 'groups' %}bi-shield-check{% else %}bi-cpu{% endif %}"></i>
+                            {% if field.name == 'groups' %}
+                                Assign one or more functional roles
+                            {% else %}
+                                Enable specific feature modules
+                            {% endif %}
+                        </div>
+                        {{ field }}
+                    </div>
+
+                    <!-- ========================================
+                    CHECKBOX / SWITCH FIELDS
+                    ======================================== -->
+                    {% elif field.field.widget.input_type == 'checkbox' %}
+                    <div class="switch-wrapper">
+                        {{ field }}
+                        <label class="switch-label">
+                            {% if field.name == 'is_staff' %}
+                                Grant Administrative Privileges
+                            {% else %}
+                                {{ field.label }}
+                            {% endif %}
+                        </label>
+                    </div>
+
+                    <!-- ========================================
+                    TEXT / NUMBER / EMAIL / PASSWORD FIELDS
+                    ======================================== -->
+                    {% else %}
+                    <input type="{{ field.field.widget.input_type|default:'text' }}"
+                           name="{{ field.name }}"
+                           class="form-control {% if field.errors %}is-invalid{% endif %}"
+                           value="{{ field.value|default:'' }}"
+                           placeholder="Enter {{ field.label|lower }}{% if not field.field.required %} (optional){% endif %}"
+                           {% if field.field.required %}required{% endif %}
+                           {% if field.field.widget.input_type == 'password' %}autocomplete="new-password"{% endif %}>
+                    {% endif %}
+
+                    {% if field.help_text %}
+                    <div class="form-text"><i class="bi bi-info-circle"></i> {{ field.help_text }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <!-- Submit -->
+                <div class="mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                    <button type="submit" class="btn-submit">
+                        <i class="bi bi-check2-circle"></i>
+                        {% if object %}Update Staff Record{% else %}Provision Account{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer Note -->
+    <div class="footer-note">
+        <p>
+            <i class="bi bi-info-circle-fill me-1"></i>
+            Credentials will be managed securely via the system's recovery protocol.
+        </p>
+    </div>
+
+</div>
+
 {% endblock %}

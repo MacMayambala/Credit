@@ -1,0 +1,593 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Point of Sale | MAC Technologies{% endblock %}
+
+{% block content %}
+
+<div class="row g-4">
+
+    <!-- LEFT: PRODUCTS -->
+    <div class="col-lg-8">
+
+        <!-- Search Bar -->
+        <div class="mb-4">
+            <div class="input-group">
+                <span class="input-group-text bg-transparent border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" id="productSearch" class="form-control border-start-0 ps-0"
+                       placeholder="Search products by name or barcode..."
+                       style="padding-left: 0.5rem;">
+                <button class="btn px-4" style="background: var(--brand-cobalt); color: #ffffff; border: none; border-radius: 0 12px 12px 0;">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="row row-cols-2 row-cols-md-3 g-3" id="productGrid">
+
+            {% for product in products %}
+            <div class="col">
+
+                <div class="product-card"
+                     style="cursor:pointer; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.25rem 0.75rem; text-align: center; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);"
+                     onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.08)';"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';"
+                     onclick="addToCart('{{ product.id|stringformat:"s" }}', '{{ product.name }}', {{ product.selling_price }}, '{{ product.current_stock|default:0 }}')">
+
+                    <!-- Product Icon/Image placeholder -->
+                    <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--brand-cobalt); margin: 0 auto 0.75rem; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem;">
+                        <i class="bi bi-box"></i>
+                    </div>
+
+                    <h6 class="mb-1 fw-semibold" style="font-size: 0.875rem; color: var(--text-primary);">
+                        {{ product.name }}
+                    </h6>
+
+                    <div class="fw-bold" style="font-size: 0.95rem; color: var(--brand-cobalt);">
+                        UGX {{ product.selling_price|intcomma }}
+                    </div>
+
+                    <div class="mt-2">
+                        <span class="badge {% if product.current_stock > 10 %}bg-success{% elif product.current_stock > 0 %}bg-warning text-dark{% else %}bg-danger{% endif %}" 
+                              style="font-size: 0.6rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 100px;">
+                            {{ product.current_stock|default:0 }} in stock
+                        </span>
+                    </div>
+
+                </div>
+
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-box-seam text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">No products available</p>
+            </div>
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+    <!-- RIGHT: CART -->
+    <div class="col-lg-4">
+
+        <div class="cart-panel" 
+             style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 1.5rem; position: sticky; top: 90px; box-shadow: 0 8px 30px rgba(0,0,0,0.06);">
+
+            <!-- Cart Header -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="fw-bold mb-0" style="color: var(--text-primary);">
+                    <i class="bi bi-cart3 me-2" style="color: var(--brand-cobalt);"></i> Current Sale
+                </h5>
+                <span class="badge" style="background: var(--brand-cobalt-bg); color: var(--brand-cobalt); font-size: 0.7rem; font-weight: 600; padding: 0.3rem 0.8rem; border-radius: 100px;">
+                    <span id="cartCount">0</span> items
+                </span>
+            </div>
+
+            <hr style="border-color: var(--border-color); opacity: 0.5;">
+
+            <!-- Cart Items -->
+            <div id="cartItems" class="mb-3" style="max-height: 400px; overflow-y: auto;">
+                <div class="text-center text-muted py-5" style="font-size: 0.875rem;">
+                    <i class="bi bi-cart-plus" style="font-size: 2rem; display: block; margin-bottom: 0.5rem; opacity: 0.3;"></i>
+                    No items in cart
+                </div>
+            </div>
+
+            <hr style="border-color: var(--border-color); opacity: 0.5;">
+
+            <!-- Subtotal -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span style="color: var(--text-secondary); font-size: 0.875rem;">Subtotal</span>
+                <span id="cartSubtotal" style="font-weight: 600; color: var(--text-primary);">UGX 0</span>
+            </div>
+
+            <!-- Tax (optional) -->
+            <div class="d-flex justify-content-between align-items-center mb-3" style="font-size: 0.8rem; color: var(--text-muted);">
+                <span>Tax (0%)</span>
+                <span>UGX 0</span>
+            </div>
+
+            <!-- Total -->
+            <div class="d-flex justify-content-between align-items-center" style="border-top: 2px solid var(--border-color); padding-top: 1rem; margin-bottom: 1.25rem;">
+                <span class="fw-bold" style="font-size: 1.1rem; color: var(--text-primary);">Total</span>
+                <span id="cartTotal" class="fw-bold" style="font-size: 1.25rem; color: var(--brand-cobalt);">UGX 0</span>
+            </div>
+
+            <!-- Checkout Button -->
+            <button class="btn w-100 py-3 rounded-pill fw-bold" 
+                    id="checkoutBtn"
+                    onclick="checkout()"
+                    style="background: var(--brand-cobalt); color: #ffffff; border: none; transition: all 0.25s ease; font-size: 0.95rem; letter-spacing: 0.02em; box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);">
+                <i class="bi bi-bag-check me-2"></i> Complete Sale
+            </button>
+
+            <!-- Clear Cart -->
+            <button class="btn btn-link w-100 mt-2 text-muted text-decoration-none" 
+                    onclick="clearCart()"
+                    style="font-size: 0.75rem; font-weight: 500;">
+                <i class="bi bi-trash3 me-1"></i> Clear Cart
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<style>
+    /* Custom scroll for cart items */
+    #cartItems::-webkit-scrollbar {
+        width: 4px;
+    }
+    #cartItems::-webkit-scrollbar-track {
+        background: var(--bg-body);
+        border-radius: 10px;
+    }
+    #cartItems::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 10px;
+    }
+
+    .cart-item {
+        background: var(--bg-body);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+        border-left: 3px solid var(--brand-cobalt);
+        animation: slideInItem 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes slideInItem {
+        from {
+            opacity: 0;
+            transform: translateX(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .cart-item .item-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+    }
+
+    .cart-item .item-price {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .cart-item .item-total {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+
+    .qty-btn {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .qty-btn:hover {
+        background: var(--brand-cobalt);
+        color: white;
+        border-color: var(--brand-cobalt);
+        transform: scale(1.05);
+    }
+
+    .qty-btn:active {
+        transform: scale(0.95);
+    }
+
+    .qty-display {
+        min-width: 24px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+    }
+
+    .remove-item {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1rem;
+        padding: 0 0.25rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .remove-item:hover {
+        color: #ef4444;
+        transform: scale(1.1);
+    }
+
+    /* Empty state */
+    .empty-cart {
+        text-align: center;
+        padding: 2rem 0;
+        color: var(--text-muted);
+    }
+
+    .empty-cart i {
+        font-size: 2.5rem;
+        display: block;
+        margin-bottom: 0.5rem;
+        opacity: 0.3;
+    }
+
+    .empty-cart p {
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .product-card {
+        animation: fadeIn 0.3s ease forwards;
+    }
+</style>
+
+<!-- ================= JAVASCRIPT ================= -->
+<script>
+
+let cart = [];
+let isProcessing = false;
+
+// Product Search
+document.getElementById('productSearch').addEventListener('keyup', function(e) {
+    const query = this.value.toLowerCase().trim();
+    const cards = document.querySelectorAll('.product-card');
+
+    cards.forEach(card => {
+        const name = card.querySelector('h6')?.textContent?.toLowerCase() || '';
+        const shouldShow = name.includes(query);
+        card.closest('.col').style.display = shouldShow ? '' : 'none';
+    });
+});
+
+function addToCart(id, name, price, stock) {
+    // Check if product is already in cart
+    const existing = cart.find(item => item.id === id);
+    const currentQty = existing ? existing.qty : 0;
+
+    if (currentQty >= parseInt(stock)) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Stock Limit Reached',
+            text: `Only ${stock} units of "${name}" available in stock.`,
+            confirmButtonColor: '#1632af',
+            timer: 3000,
+            timerProgressBar: true
+        });
+        return;
+    }
+
+    let item = cart.find(item => item.id === id);
+
+    if (item) {
+        item.qty += 1;
+    } else {
+        cart.push({
+            id: id,
+            name: name,
+            price: parseFloat(price),
+            qty: 1
+        });
+    }
+
+    updateCartUI();
+    
+    // SweetAlert notification
+    Swal.fire({
+        icon: 'success',
+        title: 'Added to Cart',
+        text: `${name} added successfully`,
+        timer: 1500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+    });
+}
+
+function updateCartUI() {
+    const cartDiv = document.getElementById('cartItems');
+    let total = 0;
+    let itemCount = 0;
+
+    cartDiv.innerHTML = "";
+
+    if (cart.length === 0) {
+        cartDiv.innerHTML = `
+            <div class="empty-cart">
+                <i class="bi bi-cart-plus"></i>
+                <p>No items in cart</p>
+            </div>
+        `;
+        document.getElementById('cartCount').textContent = '0';
+        document.getElementById('cartTotal').textContent = 'UGX 0';
+        document.getElementById('cartSubtotal').textContent = 'UGX 0';
+        return;
+    }
+
+    cart.forEach((item, index) => {
+        let itemTotal = item.qty * item.price;
+        total += itemTotal;
+        itemCount += item.qty;
+
+        cartDiv.innerHTML += `
+            <div class="cart-item d-flex justify-content-between align-items-center">
+                <div style="flex: 1; min-width: 0;">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">UGX ${item.price.toLocaleString()} × ${item.qty}</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div class="item-total">UGX ${itemTotal.toLocaleString()}</div>
+                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                        <button class="qty-btn" onclick="changeQty(${index}, -1)">−</button>
+                        <span class="qty-display">${item.qty}</span>
+                        <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                        <button class="remove-item" onclick="removeItem(${index})" title="Remove item">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById('cartCount').textContent = itemCount;
+    document.getElementById('cartTotal').textContent = "UGX " + total.toLocaleString();
+    document.getElementById('cartSubtotal').textContent = "UGX " + total.toLocaleString();
+}
+
+function changeQty(index, change) {
+    cart[index].qty += change;
+
+    if (cart[index].qty <= 0) {
+        cart.splice(index, 1);
+    }
+
+    updateCartUI();
+}
+
+function removeItem(index) {
+    const item = cart[index];
+    cart.splice(index, 1);
+    updateCartUI();
+    
+    Swal.fire({
+        icon: 'info',
+        title: 'Removed',
+        text: `${item.name} removed from cart`,
+        timer: 1500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+    });
+}
+
+function clearCart() {
+    if (cart.length === 0) return;
+    
+    Swal.fire({
+        title: 'Clear Cart?',
+        text: 'All items will be removed from the cart.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#1632af',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, clear all',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            cart = [];
+            updateCartUI();
+            Swal.fire({
+                icon: 'info',
+                title: 'Cart Cleared',
+                timer: 1500,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
+        }
+    });
+}
+
+function checkout() {
+    if (isProcessing) return;
+    
+    if (cart.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Empty Cart',
+            text: 'Add some products to the cart first.',
+            confirmButtonColor: '#1632af'
+        });
+        return;
+    }
+
+    // Show confirmation dialog
+    const total = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    
+    Swal.fire({
+        title: 'Complete Sale?',
+        html: `
+            <div style="text-align: left;">
+                <p><strong>Items:</strong> ${cart.length} products</p>
+                <p><strong>Total:</strong> UGX ${total.toLocaleString()}</p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#1632af',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, Complete Sale',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            processSale();
+        }
+    });
+}
+
+function processSale() {
+    isProcessing = true;
+    
+    // Disable button
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    checkoutBtn.disabled = true;
+    checkoutBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
+
+    // Show processing dialog
+    Swal.fire({
+        title: 'Processing Sale...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Prepare cart data with proper UUID format
+    const cartData = cart.map(item => ({
+        id: item.id,
+        qty: item.qty
+    }));
+
+    console.log('Sending cart data:', cartData);
+
+    // Use the correct URL - pos_checkout
+    fetch("{% url 'hardware:pos_checkout' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({ 
+            cart: cartData,
+            payment_method: 'CASH'
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.message || err.error || 'Server error');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'error' || data.error) {
+            throw new Error(data.message || data.error || 'Sale failed');
+        }
+
+        // Reset cart
+        cart = [];
+        updateCartUI();
+
+        // Close the loading dialog
+        Swal.close();
+
+        // Show success
+        Swal.fire({
+            icon: 'success',
+            title: 'Sale Completed!',
+            text: 'Transaction processed successfully.',
+            confirmButtonColor: '#1632af',
+            timer: 2000,
+            timerProgressBar: true
+        }).then(() => {
+            // Redirect to receipt
+            window.location.href = `/hardware/receipt/${data.sale_id}/`;
+        });
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        Swal.close();
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: err.message || 'Error processing sale. Please try again.',
+            confirmButtonColor: '#1632af'
+        });
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = '<i class="bi bi-bag-check me-2"></i> Complete Sale';
+        isProcessing = false;
+    });
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl+K or Cmd+K to focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        document.getElementById('productSearch').focus();
+    }
+    // Escape to clear search
+    if (e.key === 'Escape') {
+        const search = document.getElementById('productSearch');
+        if (document.activeElement === search) {
+            search.value = '';
+            search.dispatchEvent(new Event('keyup'));
+            search.blur();
+        }
+    }
+    // Ctrl+Enter to checkout
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        checkout();
+    }
+});
+
+// Show keyboard shortcuts on page load
+console.log('💡 Keyboard shortcuts: Ctrl+K (Search), Esc (Clear search), Ctrl+Enter (Checkout)');
+</script>
+
+{% endblock %}

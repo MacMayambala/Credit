@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Add{% endif %} Product | MAC Technologies{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap flex-sm-nowrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-box-seam" style="color: var(--brand-cobalt); font-size: 1.5rem;"></i>
+            {% if is_edit %}Edit{% else %}Add New{% endif %} Product
+        </h4>
+        <p class="text-muted small mb-0 mt-1">
+            <i class="bi bi-info-circle me-1"></i>
+            {% if is_edit %}Update product information{% else %}Create and manage inventory items{% endif %}
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'hardware:product_list' %}" class="btn btn-outline-secondary d-flex align-items-center gap-2 rounded-pill px-4">
+            <i class="bi bi-arrow-left"></i>
+            <span>Back to Products</span>
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+
+        <div class="content-card" style="padding: 2rem 2.25rem;">
+
+            <form method="post" novalidate class="needs-validation">
+                {% csrf_token %}
+
+                <div class="row g-4">
+
+                    <!-- Product Code -->
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            <i class="bi bi-upc-scan me-1" style="color: var(--brand-cobalt);"></i>
+                            Product Code
+                        </label>
+                        {{ form.product_code }}
+                        {% if form.product_code.errors %}
+                            <div class="invalid-feedback d-block">{{ form.product_code.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted" style="font-size: 0.7rem;">Leave blank to auto-generate</small>
+                    </div>
+
+                    <!-- Product Name -->
+                    <div class="col-md-8">
+                        <label class="form-label">
+                            <i class="bi bi-tag me-1" style="color: var(--brand-cobalt);"></i>
+                            Product Name <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback d-block">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Category -->
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            <i class="bi bi-folder me-1" style="color: var(--brand-cobalt);"></i>
+                            Category <span class="text-danger">*</span>
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                            <div class="invalid-feedback d-block">{{ form.category.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Cost Price -->
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            <i class="bi bi-coin me-1" style="color: var(--brand-cobalt);"></i>
+                            Cost Price (UGX)
+                        </label>
+                        {{ form.cost_price }}
+                        {% if form.cost_price.errors %}
+                            <div class="invalid-feedback d-block">{{ form.cost_price.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted" style="font-size: 0.7rem;">Purchase price per unit</small>
+                    </div>
+
+                    <!-- Selling Price -->
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            <i class="bi bi-cash-stack me-1" style="color: var(--brand-cobalt);"></i>
+                            Selling Price (UGX) <span class="text-danger">*</span>
+                        </label>
+                        {{ form.selling_price }}
+                        {% if form.selling_price.errors %}
+                            <div class="invalid-feedback d-block">{{ form.selling_price.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted" style="font-size: 0.7rem;">Retail price per unit</small>
+                    </div>
+
+                    <!-- Reorder Level -->
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            <i class="bi bi-exclamation-triangle me-1" style="color: var(--brand-cobalt);"></i>
+                            Reorder Level
+                        </label>
+                        {{ form.reorder_level }}
+                        {% if form.reorder_level.errors %}
+                            <div class="invalid-feedback d-block">{{ form.reorder_level.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted" style="font-size: 0.7rem;">Stock level that triggers reorder alert</small>
+                    </div>
+
+                </div>
+
+                <!-- Price Margin Preview -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="p-3 rounded-3" style="background: var(--brand-cobalt-bg); border: 1px solid rgba(22, 50, 175, 0.15);">
+                            <div class="d-flex flex-wrap gap-4 align-items-center">
+                                <div>
+                                    <span class="text-muted small text-uppercase fw-semibold d-block">Margin Preview</span>
+                                    <span id="marginPreview" class="fw-bold" style="color: var(--brand-cobalt);">0%</span>
+                                </div>
+                                <div>
+                                    <span class="text-muted small text-uppercase fw-semibold d-block">Profit per Unit</span>
+                                    <span id="profitPreview" class="fw-bold" style="color: #10b981;">UGX 0</span>
+                                </div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Based on cost and selling price
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4" style="border-color: var(--border-color); opacity: 0.5;">
+
+                <!-- Actions -->
+                <div class="d-flex flex-wrap flex-sm-nowrap justify-content-between align-items-center gap-3">
+
+                    <div class="text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Fields marked with <span class="text-danger">*</span> are required
+                    </div>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{% url 'hardware:product_list' %}" class="btn btn-light rounded-pill px-4 d-flex align-items-center gap-2">
+                            <i class="bi bi-x-circle"></i>
+                            <span>Cancel</span>
+                        </a>
+
+                        <button type="submit" class="btn rounded-pill px-5 d-flex align-items-center gap-2" 
+                                style="background: var(--brand-cobalt); color: #ffffff; border: none; box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);">
+                            <i class="bi bi-save"></i>
+                            <span>{% if is_edit %}Update{% else %}Save{% endif %} Product</span>
+                        </button>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* Make Django form fields match your UI system */
+    input, select, textarea {
+        width: 100%;
+        padding: 0.6rem 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+        font-family: inherit;
+    }
+
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 3px rgba(22, 50, 175, 0.12);
+    }
+
+    input.is-invalid, select.is-invalid, textarea.is-invalid {
+        border-color: #ef4444;
+    }
+
+    input.is-invalid:focus, select.is-invalid:focus, textarea.is-invalid:focus {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+    }
+
+    /* Labels */
+    .form-label {
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.4rem;
+        display: block;
+    }
+
+    /* Help text */
+    .form-text {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+
+    /* Invalid feedback */
+    .invalid-feedback {
+        font-size: 0.75rem;
+        color: #ef4444;
+        margin-top: 0.25rem;
+        display: block;
+    }
+
+    /* Content card hover */
+    .content-card:hover {
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Number input arrows styling */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        opacity: 0.5;
+    }
+
+    input[type="number"]:hover::-webkit-inner-spin-button,
+    input[type="number"]:hover::-webkit-outer-spin-button {
+        opacity: 1;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 576px) {
+        .content-card {
+            padding: 1.25rem !important;
+        }
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        .d-flex.flex-wrap.flex-sm-nowrap {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+        .d-flex.flex-wrap.flex-sm-nowrap > div {
+            text-align: center;
+        }
+    }
+
+    /* Animation for price preview */
+    @keyframes fadeInPreview {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    #marginPreview, #profitPreview {
+        animation: fadeInPreview 0.3s ease forwards;
+    }
+</style>
+
+<!-- JavaScript for live price preview -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const costInput = document.querySelector('input[name="cost_price"]');
+        const sellInput = document.querySelector('input[name="selling_price"]');
+        const marginPreview = document.getElementById('marginPreview');
+        const profitPreview = document.getElementById('profitPreview');
+
+        function updatePreview() {
+            const cost = parseFloat(costInput?.value) || 0;
+            const sell = parseFloat(sellInput?.value) || 0;
+
+            if (cost > 0 && sell > 0) {
+                const profit = sell - cost;
+                const margin = (profit / sell) * 100;
+
+                profitPreview.textContent = 'UGX ' + profit.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                });
+
+                marginPreview.textContent = margin.toFixed(1) + '%';
+                marginPreview.style.color = margin > 30 ? '#10b981' : margin > 10 ? '#f59e0b' : '#ef4444';
+            } else {
+                profitPreview.textContent = 'UGX 0';
+                marginPreview.textContent = '0%';
+                marginPreview.style.color = 'var(--brand-cobalt)';
+            }
+        }
+
+        if (costInput) costInput.addEventListener('input', updatePreview);
+        if (sellInput) sellInput.addEventListener('input', updatePreview);
+
+        // Initial preview
+        updatePreview();
+
+        // Bootstrap form validation
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+
+        // Keyboard shortcut: Ctrl+Enter to submit
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                const form = document.querySelector('form');
+                if (form && document.activeElement?.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    form.submit();
+                }
+            }
+        });
+
+        console.log('💡 Keyboard shortcuts: Ctrl+Enter (Submit form)');
+    });
+</script>
+
+{% endblock %}

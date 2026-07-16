@@ -8,6 +8,49 @@ from .models import (
     Installment, Loan, Member, Repayment, SavingsAccount, SystemSetting, Transaction, TransactionReversal, 
     process_repayment, generate_schedule
 )
+from .models import Loan, LoanPenaltyRule, Member, Installment
+# finance/views.py
+import json
+import random
+import string
+import logging
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
+
+from .models import (
+    Loan,
+    Member,
+    Installment,
+    LoanPenaltyRule,          # <-- add this
+    generate_schedule,
+           # if you have these helpers
+)
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.db.models import Sum, F, Q, DecimalField, ExpressionWrapper, Window
+from django.db.models.functions import Coalesce, ExtractMonth, TruncMonth  # Add TruncMonth here
+from django.utils import timezone
+from django.core.exceptions import PermissionDenied
+from django.contrib.auth.models import User
+from django_celery_beat.models import PeriodicTask
+
+from .models import (
+    Installment, Loan, Member, SavingsAccount, Transaction, 
+    Repayment, TransactionReversal, SystemSetting, GeneralLedger,
+    ChartOfAccount, AutoRepaymentSetting, AutoRepaymentLog, DailyRepaymentSummary
+)
+from .services import (
+    FinancialTransactionService, process_repayment, generate_transaction_ref,
+    LoanRepaymentEngineService
+)
+from .forms import AutoRepaymentSettingForm
+from .utils import send_bulk_arrears_reminders, generate_schedule
+
+logger = logging.getLogger(__name__)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
@@ -226,28 +269,190 @@ from dateutil.relativedelta import relativedelta
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from django.db.models import Sum
+from decimal import Decimal
+from dateutil.relativedelta import relativedelta
+
+from .models import Loan, Installment, Repayment, ManualPenalty
+from .utils import generate_schedule  # assuming you have this utility
+
+# finance/views.py
+# finance/views.py
+from decimal import Decimal
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+from .models import Loan, ManualPenalty
+
+# finance/views.py
+from decimal import Decimal
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+from .models import Loan, ManualPenalty
+from .utils import generate_schedule   # if you have it; otherwise import from models
+
+# finance/views.py
+from decimal import Decimal
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+
+from .models import Loan, ManualPenalty
+from .utils import generate_schedule   # if you have this in utils.py; adjust if needed
+
+
+# finance/views.py
+from decimal import Decimal
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+
+from .models import Loan, ManualPenalty
+from .utils import generate_schedule   # adjust import if needed
+
+# finance/views.py
+from decimal import Decimal
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+
+from .models import Loan, ManualPenalty
+from .utils import generate_schedule   # adjust if you have it elsewhere
+
+
+# finance/views.py
+from decimal import Decimal
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+import math   # for ceil in penalty calculation
+
+from .models import Loan, ManualPenalty
+from .utils import generate_schedule   # or from .models import generate_schedule
+from finance.penalties import calculate_penalty   # ensure this import works
+# finance/views.py
+from decimal import Decimal
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+
+from .models import Loan, ManualPenalty
+from .utils import generate_schedule   # or import from wherever you have it
+from finance.penalties import calculate_penalty   # your penalty calculator
+
+# finance/views.py
+from decimal import Decimal
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+from .models import Loan, ManualPenalty
+from .utils import generate_schedule
+from finance.penalties import calculate_penalty
+
+# finance/views.py
+from decimal import Decimal
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+
+from .models import Loan, ManualPenalty
+from .utils import generate_schedule
+from finance.penalties import calculate_penalty
+
+
+# finance/views.py
+from decimal import Decimal
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+
+from .models import Loan, ManualPenalty
+from .utils import generate_schedule
+from finance.penalties import calculate_penalty
+
 
 @login_required
 def loan_detail(request, pk):
     loan = get_object_or_404(Loan.objects.select_related('member', 'officer'), pk=pk)
     today = timezone.now().date()
 
+    # Generate schedule if missing
     if not loan.installments.exists():
-        loan.generate_schedule()
+        generate_schedule(loan)
 
+    # Due amounts for banner
     active_due = loan.installments.filter(paid=False, due_date__lte=today).aggregate(
         total_interest=Sum('interest_portion'),
         total_principal=Sum('principal_portion')
     )
-
     interest_due = active_due['total_interest'] or Decimal('0.00')
     principal_due = active_due['total_principal'] or Decimal('0.00')
     total_due_now = (interest_due + principal_due).quantize(Decimal('0.01'))
 
     total_paid = loan.repayments.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0')
-    
+    total_payable = loan.total_payable or Decimal('0')
+
     disbursement_date = loan.disbursed_date or loan.start_date
     end_date = disbursement_date + relativedelta(months=loan.period_months) if disbursement_date else None
+
+    # --- Build enriched schedule (combines calculated + manual penalties) ---
+    # We build a list of dictionaries with the same keys as the original installment object,
+    # so the template can still use inst.xxx without changes.
+    schedule = []
+    for inst in loan.installments.all().order_by('due_date'):
+        # Calculated penalty from the rule
+        calc_penalty = calculate_penalty(inst) or Decimal('0.00')
+
+        # Manual penalties (not waived) for this installment
+        manual_total = inst.manual_penalties.filter(is_waived=False).aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+
+        total_penalty = calc_penalty + manual_total
+
+        # Balances
+        principal_bal = inst.principal_balance
+        interest_bal = inst.interest_balance
+        total_balance = principal_bal + interest_bal + total_penalty
+
+        schedule.append({
+            'id': inst.id,
+            'due_date': inst.due_date,
+            'principal_portion': inst.principal_portion,
+            'interest_portion': inst.interest_portion,
+            'penalty_amount': total_penalty,          # <-- this will show combined penalty
+            'balance': total_balance,                 # <-- this will include penalty
+            'paid': inst.paid,
+            'is_overdue': inst.is_overdue,
+        })
+
+    # Manual penalties (for the card)
+    manual_penalties = loan.manual_penalties.filter(is_waived=False).order_by('-applied_date')
+    total_manual_penalty = manual_penalties.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
     context = {
         'loan': loan,
@@ -255,14 +460,17 @@ def loan_detail(request, pk):
         'interest_due': interest_due,
         'principal_due': principal_due,
         'total_due_now': total_due_now,
-        'schedule': loan.installments.all().order_by('due_date'),
+        'schedule': schedule,                         # <-- reusing the same variable name
         'repayments': loan.repayments.all().order_by('-date_paid'),
         'total_paid': total_paid.quantize(Decimal('0.01')),
+        'total_payable': total_payable,
         'disbursement_date': disbursement_date,
         'end_date': end_date,
         'today': today,
+        'manual_penalties': manual_penalties,
+        'total_manual_penalty': total_manual_penalty,
     }
-    
+
     return render(request, 'finance/loan_detail.html', context)
 from decimal import Decimal
 from django.contrib import messages
@@ -305,6 +513,7 @@ from .utils import generate_loan_ref
 def apply_loan(request, member_id=None):
     """
     Clean & Modern Loan Application View - Uses term_value + repayment_frequency
+    Integrated with LoanPenaltyRule for flexible penalties.
     """
     members = Member.objects.all().order_by('first_name')
     selected_member = None
@@ -345,6 +554,7 @@ def apply_loan(request, member_id=None):
                 total_interest = (principal * (interest_rate / 100) * term_value).quantize(Decimal('0.01'))
                 total_payable = principal + total_interest
 
+                # --- Create Loan (deprecating old penalty fields) ---
                 loan = Loan(
                     member=member,
                     officer=request.user,
@@ -379,6 +589,7 @@ def apply_loan(request, member_id=None):
                     contact_person=request.POST.get('contact_person', ''),
                     contact_phone=request.POST.get('contact_phone', ''),
 
+                    # Old penalty fields (will be overridden by LoanPenaltyRule)
                     penalty_type=request.POST.get('penalty_type', 'daily_flat'),
                     penalty_rate=Decimal(request.POST.get('penalty_rate') or '1.0'),
                     penalty_flat_amount=Decimal(request.POST.get('penalty_flat_amount') or '1000'),
@@ -389,7 +600,47 @@ def apply_loan(request, member_id=None):
 
                 loan.save()
 
-                # Generate installments based on frequency
+                # --- Create the Penalty Rule ---
+                penalty_type = request.POST.get('penalty_type', 'daily_flat')
+                penalty_rate = Decimal(request.POST.get('penalty_rate') or '0')
+                penalty_flat_amount = Decimal(request.POST.get('penalty_flat_amount') or '1000')
+                penalty_grace_days = int(request.POST.get('penalty_grace_days') or '0')
+                max_penalty_cap = Decimal(request.POST.get('max_penalty_cap') or '0')
+                compound = request.POST.get('compound') == 'true'
+
+                # Map period (default to monthly, but could be derived from frequency)
+                # We'll set period = repayment_frequency if it's monthly/weekly/daily, else monthly.
+                frequency_to_period = {
+                    'monthly': 'monthly',
+                    'weekly': 'weekly',
+                    'daily': 'daily',
+                    'manual': 'monthly',  # fallback
+                }
+                period = frequency_to_period.get(repayment_frequency, 'monthly')
+
+                # Map penalty_type to the rule's choices
+                # The rule uses: 'fixed', 'percentage', 'daily_flat', 'daily_percentage'
+                # We'll map the form values accordingly
+                # Form values: 'daily_flat', 'daily_percentage', 'fixed', 'compound'
+                # For compound, we treat as percentage based on overdue amount (with compound flag True)
+                # So we'll map 'compound' to 'percentage' with compound=True
+                rule_penalty_type = penalty_type
+                if penalty_type == 'compound':
+                    rule_penalty_type = 'percentage'  # but set compound True
+
+                penalty_rule = LoanPenaltyRule.objects.create(
+                    loan=loan,
+                    penalty_type=rule_penalty_type,
+                    period=period,
+                    fixed_amount=penalty_flat_amount,
+                    percentage_rate=penalty_rate,
+                    grace_period_days=penalty_grace_days,
+                    max_penalty_cap=max_penalty_cap,
+                    compound=compound,
+                )  
+                
+
+                # Generate installments
                 generate_schedule(loan)
 
                 messages.success(request, f"Loan {ref_code} created successfully!")
@@ -407,7 +658,6 @@ def apply_loan(request, member_id=None):
         'product_choices': Loan.PRODUCT_CHOICES,
     }
     return render(request, 'finance/apply_loan.html', context)
-
 @login_required
 @transaction.atomic
 def approve_loan(request, pk, action):
@@ -481,6 +731,38 @@ from .models import Member, SavingsAccount, SystemSetting, Loan
 from .services import FinancialTransactionService # Ensure this is created
 from .utils import generate_transaction_ref
 
+
+# finance/views.py
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction as db_transaction
+from django.utils import timezone
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+import uuid
+import logging
+
+from .models import Member, Loan, SystemSetting, Transaction, SavingsAccount
+from .services import FinancialTransactionService, process_repayment, generate_transaction_ref
+
+logger = logging.getLogger(__name__)
+
+
+# finance/views.py
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction as db_transaction
+from django.utils import timezone
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+import logging
+
+from .models import Member, Loan, SystemSetting, Transaction, SavingsAccount, Installment
+from .services import FinancialTransactionService, process_repayment, generate_transaction_ref
+
+logger = logging.getLogger(__name__)
+
+
 @login_required
 @transaction.atomic
 def deposit_savings(request, member_id):
@@ -488,46 +770,152 @@ def deposit_savings(request, member_id):
     Handles member deposits with high-precision Decimal math,
     atomic ledger updates, and auto-sweep recovery.
     """
+    print("=" * 60)
+    print("DEPOSIT SAVINGS FUNCTION STARTED")
+    print(f"Member ID: {member_id}")
+    print("=" * 60)
+    
     member = get_object_or_404(Member, id=member_id)
+    print(f"Member found: {member.get_full_name()} (ID: {member.id})")
+    
     backdate_allowed = SystemSetting.is_backdate_allowed()
+    print(f"Backdate allowed: {backdate_allowed}")
+    
+    # Get previous balance for receipt
+    previous_balance = Decimal('0')
+    if hasattr(member, 'savings') and member.savings:
+        previous_balance = member.savings.balance
+        print(f"Previous balance: {previous_balance}")
+    else:
+        print("No savings account found for member")
     
     if request.method == "POST":
+        print("\n--- POST Request Received ---")
+        print(f"POST data: {request.POST}")
+        
         amount_raw = request.POST.get('amount', '0').strip()
         custom_date = request.POST.get('back_date')
+        print(f"Amount raw: {amount_raw}")
+        print(f"Custom date: {custom_date}")
+        
+        # Validate amount
+        if not amount_raw:
+            print("ERROR: No amount provided")
+            messages.error(request, "Please enter a deposit amount.")
+            return redirect('deposit_savings', member_id=member.id)
         
         try:
-            amount = Decimal(amount_raw).quantize(Decimal('1.00'), rounding=ROUND_HALF_UP)
-            if amount <= 0:
-                messages.error(request, "Deposit amount must be greater than zero.")
-                return redirect('deposit_savings', member_id=member.id)
-            
-            # 1. Execute Atomic Transaction via Service Layer
-            # This handles: Savings Balance, Transaction Record, and GL Entries
+            amount = Decimal(amount_raw)
+            print(f"Amount converted to Decimal: {amount}")
+        except (ValueError, InvalidOperation, TypeError) as e:
+            print(f"ERROR converting amount: {e}")
+            messages.error(request, "Please enter a valid number for the deposit amount.")
+            return redirect('deposit_savings', member_id=member.id)
+        
+        # Quantize to 2 decimal places
+        amount = amount.quantize(Decimal('1.00'), rounding=ROUND_HALF_UP)
+        print(f"Amount quantized: {amount}")
+        
+        if amount <= 0:
+            print("ERROR: Amount is zero or negative")
+            messages.error(request, "Deposit amount must be greater than zero.")
+            return redirect('deposit_savings', member_id=member.id)
+        
+        try:
+            # Generate transaction reference
             ref = generate_transaction_ref("DEP")
-            txn_timestamp = custom_date if (backdate_allowed and custom_date) else timezone.now()
+            print(f"Generated reference: {ref}")
             
-            FinancialTransactionService.record_deposit(
+            txn_timestamp = custom_date if (backdate_allowed and custom_date) else timezone.now()
+            print(f"Transaction timestamp: {txn_timestamp}")
+            
+            # Execute Atomic Transaction via Service Layer
+            print("Calling FinancialTransactionService.record_deposit...")
+            transaction_obj = FinancialTransactionService.record_deposit(
                 member=member, 
                 amount=amount, 
                 receipt_ref=ref, 
-                date=txn_timestamp
+                date=txn_timestamp,
+                created_by=request.user
             )
+            print(f"Deposit recorded successfully. Transaction ID: {transaction_obj.id}")
             
-            # 2. Check for Arrears/Auto-Sweep Recovery
+            # Refresh member to get updated balance
+            member.refresh_from_db()
+            new_balance = Decimal('0')
+            if hasattr(member, 'savings') and member.savings:
+                new_balance = member.savings.balance
+                print(f"New balance: {new_balance}")
+            
+            # Check for Arrears/Auto-Sweep Recovery
+            arrears_cleared = Decimal('0')
             active_loan = Loan.objects.filter(member=member, is_active=True).first()
-            if active_loan and active_loan.installments.filter(paid=False, due_date__lte=timezone.now().date()).exists():
-                process_repayment(active_loan.id)
-                messages.info(request, f"Deposit {ref} recorded. Arrears detected; auto-repayment triggered.")
+            
+            if active_loan:
+                print(f"Active loan found: {active_loan.loan_reference}")
+                # Check for overdue installments
+                overdue_installments = Installment.objects.filter(
+                    loan=active_loan,
+                    paid=False,
+                    due_date__lte=timezone.now().date()
+                )
+                overdue_exists = overdue_installments.exists()
+                print(f"Overdue installments exist: {overdue_exists}")
+                
+                if overdue_exists:
+                    print("Processing repayment...")
+                    result = process_repayment(active_loan.id)
+                    print(f"Repayment result: {result}")
+                    arrears_cleared = amount
+                    messages.info(request, f"Deposit {ref} recorded. Arrears detected; auto-repayment triggered.")
+                else:
+                    print("No overdue installments found")
+                    messages.success(request, f"Deposit {ref} of UGX {amount:,.0f} processed successfully.")
             else:
+                print("No active loan found")
                 messages.success(request, f"Deposit {ref} of UGX {amount:,.0f} processed successfully.")
+            
+            # Prepare receipt data
+            receipt_data = {
+                'receipt_id': str(ref),
+                'date': txn_timestamp.strftime('%d %b, %Y %H:%M'),
+                'member_name': f"{member.first_name} {member.last_name}",
+                'member_id': str(member.member_number or member.id),
+                'processed_by': request.user.get_full_name() or request.user.username,
+                'amount': str(amount),
+                'prev_balance': str(previous_balance),
+                'new_balance': str(new_balance),
+                'arrears_cleared': str(arrears_cleared),
+                'payment_method': 'Cash Deposit',
+                'status': 'COMPLETED'
+            }
+            
+            print(f"Receipt data prepared: {receipt_data}")
+            
+            # Store receipt in session
+            request.session['deposit_receipt'] = {
+                'data': receipt_data,
+                'show': True
+            }
+            request.session.modified = True
+            print("Receipt stored in session")
+            
+            print("=" * 60)
+            print("DEPOSIT COMPLETED SUCCESSFULLY - Redirecting to profile")
+            print("=" * 60)
             
             return redirect('member_profile', member_id=member.id)
 
-        except (ValueError, InvalidOperation):
-            messages.error(request, "Please enter a valid deposit amount.")
         except Exception as e:
-            messages.error(request, f"An unexpected error occurred: {str(e)}")
+            print(f"\n!!! EXCEPTION OCCURRED !!!")
+            print(f"Error type: {type(e).__name__}")
+            print(f"Error message: {str(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            messages.error(request, f"An error occurred: {str(e)}")
+            return redirect('deposit_savings', member_id=member.id)
             
+    print("Rendering deposit form (GET request)")
     return render(request, 'finance/deposit.html', {
         'member': member,
         'backdate_allowed': backdate_allowed
@@ -740,87 +1128,136 @@ from django.utils import timezone
 from django.db.models import Sum
 from dateutil.relativedelta import relativedelta   # Add this if not installed: pip install python-dateutil
 
+from decimal import Decimal
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+
+from .models import Loan, ManualPenalty
+from .utils import generate_schedule
+from finance.penalties import calculate_penalty
+
+from decimal import Decimal
+from datetime import timedelta
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+
+from .models import Loan, ManualPenalty
+from .utils import generate_schedule
+from finance.penalties import calculate_penalty
+
+@login_required
 def loan_detail(request, pk):
-    loan = get_object_or_404(Loan, pk=pk)
-    member = loan.member
-
-    # Savings Balance
-    try:
-        savings_balance = loan.member.savings.balance
-    except Exception:
-        savings_balance = Decimal('0.00')
-
-    # Schedule and Repayments
-    schedule = loan.installments.all().order_by('due_date')
-    repayments = loan.repayments.all().order_by('-date_paid')
-
+    """
+    Comprehensive loan detail view – displays full financial summary,
+    amortization schedule with combined penalties, manual penalties list,
+    and repayment history.
+    """
+    loan = get_object_or_404(Loan.objects.select_related('member', 'officer'), pk=pk)
     today = timezone.now().date()
 
-    # Unpaid overdue installments
-    unpaid_installments = loan.installments.filter(paid=False, due_date__lte=today)
+    # ---- 1. Generate schedule if missing ----
+    if not loan.installments.exists():
+        generate_schedule(loan)
 
-    # === SAFE CALCULATIONS ===
-    try:
-        principal_amount = Decimal(str(loan.principal_amount or 0))
-        total_payable = Decimal(str(getattr(loan, 'total_payable', 0) or 0))
-
-        if loan.period_months and loan.period_months > 0:
-            monthly_principal = principal_amount / loan.period_months
-            total_interest = total_payable - principal_amount
-            monthly_interest = total_interest / loan.period_months
-        else:
-            monthly_principal = Decimal('0')
-            monthly_interest = Decimal('0')
-    except (TypeError, ZeroDivisionError, InvalidOperation):
-        monthly_principal = Decimal('0')
-        monthly_interest = Decimal('0')
-
-    unpaid_count = unpaid_installments.count()
-    interest_due = (unpaid_count * monthly_interest).quantize(Decimal('0.01'))
-    principal_due = (unpaid_count * monthly_principal).quantize(Decimal('0.01'))
+    # ---- 2. Compute due amounts for the banner ----
+    active_due = loan.installments.filter(paid=False, due_date__lte=today).aggregate(
+        total_interest=Sum('interest_portion'),
+        total_principal=Sum('principal_portion')
+    )
+    interest_due = active_due['total_interest'] or Decimal('0.00')
+    principal_due = active_due['total_principal'] or Decimal('0.00')
     total_due_now = (interest_due + principal_due).quantize(Decimal('0.01'))
 
-    # Total Paid (using correct field name)
+    # ---- 3. Total paid & total payable ----
     total_paid = loan.repayments.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0')
+    total_payable = loan.total_payable or Decimal('0')
 
-    # Officer
-    officer = getattr(loan, 'officer', None)
-
-    # === NEW: Disbursement Date, Duration & End Date ===
-    disbursement_date = getattr(loan, 'disbursement_date', getattr(loan, 'start_date', None))
+    # ---- 4. Dates ----
+    disbursement_date = loan.disbursed_date or loan.start_date
+    term_value = getattr(loan, 'term_value', 0)
+    frequency = getattr(loan, 'repayment_frequency', 'monthly')
     period_months = getattr(loan, 'period_months', 0)
 
-    if disbursement_date and period_months:
-        end_date = disbursement_date + relativedelta(months=+period_months)
+    # Compute end date based on repayment frequency
+    if disbursement_date and term_value > 0:
+        if frequency == 'monthly':
+            end_date = disbursement_date + relativedelta(months=term_value)
+        elif frequency == 'weekly':
+            end_date = disbursement_date + timedelta(weeks=term_value)
+        elif frequency == 'daily':
+            end_date = disbursement_date + timedelta(days=term_value)
+        else:  # manual or fallback
+            if period_months:
+                end_date = disbursement_date + relativedelta(months=period_months)
+            else:
+                end_date = None
     else:
         end_date = None
 
+    # ---- 5. Build schedule_data (combines calculated + manual penalties) ----
+    schedule_data = []
+    for inst in loan.installments.all().order_by('due_date'):
+        calc_penalty = calculate_penalty(inst) or Decimal('0.00')
+        manual_total = inst.manual_penalties.filter(is_waived=False).aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        total_penalty = calc_penalty + manual_total
+
+        principal_bal = inst.principal_balance
+        interest_bal = inst.interest_balance
+        total_balance = principal_bal + interest_bal + total_penalty
+
+        schedule_data.append({
+            'id': inst.id,
+            'due_date': inst.due_date,
+            'principal_portion': inst.principal_portion,
+            'interest_portion': inst.interest_portion,
+            'penalty_amount': total_penalty,
+            'balance': total_balance,
+            'paid': inst.paid,
+            'is_overdue': inst.is_overdue,
+        })
+
+    # ---- 6. Manual penalties (active, not waived) ----
+    manual_penalties = loan.manual_penalties.filter(is_waived=False).order_by('-applied_date')
+    total_manual_penalty = manual_penalties.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+    # ---- 7. Recent repayments ----
+    repayments = loan.repayments.all().order_by('-date_paid')[:10]
+
+    # ---- 8. Additional context (savings, address) ----
+    savings_balance = getattr(loan.member, 'savings', None)
+    savings_balance = savings_balance.balance if savings_balance else Decimal('0.00')
+    member = loan.member
+    member_address = f"{member.village}, {member.parish}, {member.district}".strip(', ')
+
+    # ---- 9. Build context ----
     context = {
         'loan': loan,
-        'savings_balance': savings_balance,
-        'schedule': schedule,
-        'repayments': repayments,
-        'officer': officer,
-        'member_address': f"{member.village}, {member.parish}, {member.district}",
-
-        # Balances
-        'principal_balance': getattr(loan, 'principal_balance', principal_amount),
-        'interest_balance': getattr(loan, 'interest_balance', interest_due),
-        'total_penalty': getattr(loan, 'total_penalty', Decimal('0')),
-        'total_payable': getattr(loan, 'total_payable', total_payable),
-
-        # Current Due
+        'principal_balance': loan.principal_balance,
+        'interest_balance': loan.interest_balance,
         'interest_due': interest_due,
         'principal_due': principal_due,
         'total_due_now': total_due_now,
-
+        'schedule_data': schedule_data,
+        'repayments': repayments,
         'total_paid': total_paid.quantize(Decimal('0.01')),
-
-        # New fields for template
+        'total_payable': total_payable,
         'disbursement_date': disbursement_date,
-        'period_months': period_months,
         'end_date': end_date,
         'today': today,
+        'manual_penalties': manual_penalties,
+        'total_manual_penalty': total_manual_penalty,
+        'savings_balance': savings_balance,
+        'member_address': member_address,
+        'officer': loan.officer,
+        'period_months': period_months,  # fallback value
     }
 
     return render(request, 'finance/loan_detail.html', context)
@@ -1579,19 +2016,102 @@ def reverse_transaction(request, transaction_id):
 
 from django.shortcuts import render, get_object_or_404
 from .models import Loan, Transaction
+from decimal import Decimal
+from django.db.models import Sum, Q
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
 
+from .models import Loan, Transaction, ManualPenalty
+from .utils import generate_schedule
+from finance.penalties import calculate_penalty
+
+@login_required
 def loan_details(request, loan_id):
-    loan = get_object_or_404(Loan, id=loan_id)
-    # Fetch repayments specifically related to this loan if you have a way to link them
-    # For now, we'll assume you might want to see recent activity
-    repayments = Transaction.objects.filter(member=loan.member, type='repayment').order_by('-timestamp')[:10]
-    
+    """
+    Comprehensive loan detail view – provides full financial summary,
+    amortization schedule with combined penalties, manual penalties list,
+    and recent repayment transactions.
+    """
+    loan = get_object_or_404(Loan.objects.select_related('member', 'officer'), id=loan_id)
+    today = timezone.now().date()
+
+    # 1. Generate schedule if missing
+    if not loan.installments.exists():
+        generate_schedule(loan)
+
+    # 2. Compute due amounts for the banner
+    active_due = loan.installments.filter(paid=False, due_date__lte=today).aggregate(
+        total_interest=Sum('interest_portion'),
+        total_principal=Sum('principal_portion')
+    )
+    interest_due = active_due['total_interest'] or Decimal('0.00')
+    principal_due = active_due['total_principal'] or Decimal('0.00')
+    total_due_now = (interest_due + principal_due).quantize(Decimal('0.01'))
+
+    # 3. Total paid & total payable
+    total_paid = loan.repayments.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0')
+    total_payable = loan.total_payable or Decimal('0')
+
+    # 4. Disbursement & maturity dates
+    disbursement_date = loan.disbursed_date or loan.start_date
+    end_date = disbursement_date + relativedelta(months=loan.period_months) if disbursement_date else None
+
+    # 5. Build schedule_data (combines calculated + manual penalties)
+    schedule_data = []
+    for inst in loan.installments.all().order_by('due_date'):
+        calc_penalty = calculate_penalty(inst) or Decimal('0.00')
+        manual_total = inst.manual_penalties.filter(is_waived=False).aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        total_penalty = calc_penalty + manual_total
+
+        principal_bal = inst.principal_balance
+        interest_bal = inst.interest_balance
+        total_balance = principal_bal + interest_bal + total_penalty
+
+        schedule_data.append({
+            'id': inst.id,
+            'due_date': inst.due_date,
+            'principal_portion': inst.principal_portion,
+            'interest_portion': inst.interest_portion,
+            'penalty_amount': total_penalty,
+            'balance': total_balance,
+            'paid': inst.paid,
+            'is_overdue': inst.is_overdue,
+        })
+
+    # 6. Manual penalties (active, not waived)
+    manual_penalties = loan.manual_penalties.filter(is_waived=False).order_by('-applied_date')
+    total_manual_penalty = manual_penalties.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+    # 7. Recent repayment transactions (for the loan or member)
+    repayments = Transaction.objects.filter(
+        member=loan.member,
+        type='repayment',
+        loan=loan
+    ).order_by('-timestamp')[:10]
+
+    # 8. Context
     context = {
         'loan': loan,
+        'principal_balance': loan.principal_balance,
+        'interest_due': interest_due,
+        'principal_due': principal_due,
+        'total_due_now': total_due_now,
+        'schedule_data': schedule_data,
         'repayments': repayments,
+        'total_paid': total_paid.quantize(Decimal('0.01')),
+        'total_payable': total_payable,
+        'disbursement_date': disbursement_date,
+        'end_date': end_date,
+        'today': today,
+        'manual_penalties': manual_penalties,
+        'total_manual_penalty': total_manual_penalty,
     }
-    return render(request, 'finance/loan_details.html', context)
 
+    return render(request, 'finance/loan_details.html', context)
 
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -2325,3 +2845,1805 @@ class LoansInArrearsReportView(LoginRequiredMixin, ListView):
         })
 
         return context
+
+
+# finance/views.py
+import random
+from decimal import Decimal
+from datetime import datetime, date, timedelta
+from django.db.models import Sum, Q, F, Count, Case, When, Value, DecimalField
+from django.db.models.functions import Coalesce, TruncMonth
+from django.shortcuts import render
+from django.http import FileResponse
+from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
+from .models import (
+    Loan, Installment, Member, SystemSetting, GeneralLedger, ChartOfAccount,
+    SavingsAccount, Transaction, Company, SMSConfig
+)
+from .utils import generate_excel_report
+
+User = get_user_model()
+
+
+# ====================================================================
+# CONTEXT BUILDERS & HELPERS
+# ====================================================================
+
+def get_report_context(request):
+    """
+    Builds the report context based on POST/GET filters.
+    Returns a dict with columns, data, totals, KPIs, etc.
+    """
+    context = {}
+
+    # 1. Extract filters
+    date_from = request.POST.get('date_from') or request.GET.get('date_from')
+    date_to = request.POST.get('date_to') or request.GET.get('date_to')
+    officer_id = request.POST.get('officer') or request.GET.get('officer')
+    status = request.POST.get('status') or request.GET.get('status')
+
+    # 2. Base queryset – use your actual model (Loan)
+    qs = Loan.objects.select_related('member', 'officer')
+
+    if date_from:
+        qs = qs.filter(disbursed_date__gte=date_from)
+    if date_to:
+        qs = qs.filter(disbursed_date__lte=date_to)
+    if officer_id:
+        qs = qs.filter(officer_id=officer_id)
+    if status:
+        qs = qs.filter(status=status)
+
+    # 3. Define columns (must match the keys in data rows)
+    columns = [
+        {'key': 'loan_reference', 'label': 'Loan Reference'},
+        {'key': 'member_name', 'label': 'Member'},
+        {'key': 'principal', 'label': 'Principal', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'interest_balance', 'label': 'Interest Balance', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'total_balance', 'label': 'Total Balance', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'status', 'label': 'Status', 'type': 'status'},
+        {'key': 'disbursed_date', 'label': 'Disbursed', 'type': 'date'},
+        {'key': 'officer', 'label': 'Officer'},
+    ]
+
+    # 4. Build data rows
+    data = []
+    total_principal = Decimal('0.00')
+    total_interest = Decimal('0.00')
+    total_balance = Decimal('0.00')
+
+    for loan in qs:
+        principal = loan.principal_amount or Decimal('0.00')
+        interest = loan.interest_balance or Decimal('0.00')
+        balance = principal + interest
+
+        data.append({
+            'loan_reference': loan.loan_reference or f"LN-{loan.id}",
+            'member_name': loan.member.get_full_name() if loan.member else 'N/A',
+            'principal': principal,
+            'interest_balance': interest,
+            'total_balance': balance,
+            'status': loan.get_status_display(),
+            'disbursed_date': loan.disbursed_date,
+            'officer': loan.officer.get_full_name() if loan.officer else 'N/A',
+        })
+
+        total_principal += principal
+        total_interest += interest
+        total_balance += balance
+
+    # 5. Totals dictionary
+    totals = {
+        'principal': total_principal,
+        'interest_balance': total_interest,
+        'total_balance': total_balance,
+    }
+
+    # 6. KPIs
+    record_count = len(data)
+    kpi_cards = [
+        {'label': 'Total Loans', 'value': record_count, 'icon': 'bi-file-earmark-text', 'type': 'info'},
+        {'label': 'Total Principal', 'value': f"UGX {total_principal:,.0f}", 'icon': 'bi-cash', 'type': 'success'},
+        {'label': 'Total Interest', 'value': f"UGX {total_interest:,.0f}", 'icon': 'bi-percent', 'type': 'warning'},
+        {'label': 'Total Balance', 'value': f"UGX {total_balance:,.0f}", 'icon': 'bi-wallet2', 'type': 'danger'},
+    ]
+
+    # 7. Aging Summary (optional)
+    aging_summary = []
+
+    # 8. Summary totals (extra stats)
+    summary_totals = {
+        'total_records': record_count,
+        'total_amount': total_balance,
+        'total_paid': Decimal('0.00'),
+        'outstanding': total_balance,
+        'recovery_rate': 0,
+        'par_30': 0,
+    }
+
+    # 9. Officer list for filter dropdown
+    officer_list = User.objects.filter(is_active=True).order_by('first_name', 'last_name')
+
+    # 10. Company info – FROM DATABASE
+    company = Company.get_company()
+
+    # 11. Build the final context
+    context.update({
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'has_data': bool(data),
+        'kpi_cards': kpi_cards,
+        'summary_totals': summary_totals,
+        'aging_summary': aging_summary,
+        'report_title': 'Loan Portfolio Report',
+        'company': company,
+        'date_from': date_from,
+        'date_to': date_to,
+        'selected_officer': officer_id,
+        'selected_status': status,
+        'officer_list': officer_list,
+        'officer_name': dict(officer_list.values_list('id', 'username')).get(int(officer_id) if officer_id else None),
+        'generated_date': timezone.now().strftime('%d %b %Y %H:%M'),
+        'generated_by': request.user.get_full_name() if request.user.is_authenticated else 'System',
+    })
+
+    return context
+
+
+def generate_excel_report(columns, data, report_title="Report", company_name="Company", totals=None):
+    """
+    Generate an Excel workbook from report columns and data.
+    Optionally add a totals row.
+    """
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = report_title[:31]
+
+    # Styles
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1632af", end_color="1632af", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    cell_alignment = Alignment(horizontal="left", vertical="center")
+    number_alignment = Alignment(horizontal="right", vertical="center")
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+
+    # Optional title row
+    row = 1
+    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=len(columns))
+    ws.cell(row=row, column=1).value = f"{company_name} - {report_title}"
+    ws.cell(row=row, column=1).font = Font(bold=True, size=14)
+    ws.cell(row=row, column=1).alignment = Alignment(horizontal="center")
+    row += 1
+
+    # Headers
+    for col_idx, col in enumerate(columns, start=1):
+        cell = ws.cell(row=row, column=col_idx, value=col.get('label', col.get('key', '')))
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = border
+    row += 1
+
+    # Data rows
+    for data_row in data:
+        for col_idx, col in enumerate(columns, start=1):
+            key = col.get('key')
+            value = data_row.get(key, '-')
+
+            # Format based on type
+            if col.get('type') == 'currency':
+                try:
+                    value = f"{float(value):,.0f}"
+                except (ValueError, TypeError):
+                    pass
+            elif col.get('type') == 'date' and value:
+                if hasattr(value, 'strftime'):
+                    value = value.strftime('%d %b, %Y')
+                else:
+                    value = str(value)
+            elif col.get('type') == 'status':
+                value = str(value)
+
+            cell = ws.cell(row=row, column=col_idx, value=value)
+            cell.border = border
+            if col.get('align') == 'right' or col.get('type') == 'currency':
+                cell.alignment = number_alignment
+            else:
+                cell.alignment = cell_alignment
+        row += 1
+
+    # -------------------------
+    # TOTALS ROW (if totals provided)
+    # -------------------------
+    if totals:
+        ws.cell(row=row, column=1, value="TOTALS").font = Font(bold=True)
+        ws.cell(row=row, column=1).alignment = Alignment(horizontal="center")
+
+        for col_idx, col in enumerate(columns, start=1):
+            if col.get('total') and col.get('key') in totals:
+                total_val = totals[col['key']]
+                if col.get('type') == 'currency':
+                    try:
+                        total_val = f"{float(total_val):,.0f}"
+                    except (ValueError, TypeError):
+                        pass
+                else:
+                    total_val = str(total_val)
+
+                cell = ws.cell(row=row, column=col_idx, value=total_val)
+                cell.font = Font(bold=True)
+                cell.border = border
+                if col.get('align') == 'right' or col.get('type') == 'currency':
+                    cell.alignment = number_alignment
+                else:
+                    cell.alignment = cell_alignment
+
+        row += 1
+
+    # Auto-size columns
+    for col_idx in range(1, len(columns) + 1):
+        col_letter = get_column_letter(col_idx)
+        ws.column_dimensions[col_letter].width = 18
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output
+
+
+# ====================================================================
+# EXPORT VIEW
+# ====================================================================
+
+def export_report_excel(request):
+    context = get_report_context(request)
+
+    columns = context.get('columns', [])
+    data = context.get('data', [])
+    totals = context.get('totals', {})
+    report_title = context.get('report_title', 'Report')
+    company_name = context.get('company', {}).get('name', 'Company')
+
+    excel_file = generate_excel_report(
+        columns=columns,
+        data=data,
+        report_title=report_title,
+        company_name=company_name,
+        totals=totals
+    )
+
+    filename = f"{report_title.replace(' ', '_')}_{context.get('generated_date', 'now').replace(' ', '_').replace(':', '')}.xlsx"
+    response = FileResponse(
+        excel_file,
+        as_attachment=True,
+        filename=filename,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    return response
+
+
+# ====================================================================
+# REPORT VIEWS – ALL USING Company.get_company()
+# ====================================================================
+
+@login_required
+def loan_report(request):
+    """Professional Loan Portfolio Report with Filters"""
+    
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    officer_id = request.GET.get('officer')
+    status = request.GET.get('status')
+
+    loans = Loan.objects.select_related('member', 'officer').prefetch_related('repayments')
+
+    if date_from:
+        loans = loans.filter(disbursed_date__gte=date_from)
+    if date_to:
+        loans = loans.filter(disbursed_date__lte=date_to)
+    if officer_id:
+        loans = loans.filter(officer_id=officer_id)
+    if status:
+        loans = loans.filter(status=status)
+
+    loans = loans.annotate(
+        paid_amount=Sum('repayments__amount_paid', default=0),
+        total_balance=F('principal_balance') + F('interest_balance'),
+    )
+
+    data = []
+    total_amount = Decimal('0')
+    total_paid = Decimal('0')
+    total_balance = Decimal('0')
+
+    for loan in loans:
+        balance = loan.total_balance or Decimal('0')
+        paid = loan.paid_amount or Decimal('0')
+
+        data.append({
+            'member': f"{loan.member.first_name} {loan.member.last_name}".strip(),
+            'member_no': loan.member.member_number or str(loan.member.id),
+            'loan_ref': loan.loan_reference or f"LN-{loan.id}",
+            'amount': loan.principal_amount,
+            'paid': paid,
+            'balance': balance,
+            'status': loan.status,
+            'date': loan.disbursed_date or loan.start_date,
+            'officer': loan.officer.get_full_name() if loan.officer else 'System',
+        })
+
+        total_amount += loan.principal_amount or Decimal('0')
+        total_paid += paid
+        total_balance += balance
+
+    recovery_rate = round((total_paid / total_amount * 100), 1) if total_amount > 0 else 0
+    par_30 = round((total_balance / total_amount * 100), 1) if total_amount > 0 else 0
+    total_records = len(data)
+
+    columns = [
+        {'key': 'member', 'label': 'Member Name', 'align': 'left'},
+        {'key': 'member_no', 'label': 'Member No', 'align': 'left'},
+        {'key': 'loan_ref', 'label': 'Loan Reference', 'align': 'left'},
+        {'key': 'amount', 'label': 'Amount (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'paid', 'label': 'Paid (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'balance', 'label': 'Balance (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'status', 'label': 'Status', 'align': 'center', 'type': 'status'},
+        {'key': 'date', 'label': 'Date', 'align': 'center', 'type': 'date'},
+        {'key': 'officer', 'label': 'Officer', 'align': 'left'},
+    ]
+
+    kpi_cards = [
+        {'icon': 'bi-people', 'value': f'{total_records:,}', 'label': 'Total Loans'},
+        {'icon': 'bi-currency-dollar', 'value': f'UGX {total_amount:,.0f}', 'label': 'Total Portfolio', 'type': 'success'},
+        {'icon': 'bi-check-circle', 'value': f'{recovery_rate}%', 'label': 'Recovery Rate', 'type': 'info'},
+        {'icon': 'bi-exclamation-triangle', 'value': f'{par_30}%', 'label': 'PAR 30', 'type': 'warning'},
+    ]
+
+    summary_totals = {
+        'total_records': total_records,
+        'total_amount': total_amount,
+        'total_paid': total_paid,
+        'outstanding': total_balance,
+        'recovery_rate': recovery_rate,
+        'par_30': par_30,
+    }
+
+    officer_list = User.objects.filter(is_active=True).order_by('first_name', 'last_name')
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Loan Portfolio Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': date_from or 'All',
+        'date_to': date_to or 'All',
+        'officer': officer_id or 'All Officers',
+        'status': status or 'All Status',
+        'columns': columns,
+        'data': data,
+        'totals': {
+            'amount': total_amount,
+            'paid': total_paid,
+            'balance': total_balance,
+        },
+        'kpi_cards': kpi_cards,
+        'summary_totals': summary_totals,
+        'has_data': bool(data),
+        'officer_list': officer_list,
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+@login_required
+def member_report(request):
+    """Member Report"""
+    members = Member.objects.all().order_by('member_number')
+
+    data = []
+    total_savings = Decimal('0')
+    total_loans = Decimal('0')
+
+    for member in members:
+        savings = SavingsAccount.objects.filter(member=member).first()
+        savings_balance = savings.balance if savings else Decimal('0')
+        total_loans_balance = member.loans.filter(is_active=True).aggregate(
+            total=Sum('principal_balance') + Sum('interest_balance')
+        )['total'] or Decimal('0')
+
+        status = getattr(member, 'status', 'active')
+        status_display = 'Active' if status == 'active' else 'Inactive'
+
+        data.append({
+            'member_no': member.member_number,
+            'name': f"{member.first_name} {member.last_name}",
+            'phone': member.phone_number,
+            'email': member.email or '—',
+            'savings': savings_balance,
+            'loans': total_loans_balance,
+            'joined': member.date_joined,
+            'status': status_display,
+        })
+
+        total_savings += savings_balance
+        total_loans += total_loans_balance
+
+    columns = [
+        {'key': 'member_no', 'label': 'Member No', 'align': 'left'},
+        {'key': 'name', 'label': 'Member Name', 'align': 'left'},
+        {'key': 'phone', 'label': 'Phone', 'align': 'left'},
+        {'key': 'email', 'label': 'Email', 'align': 'left'},
+        {'key': 'savings', 'label': 'Savings (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'loans', 'label': 'Loans (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'joined', 'label': 'Joined', 'align': 'center', 'type': 'date'},
+        {'key': 'status', 'label': 'Status', 'align': 'center', 'type': 'status'},
+    ]
+
+    totals = {
+        'savings': total_savings,
+        'loans': total_loans,
+    }
+
+    kpi_cards = [
+        {'icon': 'bi-people', 'value': f'{len(data):,}', 'label': 'Total Members'},
+        {'icon': 'bi-wallet2', 'value': f'UGX {total_savings:,.0f}', 'label': 'Total Savings', 'type': 'success'},
+        {'icon': 'bi-bank', 'value': f'UGX {total_loans:,.0f}', 'label': 'Total Loans', 'type': 'info'},
+    ]
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Member Registry Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': 'All',
+        'date_to': 'All',
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'kpi_cards': kpi_cards,
+        'has_data': len(data) > 0,
+        'summary_totals': {
+            'total_records': len(data),
+            'total_amount': total_savings + total_loans,
+            'total_paid': total_savings,
+            'outstanding': total_loans,
+            'recovery_rate': '100',
+            'par_30': '0',
+        },
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+@login_required
+def savings_report(request):
+    """Savings Report"""
+    savings_accounts = SavingsAccount.objects.select_related('member').all()
+
+    data = []
+    total_balance = Decimal('0')
+
+    for savings in savings_accounts:
+        data.append({
+            'member': f"{savings.member.first_name} {savings.member.last_name}",
+            'member_no': savings.member.member_number,
+            'phone': savings.member.phone_number,
+            'balance': savings.balance,
+            'account_no': savings.account_number if hasattr(savings, 'account_number') else 'N/A',
+            'status': 'Active' if savings.balance > 0 else 'Inactive',
+        })
+        total_balance += savings.balance
+
+    columns = [
+        {'key': 'member_no', 'label': 'Member No', 'align': 'left'},
+        {'key': 'member', 'label': 'Member Name', 'align': 'left'},
+        {'key': 'phone', 'label': 'Phone', 'align': 'left'},
+        {'key': 'account_no', 'label': 'Account No', 'align': 'left'},
+        {'key': 'balance', 'label': 'Balance (UGX)', 'align': 'right', 'type': 'currency', 'total': True},
+        {'key': 'status', 'label': 'Status', 'align': 'center', 'type': 'status'},
+    ]
+
+    totals = {'balance': total_balance}
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Savings Summary Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': 'All',
+        'date_to': 'All',
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'kpi_cards': [
+            {'icon': 'bi-wallet2', 'value': f'{len(data):,}', 'label': 'Total Accounts'},
+            {'icon': 'bi-currency-dollar', 'value': f'UGX {total_balance:,.0f}', 'label': 'Total Savings', 'type': 'success'},
+            {'icon': 'bi-people', 'value': f'{len(data):,}', 'label': 'Active Members', 'type': 'info'},
+        ],
+        'summary_totals': {
+            'total_records': len(data),
+            'total_amount': total_balance,
+            'total_paid': total_balance,
+            'outstanding': 0,
+            'recovery_rate': '100',
+            'par_30': '0',
+        },
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+@login_required
+def financial_report(request):
+    """Financial Performance Report (Income/Expense summary)"""
+    from datetime import date, timedelta
+
+    if request.method == "POST":
+        date_from = request.POST.get('date_from')
+        date_to = request.POST.get('date_to')
+    else:
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+
+    if not date_from:
+        date_from = (date.today() - timedelta(days=30)).strftime('%Y-%m-%d')
+    if not date_to:
+        date_to = date.today().strftime('%Y-%m-%d')
+
+    transactions = Transaction.objects.filter(
+        timestamp__date__gte=date_from,
+        timestamp__date__lte=date_to
+    )
+
+    total_income = transactions.filter(
+        Q(type='deposit') | Q(type='repayment') | Q(type='interest_payment')
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+    total_expenses = transactions.filter(
+        Q(type='withdrawal') | Q(type='disbursement') | Q(type='penalty')
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+    net_profit = total_income - total_expenses
+
+    monthly_data = transactions.annotate(
+        month=TruncMonth('timestamp')
+    ).values('month').annotate(
+        income=Sum('amount', filter=Q(type__in=['deposit', 'repayment', 'interest_payment'])),
+        expense=Sum('amount', filter=Q(type__in=['withdrawal', 'disbursement', 'penalty']))
+    ).order_by('month')
+
+    data = []
+    for entry in monthly_data:
+        data.append({
+            'month': entry['month'].strftime('%b %Y') if entry['month'] else 'N/A',
+            'income': entry['income'] or Decimal('0'),
+            'expense': entry['expense'] or Decimal('0'),
+            'profit': (entry['income'] or Decimal('0')) - (entry['expense'] or Decimal('0')),
+        })
+
+    columns = [
+        {'key': 'month', 'label': 'Month', 'align': 'left'},
+        {'key': 'income', 'label': 'Income (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'expense', 'label': 'Expenses (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'profit', 'label': 'Net Profit (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+    ]
+
+    totals = {
+        'income': total_income,
+        'expense': total_expenses,
+        'profit': net_profit,
+    }
+
+    kpi_cards = [
+        {'icon': 'bi-currency-dollar', 'value': f'UGX {total_income:,.0f}', 'label': 'Total Income', 'type': 'success'},
+        {'icon': 'bi-cash', 'value': f'UGX {total_expenses:,.0f}', 'label': 'Total Expenses', 'type': 'danger'},
+        {'icon': 'bi-graph-up', 'value': f'UGX {net_profit:,.0f}', 'label': 'Net Profit', 'type': 'info'},
+    ]
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Financial Performance Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': date_from,
+        'date_to': date_to,
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'kpi_cards': kpi_cards,
+        'has_data': len(data) > 0,
+        'summary_totals': {
+            'total_records': len(data),
+            'total_amount': total_income + total_expenses,
+            'total_paid': total_income,
+            'outstanding': total_expenses,
+            'recovery_rate': 'N/A',
+            'par_30': 'N/A',
+        },
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+from decimal import Decimal
+from datetime import date
+from django.contrib.auth.models import User, Group
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from django.db.models import Sum
+from .models import Loan, Transaction, Company
+
+@login_required
+def officer_report(request):
+    """Officer Performance Report with PAR 1 & PAR 30 - Credit Officers only"""
+    
+    # ---- Only include active users who are in the "Credit Officer" group ----
+    officers = User.objects.filter(
+        is_active=True,
+        groups__name='Credit Officer'
+    ).order_by('first_name', 'last_name')
+
+    data = []
+    total_loans = Decimal('0')
+    total_disbursed = Decimal('0')
+    total_collected = Decimal('0')
+    total_outstanding = Decimal('0')
+    total_par_1 = Decimal('0')
+    total_par_30 = Decimal('0')
+
+    today = date.today()
+
+    for officer in officers:
+        loans = Loan.objects.filter(officer=officer)
+        loan_count = loans.count()
+        disbursed_amount = loans.aggregate(total=Sum('principal_amount'))['total'] or Decimal('0')
+
+        collections = Transaction.objects.filter(
+            type='repayment',
+            loan__officer=officer
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        active_count = loans.filter(is_active=True).count()
+
+        par_1_amount = Decimal('0')
+        par_30_amount = Decimal('0')
+        outstanding_principal = Decimal('0')
+
+        for loan in loans:
+            p_bal = loan.principal_balance or Decimal('0')
+            outstanding_principal += p_bal
+
+            unpaid_installments = loan.installments.filter(paid=False, due_date__lt=today)
+            if unpaid_installments.exists():
+                oldest_due = unpaid_installments.earliest('due_date').due_date
+                days_overdue = (today - oldest_due).days
+
+                if days_overdue >= 1:
+                    par_1_amount += p_bal
+                if days_overdue >= 30:
+                    par_30_amount += p_bal
+
+        # Calculate percentages and round to 2 decimal places
+        par_1_percent = round((par_1_amount / outstanding_principal * 100), 2) if outstanding_principal > 0 else 0
+        par_30_percent = round((par_30_amount / outstanding_principal * 100), 2) if outstanding_principal > 0 else 0
+        performance = round((collections / disbursed_amount * 100), 2) if disbursed_amount > 0 else 0
+
+        data.append({
+            'officer': officer.get_full_name() or officer.username,
+            'loan_count': loan_count,
+            'active_count': active_count,
+            'disbursed': disbursed_amount,
+            'collected': collections,
+            'outstanding': outstanding_principal,
+            'par_1_amount': par_1_amount,
+            'par_1_percent': par_1_percent,
+            'par_30_amount': par_30_amount,
+            'par_30_percent': par_30_percent,
+            'performance': performance,
+        })
+
+        total_loans += loan_count
+        total_disbursed += disbursed_amount
+        total_collected += collections
+        total_outstanding += outstanding_principal
+        total_par_1 += par_1_amount
+        total_par_30 += par_30_amount
+
+    # Round totals
+    total_par_1_percent = round((total_par_1 / total_outstanding * 100), 2) if total_outstanding > 0 else 0
+    total_par_30_percent = round((total_par_30 / total_outstanding * 100), 2) if total_outstanding > 0 else 0
+    total_performance = round((total_collected / total_disbursed * 100), 2) if total_disbursed > 0 else 0
+
+    columns = [
+        {'key': 'officer', 'label': 'Officer', 'align': 'left'},
+        {'key': 'loan_count', 'label': 'Total Loans', 'align': 'center'},
+        {'key': 'active_count', 'label': 'Active', 'align': 'center'},
+        {'key': 'disbursed', 'label': 'Disbursed (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'collected', 'label': 'Collected (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'outstanding', 'label': 'Outstanding (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'par_1_amount', 'label': 'PAR 1 (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'par_1_percent', 'label': 'PAR 1 %', 'align': 'right', 'total': True},
+        {'key': 'par_30_amount', 'label': 'PAR 30 (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'par_30_percent', 'label': 'PAR 30 %', 'align': 'right', 'total': True},
+        {'key': 'performance', 'label': 'Performance %', 'align': 'right', 'total': True},
+    ]
+
+    totals = {
+        'disbursed': total_disbursed,
+        'collected': total_collected,
+        'outstanding': total_outstanding,
+        'par_1_amount': total_par_1,
+        'par_1_percent': total_par_1_percent,
+        'par_30_amount': total_par_30,
+        'par_30_percent': total_par_30_percent,
+        'performance': total_performance,
+    }
+
+    kpi_cards = [
+        {'icon': 'bi-person-badge', 'value': f'{len(data)}', 'label': 'Total Officers', 'type': 'info'},
+        {'icon': 'bi-currency-dollar', 'value': f'UGX {total_disbursed:,.0f}', 'label': 'Total Disbursed', 'type': 'success'},
+        {'icon': 'bi-cash-stack', 'value': f'UGX {total_collected:,.0f}', 'label': 'Total Collected', 'type': 'info'},
+        {'icon': 'bi-exclamation-triangle', 'value': f'UGX {total_par_30:,.0f}', 'label': 'Total PAR 30', 'type': 'danger'},
+    ]
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Officer Performance Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': 'All',
+        'date_to': 'All',
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'kpi_cards': kpi_cards,
+        'has_data': len(data) > 0,
+        'summary_totals': {
+            'total_records': len(data),
+            'total_amount': total_disbursed,
+            'total_paid': total_collected,
+            'outstanding': total_outstanding,
+            'recovery_rate': f'{total_performance:.2f}',
+            'par_30': f'{total_par_30_percent:.2f}',
+        },
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+@login_required
+def accounting_report(request):
+    """Accounting Report - General Ledger Summary"""
+    ledger_entries = GeneralLedger.objects.select_related('account').all().order_by('account__code')
+
+    data = []
+    total_debit = Decimal('0')
+    total_credit = Decimal('0')
+
+    for entry in ledger_entries:
+        data.append({
+            'account_code': entry.account.code,
+            'account_name': entry.account.name,
+            'account_type': entry.account.get_account_type_display(),
+            'debit': entry.debit,
+            'credit': entry.credit,
+            'balance': entry.balance,
+        })
+        total_debit += entry.debit
+        total_credit += entry.credit
+
+    columns = [
+        {'key': 'account_code', 'label': 'Account Code', 'align': 'left'},
+        {'key': 'account_name', 'label': 'Account Name', 'align': 'left'},
+        {'key': 'account_type', 'label': 'Type', 'align': 'left'},
+        {'key': 'debit', 'label': 'Debit (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'credit', 'label': 'Credit (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'balance', 'label': 'Balance (UGX)', 'align': 'right', 'type': 'currency', 'prefix': 'UGX '},
+    ]
+
+    totals = {
+        'debit': total_debit,
+        'credit': total_credit,
+        'balance': total_debit - total_credit,
+    }
+
+    kpi_cards = [
+        {'icon': 'bi-journal-text', 'value': f'{len(data)}', 'label': 'Total Accounts', 'type': 'info'},
+        {'icon': 'bi-arrow-down', 'value': f'UGX {total_debit:,.0f}', 'label': 'Total Debit', 'type': 'danger'},
+        {'icon': 'bi-arrow-up', 'value': f'UGX {total_credit:,.0f}', 'label': 'Total Credit', 'type': 'success'},
+    ]
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Accounting Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': 'All',
+        'date_to': 'All',
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'kpi_cards': kpi_cards,
+        'has_data': len(data) > 0,
+        'summary_totals': {
+            'total_records': len(data),
+            'total_amount': total_debit + total_credit,
+            'total_paid': total_credit,
+            'outstanding': total_debit,
+            'recovery_rate': 'N/A',
+            'par_30': 'N/A',
+        },
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+@login_required
+def audit_report(request):
+    """Audit Trail Report"""
+    transactions = Transaction.objects.all().order_by('-timestamp')[:100]
+
+    data = []
+    for tx in transactions:
+        data.append({
+            'timestamp': tx.timestamp,
+            'user': tx.created_by.get_full_name() if tx.created_by else 'System',
+            'type': tx.get_type_display(),
+            'amount': tx.amount,
+            'reference': tx.reference,
+            'is_reversed': 'Yes' if tx.is_reversed else 'No',
+            'status': 'Reversed' if tx.is_reversed else 'Active',
+        })
+
+    columns = [
+        {'key': 'timestamp', 'label': 'Date & Time', 'align': 'center', 'type': 'date'},
+        {'key': 'user', 'label': 'User', 'align': 'left'},
+        {'key': 'type', 'label': 'Transaction Type', 'align': 'left'},
+        {'key': 'amount', 'label': 'Amount (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'reference', 'label': 'Reference', 'align': 'left'},
+        {'key': 'status', 'label': 'Status', 'align': 'center', 'type': 'status'},
+    ]
+
+    totals = {
+        'amount': transactions.aggregate(total=Sum('amount'))['total'] or Decimal('0'),
+    }
+
+    kpi_cards = [
+        {'icon': 'bi-clock-history', 'value': f'{len(data)}', 'label': 'Total Transactions', 'type': 'info'},
+        {'icon': 'bi-currency-dollar', 'value': f'UGX {totals["amount"]:,.0f}', 'label': 'Total Volume', 'type': 'success'},
+        {'icon': 'bi-person', 'value': f'{len(set(tx.created_by_id for tx in transactions if tx.created_by))}', 'label': 'Active Users', 'type': 'secondary'},
+    ]
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Audit Trail Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': 'All',
+        'date_to': 'All',
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'kpi_cards': kpi_cards,
+        'has_data': len(data) > 0,
+        'summary_totals': {
+            'total_records': len(data),
+            'total_amount': totals['amount'],
+            'total_paid': 'N/A',
+            'outstanding': 'N/A',
+            'recovery_rate': 'N/A',
+            'par_30': 'N/A',
+        },
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+@login_required
+def inventory_report(request):
+    """Inventory Report - Products and Stock Levels"""
+    try:
+        from hardware.models import Product, Category
+        products = Product.objects.select_related('category').all()
+        has_inventory = True
+    except ImportError:
+        products = []
+        has_inventory = False
+
+    data = []
+    total_value = Decimal('0')
+    total_stock = 0
+
+    if has_inventory:
+        for product in products:
+            stock_value = (product.current_stock or 0) * (product.cost_price or 0)
+            data.append({
+                'product_code': product.product_code,
+                'product_name': product.name,
+                'category': product.category.name if product.category else 'Uncategorized',
+                'stock': product.current_stock or 0,
+                'cost_price': product.cost_price or 0,
+                'selling_price': product.selling_price or 0,
+                'stock_value': stock_value,
+                'status': 'Low Stock' if (product.current_stock or 0) <= (product.reorder_level or 5) else 'Healthy',
+            })
+            total_value += stock_value
+            total_stock += (product.current_stock or 0)
+    else:
+        data = [{'message': 'Inventory module not installed'}]
+
+    columns = [
+        {'key': 'product_code', 'label': 'Product Code', 'align': 'left'},
+        {'key': 'product_name', 'label': 'Product Name', 'align': 'left'},
+        {'key': 'category', 'label': 'Category', 'align': 'left'},
+        {'key': 'stock', 'label': 'Stock', 'align': 'center'},
+        {'key': 'cost_price', 'label': 'Cost (UGX)', 'align': 'right', 'type': 'currency', 'prefix': 'UGX '},
+        {'key': 'selling_price', 'label': 'Sell (UGX)', 'align': 'right', 'type': 'currency', 'prefix': 'UGX '},
+        {'key': 'stock_value', 'label': 'Value (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'status', 'label': 'Status', 'align': 'center', 'type': 'status'},
+    ]
+
+    totals = {'stock_value': total_value}
+
+    kpi_cards = [
+        {'icon': 'bi-boxes', 'value': f'{len(data)}', 'label': 'Total Products', 'type': 'info'},
+        {'icon': 'bi-currency-dollar', 'value': f'UGX {total_value:,.0f}', 'label': 'Inventory Value', 'type': 'success'},
+        {'icon': 'bi-box', 'value': f'{total_stock:,}', 'label': 'Total Stock Units', 'type': 'secondary'},
+    ]
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Inventory Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': 'All',
+        'date_to': 'All',
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'kpi_cards': kpi_cards,
+        'has_data': len(data) > 0,
+        'summary_totals': {
+            'total_records': len(data),
+            'total_amount': total_value,
+            'total_paid': 'N/A',
+            'outstanding': 'N/A',
+            'recovery_rate': 'N/A',
+            'par_30': 'N/A',
+        },
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+@login_required
+def interest_report(request):
+    """Interest Income Report"""
+    from datetime import date, timedelta
+
+    if request.method == "POST":
+        date_from = request.POST.get('date_from')
+        date_to = request.POST.get('date_to')
+    else:
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+
+    if not date_from:
+        date_from = (date.today() - timedelta(days=365)).strftime('%Y-%m-%d')
+    if not date_to:
+        date_to = date.today().strftime('%Y-%m-%d')
+
+    loans = Loan.objects.filter(
+        disbursed_date__gte=date_from,
+        disbursed_date__lte=date_to,
+        status__in=['approved', 'active', 'closed']
+    ).select_related('member', 'officer')
+
+    data = []
+    total_principal = Decimal('0')
+    total_interest_charged = Decimal('0')
+    total_interest_paid = Decimal('0')
+    total_interest_balance = Decimal('0')
+
+    for loan in loans:
+        interest_charged = loan.installments.aggregate(total=Sum('interest_portion'))['total'] or Decimal('0')
+        interest_paid = loan.installments.aggregate(total=Sum('interest_paid'))['total'] or Decimal('0')
+        interest_balance = loan.interest_balance or Decimal('0')
+
+        data.append({
+            'member': f"{loan.member.first_name} {loan.member.last_name}",
+            'loan_ref': loan.loan_reference or f"LN-{loan.id}",
+            'principal': loan.principal_amount,
+            'interest_charged': interest_charged,
+            'interest_paid': interest_paid,
+            'interest_balance': interest_balance,
+            'status': loan.status,
+            'disbursed_date': loan.disbursed_date or loan.start_date,
+        })
+
+        total_principal += loan.principal_amount
+        total_interest_charged += interest_charged
+        total_interest_paid += interest_paid
+        total_interest_balance += interest_balance
+
+    columns = [
+        {'key': 'member', 'label': 'Member', 'align': 'left'},
+        {'key': 'loan_ref', 'label': 'Loan Reference', 'align': 'left'},
+        {'key': 'principal', 'label': 'Principal (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'interest_charged', 'label': 'Interest Charged (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'interest_paid', 'label': 'Interest Paid (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'interest_balance', 'label': 'Interest Balance (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'status', 'label': 'Status', 'align': 'center', 'type': 'status'},
+        {'key': 'disbursed_date', 'label': 'Disbursed', 'align': 'center', 'type': 'date'},
+    ]
+
+    totals = {
+        'principal': total_principal,
+        'interest_charged': total_interest_charged,
+        'interest_paid': total_interest_paid,
+        'interest_balance': total_interest_balance,
+    }
+
+    kpi_cards = [
+        {'icon': 'bi-percent', 'value': f'UGX {total_interest_charged:,.0f}', 'label': 'Total Interest Charged', 'type': 'info'},
+        {'icon': 'bi-currency-dollar', 'value': f'UGX {total_interest_paid:,.0f}', 'label': 'Interest Paid', 'type': 'success'},
+        {'icon': 'bi-exclamation-triangle', 'value': f'UGX {total_interest_balance:,.0f}', 'label': 'Interest Outstanding', 'type': 'warning'},
+    ]
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Interest Income Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': date_from,
+        'date_to': date_to,
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'kpi_cards': kpi_cards,
+        'has_data': len(data) > 0,
+        'summary_totals': {
+            'total_records': len(data),
+            'total_amount': total_principal,
+            'total_paid': total_interest_paid,
+            'outstanding': total_interest_balance,
+            'recovery_rate': (total_interest_paid / total_interest_charged * 100) if total_interest_charged > 0 else 0,
+            'par_30': 'N/A',
+        },
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+@login_required
+def loan_portfolio_reports(request):
+    """Loan Portfolio Report - Comprehensive loan portfolio analytics"""
+    from datetime import date
+
+    if request.method == "POST":
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        officer_id = request.POST.get('officer')
+    else:
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        officer_id = request.GET.get('officer')
+
+    loans = Loan.objects.select_related('member', 'officer').filter(
+        status__in=['approved', 'active', 'closed']
+    ).order_by('-disbursed_date', '-start_date')
+
+    if start_date:
+        loans = loans.filter(disbursed_date__gte=start_date)
+    if end_date:
+        loans = loans.filter(disbursed_date__lte=end_date)
+    if officer_id:
+        loans = loans.filter(officer_id=officer_id)
+
+    today = date.today()
+    report_data = []
+
+    for loan in loans:
+        p_bal = Decimal(str(loan.principal_balance or 0))
+        i_bal = Decimal(str(loan.interest_balance or 0))
+
+        overdue = loan.installments.filter(paid=False, due_date__lt=today)
+        principal_in_arrears = overdue.aggregate(
+            total=Coalesce(Sum('principal_portion'), Decimal('0'))
+        )['total']
+
+        total_due_today = loan.installments.filter(
+            paid=False, due_date__lte=today
+        ).aggregate(
+            total=Coalesce(Sum(F('principal_portion') + F('interest_portion')), Decimal('0'))
+        )['total']
+
+        penalty_due = overdue.aggregate(
+            total=Coalesce(Sum('penalty_amount'), Decimal('0'))
+        )['total']
+
+        report_data.append({
+            'borrower': f"{loan.member.first_name} {loan.member.last_name}",
+            'officer': loan.officer.get_full_name() if loan.officer else 'System',
+            'account_number': loan.member.member_number,
+            'contact': loan.member.phone_number,
+            'loan_disbursed': Decimal(str(loan.principal_amount or 0)),
+            'disbursement_date': loan.disbursed_date or loan.start_date,
+            'principal_balance': p_bal,
+            'interest_balance': i_bal,
+            'principal_in_arrears': principal_in_arrears,
+            'total_dues': total_due_today + penalty_due,
+            'par': p_bal if principal_in_arrears > 0 else Decimal('0'),
+        })
+
+    total_disbursed = sum(item['loan_disbursed'] for item in report_data)
+    total_outstanding = sum(item['principal_balance'] + item['interest_balance'] for item in report_data)
+    total_par = sum(item['par'] for item in report_data)
+
+    columns = [
+        {'key': 'borrower', 'label': 'Borrower', 'align': 'left'},
+        {'key': 'account_number', 'label': 'Account No', 'align': 'left'},
+        {'key': 'loan_disbursed', 'label': 'Disbursed (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'principal_balance', 'label': 'Principal (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'interest_balance', 'label': 'Interest (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'principal_in_arrears', 'label': 'Arrears (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'total_dues', 'label': 'Total Due (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'par', 'label': 'PAR (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'officer', 'label': 'Officer', 'align': 'left'},
+        {'key': 'disbursement_date', 'label': 'Disbursed Date', 'align': 'center', 'type': 'date'},
+    ]
+
+    totals = {
+        'loan_disbursed': total_disbursed,
+        'principal_balance': total_outstanding,
+        'interest_balance': sum(item['interest_balance'] for item in report_data),
+        'principal_in_arrears': sum(item['principal_in_arrears'] for item in report_data),
+        'total_dues': sum(item['total_dues'] for item in report_data),
+        'par': total_par,
+    }
+
+    kpi_cards = [
+        {'icon': 'bi-bank', 'value': f'UGX {total_disbursed:,.0f}', 'label': 'Total Disbursed', 'type': 'success'},
+        {'icon': 'bi-currency-dollar', 'value': f'UGX {total_outstanding:,.0f}', 'label': 'Total Outstanding', 'type': 'info'},
+        {'icon': 'bi-exclamation-triangle', 'value': f'UGX {total_par:,.0f}', 'label': 'Portfolio at Risk', 'type': 'danger'},
+    ]
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Loan Portfolio Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': start_date or 'All',
+        'date_to': end_date or 'All',
+        'columns': columns,
+        'data': report_data,
+        'totals': totals,
+        'kpi_cards': kpi_cards,
+        'has_data': len(report_data) > 0,
+        'officer_list': User.objects.filter(is_active=True).order_by('first_name', 'last_name'),
+        'summary_totals': {
+            'total_records': len(report_data),
+            'total_amount': total_disbursed,
+            'total_paid': total_disbursed - total_outstanding,
+            'outstanding': total_outstanding,
+            'recovery_rate': ((total_disbursed - total_outstanding) / total_disbursed * 100) if total_disbursed > 0 else 0,
+            'par_30': (total_par / total_disbursed * 100) if total_disbursed > 0 else 0,
+        },
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+@login_required
+def portfolio_status_report(request):
+    """Comprehensive Portfolio Status Report - with aging classification"""
+    today = timezone.now().date()
+
+    loans = Loan.objects.select_related('member', 'officer').filter(
+        status__in=['approved', 'active', 'closed']
+    ).order_by('member__member_number')
+
+    report_data = []
+
+    for loan in loans:
+        paid_stats = loan.installments.filter(paid=True).aggregate(
+            p_paid=Coalesce(Sum('principal_portion'), Decimal('0.00')),
+            i_paid=Coalesce(Sum('interest_portion'), Decimal('0.00')),
+            penalty_paid=Coalesce(Sum('penalty_amount'), Decimal('0.00')),
+        )
+
+        arrears_stats = loan.installments.filter(
+            paid=False,
+            due_date__lt=today
+        ).aggregate(
+            p_due=Coalesce(Sum('principal_portion'), Decimal('0.00')),
+            i_due=Coalesce(Sum('interest_portion'), Decimal('0.00')),
+            pen_due=Coalesce(Sum('penalty_amount'), Decimal('0.00')),
+        )
+
+        oldest_unpaid = loan.installments.filter(
+            paid=False,
+            due_date__lt=today
+        ).order_by('due_date').first()
+
+        classification = "Performing"
+        if oldest_unpaid:
+            days_past_due = (today - oldest_unpaid.due_date).days
+            if days_past_due > 180:
+                classification = "Loss"
+            elif days_past_due > 90:
+                classification = "Doubtful"
+            elif days_past_due > 30:
+                classification = "Substandard"
+            else:
+                classification = "Watch"
+
+        report_data.append({
+            'member_no': loan.member.member_number or str(loan.member.id),
+            'name': f"{loan.member.first_name} {loan.member.last_name}",
+            'loan_no': loan.loan_reference or loan.id,
+            'disbursed_amount': Decimal(str(loan.principal_amount or 0)),
+            'disbursed_date': loan.disbursed_date or loan.start_date,
+            'principal_paid': paid_stats['p_paid'],
+            'interest_paid': paid_stats['i_paid'],
+            'penalty_paid': paid_stats['penalty_paid'],
+            'principal_due': arrears_stats['p_due'],
+            'interest_due': arrears_stats['i_due'],
+            'penalty_due': arrears_stats['pen_due'],
+            'total_due': arrears_stats['p_due'] + arrears_stats['i_due'] + arrears_stats['pen_due'],
+            'principal_balance': Decimal(str(loan.principal_balance or 0)),
+            'interest_balance': Decimal(str(loan.interest_balance or 0)),
+            'classification': classification,
+            'sector': getattr(loan.member, 'economic_sector', 'N/A'),
+        })
+
+    grand_total_disbursed = sum(item['disbursed_amount'] for item in report_data)
+    grand_total_prin_paid = sum(item['principal_paid'] for item in report_data)
+    grand_total_int_paid = sum(item['interest_paid'] for item in report_data)
+    grand_total_prin_due = sum(item['principal_due'] for item in report_data)
+    grand_total_int_due = sum(item['interest_due'] for item in report_data)
+    grand_total_due = sum(item['total_due'] for item in report_data)
+    grand_total_prin_bal = sum(item['principal_balance'] for item in report_data)
+    grand_total_int_bal = sum(item['interest_balance'] for item in report_data)
+    grand_total_exposure = grand_total_prin_bal + grand_total_int_bal
+
+    columns = [
+        {'key': 'member_no', 'label': 'Member No', 'align': 'left'},
+        {'key': 'name', 'label': 'Member Name', 'align': 'left'},
+        {'key': 'loan_no', 'label': 'Loan Ref', 'align': 'left'},
+        {'key': 'disbursed_amount', 'label': 'Disbursed (UGX)', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'principal_paid', 'label': 'Principal Paid', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'interest_paid', 'label': 'Interest Paid', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'principal_due', 'label': 'Principal Due', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'interest_due', 'label': 'Interest Due', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'total_due', 'label': 'Total Due', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'principal_balance', 'label': 'Principal Balance', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'interest_balance', 'label': 'Interest Balance', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'classification', 'label': 'Classification', 'align': 'center'},
+        {'key': 'sector', 'label': 'Sector', 'align': 'left'},
+    ]
+
+    totals = {
+        'disbursed_amount': grand_total_disbursed,
+        'principal_paid': grand_total_prin_paid,
+        'interest_paid': grand_total_int_paid,
+        'principal_due': grand_total_prin_due,
+        'interest_due': grand_total_int_due,
+        'total_due': grand_total_due,
+        'principal_balance': grand_total_prin_bal,
+        'interest_balance': grand_total_int_bal,
+    }
+
+    kpi_cards = [
+        {'icon': 'bi-people', 'value': f'{len(report_data):,}', 'label': 'Total Loans', 'type': 'info'},
+        {'icon': 'bi-currency-dollar', 'value': f'UGX {grand_total_exposure:,.0f}', 'label': 'Total Exposure', 'type': 'success'},
+        {'icon': 'bi-exclamation-triangle', 'value': f'UGX {grand_total_due:,.0f}', 'label': 'Total Arrears', 'type': 'danger'},
+    ]
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Portfolio Status Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': 'All',
+        'date_to': 'All',
+        'columns': columns,
+        'data': report_data,
+        'totals': totals,
+        'kpi_cards': kpi_cards,
+        'has_data': len(report_data) > 0,
+        'summary_totals': {
+            'total_records': len(report_data),
+            'total_amount': grand_total_disbursed,
+            'total_paid': grand_total_prin_paid + grand_total_int_paid,
+            'outstanding': grand_total_prin_bal + grand_total_int_bal,
+            'recovery_rate': ((grand_total_prin_paid + grand_total_int_paid) / grand_total_disbursed * 100) if grand_total_disbursed > 0 else 0,
+            'par_30': (grand_total_due / grand_total_disbursed * 100) if grand_total_disbursed > 0 else 0,
+        },
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+@login_required
+def arrears_report(request):
+    """Arrears & Delinquency Report with aging buckets"""
+    from datetime import datetime
+
+    if request.method == "POST":
+        date_at_str = request.POST.get('date_at')
+        search_query = request.POST.get('search_query')
+    else:
+        date_at_str = request.GET.get('date_at')
+        search_query = request.GET.get('search_query')
+
+    today = date.today()
+    if date_at_str:
+        try:
+            target_date = datetime.strptime(date_at_str, '%Y-%m-%d').date()
+        except ValueError:
+            target_date = today
+    else:
+        target_date = today
+
+    overdue_installments = Installment.objects.filter(
+        paid=False,
+        due_date__lt=target_date,
+        loan__status__in=['approved', 'active', 'arrears']
+    ).select_related('loan', 'loan__member', 'loan__officer')
+
+    if search_query:
+        overdue_installments = overdue_installments.filter(
+            Q(loan__member__first_name__icontains=search_query) |
+            Q(loan__member__last_name__icontains=search_query) |
+            Q(loan__member__member_number__icontains=search_query) |
+            Q(loan__loan_reference__icontains=search_query)
+        )
+
+    overdue_installments = overdue_installments.annotate(
+        arrears_amount=(
+            Coalesce(F('principal_portion') - F('principal_paid'), Decimal('0')) +
+            Coalesce(F('interest_portion') - F('interest_paid'), Decimal('0')) +
+            Coalesce(F('penalty_amount') - F('penalty_paid'), Decimal('0'))
+        ),
+        days_overdue=(target_date - F('due_date'))
+    )
+
+    overdue_installments = overdue_installments.order_by('-days_overdue')
+
+    data = []
+    total_arrears = Decimal('0')
+
+    for inst in overdue_installments:
+        days = (target_date - inst.due_date).days
+        data.append({
+            'member_no': inst.loan.member.member_number or str(inst.loan.member.id),
+            'member_name': f"{inst.loan.member.first_name} {inst.loan.member.last_name}",
+            'loan_ref': inst.loan.loan_reference or f"LN-{inst.loan.id}",
+            'phone': inst.loan.member.phone_number,
+            'due_date': inst.due_date,
+            'days_overdue': days,
+            'principal_due': inst.principal_portion - inst.principal_paid,
+            'interest_due': inst.interest_portion - inst.interest_paid,
+            'penalty_due': inst.penalty_amount - inst.penalty_paid,
+            'total_due': (inst.principal_portion - inst.principal_paid) +
+                         (inst.interest_portion - inst.interest_paid) +
+                         (inst.penalty_amount - inst.penalty_paid),
+            'officer': inst.loan.officer.get_full_name() if inst.loan.officer else 'System',
+        })
+        total_arrears += data[-1]['total_due']
+
+    aging_buckets = {
+        '1-30_days': Decimal('0'),
+        '31-60_days': Decimal('0'),
+        '61-90_days': Decimal('0'),
+        '91-180_days': Decimal('0'),
+        '180_plus': Decimal('0'),
+    }
+
+    for item in data:
+        days = item['days_overdue']
+        amount = item['total_due']
+        if 1 <= days <= 30:
+            aging_buckets['1-30_days'] += amount
+        elif 31 <= days <= 60:
+            aging_buckets['31-60_days'] += amount
+        elif 61 <= days <= 90:
+            aging_buckets['61-90_days'] += amount
+        elif 91 <= days <= 180:
+            aging_buckets['91-180_days'] += amount
+        else:
+            aging_buckets['180_plus'] += amount
+
+    columns = [
+        {'key': 'member_no', 'label': 'Member No', 'align': 'left'},
+        {'key': 'member_name', 'label': 'Member', 'align': 'left'},
+        {'key': 'loan_ref', 'label': 'Loan Ref', 'align': 'left'},
+        {'key': 'phone', 'label': 'Phone', 'align': 'left'},
+        {'key': 'due_date', 'label': 'Due Date', 'align': 'center', 'type': 'date'},
+        {'key': 'days_overdue', 'label': 'Days Overdue', 'align': 'center'},
+        {'key': 'principal_due', 'label': 'Principal Due', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'interest_due', 'label': 'Interest Due', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'penalty_due', 'label': 'Penalty Due', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'total_due', 'label': 'Total Due', 'align': 'right', 'type': 'currency', 'total': True, 'prefix': 'UGX '},
+        {'key': 'officer', 'label': 'Officer', 'align': 'left'},
+    ]
+
+    totals = {
+        'principal_due': sum(item['principal_due'] for item in data),
+        'interest_due': sum(item['interest_due'] for item in data),
+        'penalty_due': sum(item['penalty_due'] for item in data),
+        'total_due': total_arrears,
+    }
+
+    total_outstanding_loans = Loan.objects.filter(
+        is_active=True,
+        status__in=['approved', 'active', 'arrears']
+    ).count()
+
+    kpi_cards = [
+        {'icon': 'bi-exclamation-triangle', 'value': f'UGX {total_arrears:,.0f}', 'label': 'Total Arrears', 'type': 'danger'},
+        {'icon': 'bi-clock-history', 'value': f'{len(data):,}', 'label': 'Overdue Installments', 'type': 'warning'},
+        {'icon': 'bi-percent', 'value': f'{(total_arrears / (total_outstanding_loans + 1)):.1f}%', 'label': 'Arrears Rate', 'type': 'info'},
+    ]
+
+    aging_summary = [
+        {'bucket': '1-30 Days', 'amount': aging_buckets['1-30_days']},
+        {'bucket': '31-60 Days', 'amount': aging_buckets['31-60_days']},
+        {'bucket': '61-90 Days', 'amount': aging_buckets['61-90_days']},
+        {'bucket': '91-180 Days', 'amount': aging_buckets['91-180_days']},
+        {'bucket': '180+ Days', 'amount': aging_buckets['180_plus']},
+    ]
+
+    context = {
+        'company': Company.get_company(),
+        'report_title': 'Arrears & Delinquency Report',
+        'generated_by': request.user.get_full_name() or request.user.username,
+        'generated_date': timezone.now().strftime('%d %b, %Y %H:%M'),
+        'date_from': target_date.strftime('%Y-%m-%d'),
+        'date_to': target_date.strftime('%Y-%m-%d'),
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'kpi_cards': kpi_cards,
+        'has_data': len(data) > 0,
+        'aging_summary': aging_summary,
+        'summary_totals': {
+            'total_records': len(data),
+            'total_amount': total_arrears,
+            'total_paid': 'N/A',
+            'outstanding': total_arrears,
+            'recovery_rate': 'N/A',
+            'par_30': f'{(total_arrears / (total_outstanding_loans + 1)):.1f}',
+        },
+    }
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+@login_required
+def general_ledger_report(request):
+    """
+    Display General Ledger entries with filters and totals.
+    Supports HTML and Excel export via the same view.
+    """
+    date_from = request.GET.get('date_from') or request.POST.get('date_from')
+    date_to = request.GET.get('date_to') or request.POST.get('date_to')
+    account_id = request.GET.get('account') or request.POST.get('account')
+
+    qs = GeneralLedger.objects.select_related('account')
+
+    if date_from:
+        qs = qs.filter(date__gte=date_from)
+    if date_to:
+        qs = qs.filter(date__lte=date_to)
+    if account_id:
+        qs = qs.filter(account_id=account_id)
+
+    data = []
+    total_debit = Decimal('0.00')
+    total_credit = Decimal('0.00')
+
+    for entry in qs.order_by('date', 'id'):
+        data.append({
+            'date': entry.date,
+            'account_code': entry.account.code,
+            'account_name': entry.account.name,
+            'description': entry.description,
+            'reference': entry.reference or '-',
+            'debit': entry.debit,
+            'credit': entry.credit,
+            'balance': entry.balance,
+        })
+        total_debit += entry.debit
+        total_credit += entry.credit
+
+    columns = [
+        {'key': 'date', 'label': 'Date', 'type': 'date'},
+        {'key': 'account_code', 'label': 'Account Code'},
+        {'key': 'account_name', 'label': 'Account Name'},
+        {'key': 'description', 'label': 'Description'},
+        {'key': 'reference', 'label': 'Reference'},
+        {'key': 'debit', 'label': 'Debit', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'credit', 'label': 'Credit', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'balance', 'label': 'Balance', 'type': 'currency', 'align': 'right'},
+    ]
+
+    totals = {
+        'debit': total_debit,
+        'credit': total_credit,
+    }
+
+    kpi_cards = [
+        {'label': 'Total Entries', 'value': qs.count(), 'icon': 'bi-list-ul', 'type': 'info'},
+        {'label': 'Total Debit', 'value': f"UGX {total_debit:,.0f}", 'icon': 'bi-arrow-down', 'type': 'danger'},
+        {'label': 'Total Credit', 'value': f"UGX {total_credit:,.0f}", 'icon': 'bi-arrow-up', 'type': 'success'},
+        {'label': 'Net Movement', 'value': f"UGX {abs(total_debit - total_credit):,.0f}", 'icon': 'bi-arrows-vertical', 'type': 'warning'},
+    ]
+
+    accounts = ChartOfAccount.objects.filter(is_active=True).order_by('code')
+
+    context = {
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'has_data': bool(data),
+        'kpi_cards': kpi_cards,
+        'report_title': 'General Ledger Report',
+        'company': Company.get_company(),
+        'date_from': date_from,
+        'date_to': date_to,
+        'selected_account': account_id,
+        'account_list': accounts,
+        'generated_date': timezone.now().strftime('%d %b %Y %H:%M'),
+        'generated_by': request.user.get_full_name() if request.user.is_authenticated else 'System',
+    }
+
+    if request.POST.get('export_excel') == '1' or request.GET.get('export_excel') == '1':
+        excel_file = generate_excel_report(
+            columns=context['columns'],
+            data=context['data'],
+            report_title=context['report_title'],
+            company_name=context['company']['name'],
+            totals=context['totals']
+        )
+        filename = f"General_Ledger_{context['generated_date'].replace(' ', '_').replace(':', '')}.xlsx"
+        response = FileResponse(
+            excel_file,
+            as_attachment=True,
+            filename=filename,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        return response
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+def report_view(request):
+    """
+    Main report view – handles both HTML display and Excel export.
+    """
+    date_from = request.POST.get('date_from') or request.GET.get('date_from')
+    date_to = request.POST.get('date_to') or request.GET.get('date_to')
+    officer_id = request.POST.get('officer') or request.GET.get('officer')
+    status = request.POST.get('status') or request.GET.get('status')
+
+    qs = Loan.objects.select_related('member', 'officer')
+
+    if date_from:
+        qs = qs.filter(disbursed_date__gte=date_from)
+    if date_to:
+        qs = qs.filter(disbursed_date__lte=date_to)
+    if officer_id:
+        qs = qs.filter(officer_id=officer_id)
+    if status:
+        qs = qs.filter(status=status)
+
+    columns = [
+        {'key': 'loan_reference', 'label': 'Loan Reference'},
+        {'key': 'member_name', 'label': 'Member'},
+        {'key': 'principal', 'label': 'Principal', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'interest_balance', 'label': 'Interest Balance', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'total_balance', 'label': 'Total Balance', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'status', 'label': 'Status', 'type': 'status'},
+        {'key': 'disbursed_date', 'label': 'Disbursed', 'type': 'date'},
+        {'key': 'officer', 'label': 'Officer'},
+    ]
+
+    data = []
+    total_principal = Decimal('0.00')
+    total_interest = Decimal('0.00')
+    total_balance = Decimal('0.00')
+
+    for loan in qs:
+        principal = loan.principal_amount or Decimal('0.00')
+        interest = loan.interest_balance or Decimal('0.00')
+        balance = principal + interest
+
+        data.append({
+            'loan_reference': loan.loan_reference or f"LN-{loan.id}",
+            'member_name': loan.member.get_full_name() if loan.member else 'N/A',
+            'principal': principal,
+            'interest_balance': interest,
+            'total_balance': balance,
+            'status': loan.get_status_display(),
+            'disbursed_date': loan.disbursed_date,
+            'officer': loan.officer.get_full_name() if loan.officer else 'N/A',
+        })
+
+        total_principal += principal
+        total_interest += interest
+        total_balance += balance
+
+    totals = {
+        'principal': total_principal,
+        'interest_balance': total_interest,
+        'total_balance': total_balance,
+    }
+
+    record_count = len(data)
+    kpi_cards = [
+        {'label': 'Total Loans', 'value': record_count, 'icon': 'bi-file-earmark-text', 'type': 'info'},
+        {'label': 'Total Principal', 'value': f"UGX {total_principal:,.0f}", 'icon': 'bi-cash', 'type': 'success'},
+        {'label': 'Total Interest', 'value': f"UGX {total_interest:,.0f}", 'icon': 'bi-percent', 'type': 'warning'},
+        {'label': 'Total Balance', 'value': f"UGX {total_balance:,.0f}", 'icon': 'bi-wallet2', 'type': 'danger'},
+    ]
+
+    summary_totals = {
+        'total_records': record_count,
+        'total_amount': total_balance,
+        'total_paid': Decimal('0.00'),
+        'outstanding': total_balance,
+        'recovery_rate': 0,
+        'par_30': 0,
+    }
+
+    officer_list = User.objects.filter(is_active=True).order_by('first_name', 'last_name')
+
+    context = {
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'has_data': bool(data),
+        'kpi_cards': kpi_cards,
+        'summary_totals': summary_totals,
+        'aging_summary': [],
+        'report_title': 'Loan Portfolio Report',
+        'company': Company.get_company(),
+        'date_from': date_from,
+        'date_to': date_to,
+        'selected_officer': officer_id,
+        'selected_status': status,
+        'officer_list': officer_list,
+        'officer_name': dict(officer_list.values_list('id', 'username')).get(int(officer_id) if officer_id else None),
+        'generated_date': timezone.now().strftime('%d %b %Y %H:%M'),
+        'generated_by': request.user.get_full_name() if request.user.is_authenticated else 'System',
+    }
+
+    if request.POST.get('export_excel') == '1':
+        excel_file = generate_excel_report(
+            columns=context['columns'],
+            data=context['data'],
+            report_title=context['report_title'],
+            company_name=context['company']['name'],
+            totals=context['totals']
+        )
+        filename = f"{context['report_title'].replace(' ', '_')}_{context['generated_date'].replace(' ', '_').replace(':', '')}.xlsx"
+        response = FileResponse(
+            excel_file,
+            as_attachment=True,
+            filename=filename,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        return response
+
+    return render(request, 'finance/reports/base_report.html', context)
+
+
+# finance/views.py
+from django.contrib.auth.decorators import permission_required
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from .models import Loan, Installment, ManualPenalty
+# finance/views.py
+from decimal import Decimal
+from django.contrib.auth.decorators import permission_required
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
+from django.utils import timezone
+from .models import Loan, Installment, ManualPenalty
+
+
+# finance/views.py
+from decimal import Decimal
+from django.contrib.auth.decorators import permission_required
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
+from django.utils import timezone
+from .models import Loan, Installment, ManualPenalty
+
+@permission_required('finance.can_apply_manual_penalty')
+def apply_manual_penalty(request, loan_id):
+    loan = get_object_or_404(Loan, id=loan_id)
+
+    if request.method == 'POST':
+        amount_str = request.POST.get('amount')
+        reason = request.POST.get('reason')
+        installment_id = request.POST.get('installment_id')
+
+        # Validate amount
+        try:
+            amount = Decimal(amount_str)
+        except (ValueError, TypeError):
+            messages.error(request, "Invalid amount. Please enter a valid number.")
+            return redirect('loan_detail', pk=loan.id)
+
+        if amount <= 0:
+            messages.error(request, "Amount must be greater than zero.")
+            return redirect('loan_detail', pk=loan.id)
+
+        if not reason or reason.strip() == '':
+            messages.error(request, "Please provide a reason for the penalty.")
+            return redirect('loan_detail', pk=loan.id)
+
+        installment = None
+        if installment_id:
+            installment = get_object_or_404(Installment, id=installment_id, loan=loan)
+
+        # Create the manual penalty
+        penalty = ManualPenalty.objects.create(
+            loan=loan,
+            installment=installment,
+            amount=amount,
+            reason=reason,
+            applied_by=request.user,
+        )
+
+        messages.success(request, f"Manual penalty of UGX {amount:,.2f} applied to loan {loan.loan_reference}.")
+        return redirect('loan_detail', pk=loan.id)
+
+    # GET: show form
+    installments = loan.installments.filter(paid=False).order_by('due_date')
+    context = {
+        'loan': loan,
+        'installments': installments,
+    }
+    return render(request, 'finance/apply_manual_penalty.html', context)
+
+@permission_required('finance.can_waive_penalty')
+def waive_manual_penalty(request, penalty_id):
+    """
+    View to waive an active manual penalty.
+    """
+    penalty = get_object_or_404(ManualPenalty, id=penalty_id)
+
+    if request.method == 'POST':
+        reason = request.POST.get('reason')
+
+        if not penalty.is_waived:
+            penalty.is_waived = True
+            penalty.waived_by = request.user
+            penalty.waived_date = timezone.now()
+            penalty.waiver_reason = reason
+            penalty.save()
+            messages.success(request, "Penalty waived successfully.")
+        else:
+            messages.warning(request, "This penalty has already been waived.")
+
+        return redirect('loan_detail', pk=penalty.loan.id)
+
+    # GET: show confirmation page
+    context = {'penalty': penalty}
+    return render(request, 'finance/waive_penalty.html', context)

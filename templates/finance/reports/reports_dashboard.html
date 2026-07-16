@@ -1,219 +1,803 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}Financial Intelligence | MAC Tech{% endblock %}
+{% block title %}Financial Intelligence | MAC Technologies{% endblock %}
 
 {% block content %}
+
 <style>
     :root {
-        --brand-blue: #1632af;
-        --brand-blue-soft: rgba(22, 50, 175, 0.04);
-        --slate-gray: #4a5568;
-        --border-color-soft: rgba(0, 0, 0, 0.06);
+        --brand-cobalt: #1632af;
+        --brand-cobalt-dark: #0f248a;
+        --brand-cobalt-light: #2a4ad8;
+        --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+        --brand-cobalt-glow: rgba(22, 50, 175, 0.12);
+        --border-color: #e2e8f0;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --bg-body: #f1f5f9;
+        --bg-card: #ffffff;
+        --bg-hover: #f8fafc;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+        --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.08);
+        --radius: 16px;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --info: #3b82f6;
     }
 
-    .report-card {
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        background: #ffffff;
+    body {
+        background: var(--bg-body);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
     }
 
-    .report-card:hover {
-        border-color: var(--brand-blue);
-        transform: translateY(-3px);
-        box-shadow: 0 12px 24px rgba(22, 50, 175, 0.06) !important;
-    }
-
-    .btn-brand {
-        background-color: var(--brand-blue);
-        color: #fff;
-        border: none;
-        font-weight: 600;
-        letter-spacing: 0.3px;
-    }
-
-    .btn-brand:hover {
-        background-color: #0f248a;
-        color: #fff;
-    }
-
-    .btn-outline-brand {
-        border: 1.5px solid var(--brand-blue);
-        color: var(--brand-blue);
-        font-weight: 600;
-        letter-spacing: 0.3px;
-    }
-
-    .btn-outline-brand:hover {
-        background-color: var(--brand-blue);
-        color: #fff;
-    }
-
-    .metric-value {
-        letter-spacing: -1px;
-        font-family: system-ui, -apple-system, sans-serif;
-    }
-
-    .icon-box {
-        width: 46px;
-        height: 46px;
+    /* ============================================
+       PAGE HEADER
+       ============================================ */
+    .page-header h2 {
+        font-weight: 800;
+        font-size: 1.6rem;
+        color: var(--text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        letter-spacing: -0.02em;
         display: flex;
         align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-        margin-bottom: 1.25rem;
+        gap: 0.5rem;
     }
 
-    /* Professional Dashboard Tabs Segment styling */
+    .page-header h2 i {
+        color: var(--brand-cobalt);
+    }
+
+    .page-header p {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .btn-export {
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 0.4rem 1.25rem;
+        border-radius: 100px;
+        transition: all 0.3s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-export:hover {
+        background: var(--bg-hover);
+        border-color: var(--brand-cobalt);
+        color: var(--brand-cobalt);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    /* ============================================
+       TABS
+       ============================================ */
     .dashboard-tabs-nav {
-        border-bottom: 1px solid var(--border-color-soft);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0;
+        margin-bottom: 1.5rem;
     }
 
     .dashboard-tab-link {
-        color: var(--slate-gray);
+        color: var(--text-muted);
         font-weight: 600;
-        font-size: 0.92rem;
-        padding: 0.75rem 1.25rem;
+        font-size: 0.9rem;
+        padding: 0.6rem 1.25rem;
         text-decoration: none;
         position: relative;
-        transition: color 0.15s ease;
+        transition: all 0.2s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border-bottom: 2px solid transparent;
     }
 
     .dashboard-tab-link:hover {
-        color: var(--brand-blue);
+        color: var(--brand-cobalt);
     }
 
     .dashboard-tab-link.active {
-        color: var(--brand-blue);
+        color: var(--brand-cobalt);
+        border-bottom-color: var(--brand-cobalt);
     }
 
-    .dashboard-tab-link.active::after {
-        content: '';
-        position: absolute;
-        bottom: -1px;
-        left: 0;
-        right: 0;
-        height: 2.5px;
-        background-color: var(--brand-blue);
-        border-radius: 3px 3px 0 0;
+    .dashboard-tab-link i {
+        font-size: 1rem;
     }
+
+    /* ============================================
+       KPI CARDS
+       ============================================ */
+    .kpi-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 1.25rem 1.5rem;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--brand-cobalt);
+        box-shadow: var(--shadow-md);
+    }
+
+    .kpi-card .kpi-label {
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .kpi-card .kpi-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        letter-spacing: -0.02em;
+        margin-top: 0.15rem;
+    }
+
+    .kpi-card .kpi-value.text-danger {
+        color: var(--danger);
+    }
+
+    .kpi-card .kpi-value.text-success {
+        color: var(--success);
+    }
+
+    .kpi-card .kpi-value.text-cobalt {
+        color: var(--brand-cobalt);
+    }
+
+    .kpi-card .kpi-change {
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .kpi-card .kpi-change.positive {
+        color: var(--success);
+    }
+
+    .kpi-card .kpi-change.negative {
+        color: var(--danger);
+    }
+
+    /* ============================================
+       REPORT CARDS
+       ============================================ */
+    .report-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+        height: 100%;
+    }
+
+    .report-card:hover {
+        transform: translateY(-6px);
+        border-color: var(--brand-cobalt);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .report-card .icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-bottom: 1rem;
+    }
+
+    .report-card .icon-box.cobalt {
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+    }
+
+    .report-card .icon-box.info {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--info);
+    }
+
+    .report-card .icon-box.success {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+    }
+
+    .report-card .icon-box.danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+    }
+
+    .report-card .icon-box.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning);
+    }
+
+    .report-card h5 {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        margin-bottom: 0.35rem;
+    }
+
+    .report-card p {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        margin-bottom: 1.25rem;
+    }
+
+    .report-card .border-danger-left {
+        border-left: 4px solid var(--danger);
+    }
+
+    /* ============================================
+       BUTTONS
+       ============================================ */
+    .btn-cobalt {
+        background: var(--brand-cobalt);
+        color: white;
+        border: none;
+        font-weight: 700;
+        font-size: 0.8rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        width: 100%;
+        box-shadow: 0 4px 15px rgba(22, 50, 175, 0.2);
+    }
+
+    .btn-cobalt:hover {
+        background: var(--brand-cobalt-dark);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
+    }
+
+    .btn-outline-cobalt {
+        background: transparent;
+        color: var(--brand-cobalt);
+        border: 1.5px solid var(--brand-cobalt);
+        font-weight: 700;
+        font-size: 0.8rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        width: 100%;
+    }
+
+    .btn-outline-cobalt:hover {
+        background: var(--brand-cobalt);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
+    }
+
+    .btn-danger-custom {
+        background: var(--danger);
+        color: white;
+        border: none;
+        font-weight: 700;
+        font-size: 0.8rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        width: 100%;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-danger-custom:hover {
+        background: #dc2626;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-warning-custom {
+        background: var(--warning);
+        color: white;
+        border: none;
+        font-weight: 700;
+        font-size: 0.8rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        width: 100%;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+    }
+
+    .btn-warning-custom:hover {
+        background: #d97706;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 992px) {
+        .kpi-card .kpi-value {
+            font-size: 1.3rem;
+        }
+        .page-header h2 {
+            font-size: 1.4rem;
+        }
+        .dashboard-tab-link {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 1rem;
+        }
+        .page-header h2 {
+            font-size: 1.2rem;
+        }
+        .btn-export {
+            width: 100%;
+            justify-content: center;
+        }
+        .dashboard-tabs-nav {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            gap: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+        .dashboard-tab-link {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+            white-space: nowrap;
+        }
+        .kpi-card {
+            padding: 1rem;
+        }
+        .kpi-card .kpi-value {
+            font-size: 1.1rem;
+        }
+        .report-card .icon-box {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+        .report-card h5 {
+            font-size: 0.9rem;
+        }
+        .report-card p {
+            font-size: 0.75rem;
+        }
+        .btn-cobalt,
+        .btn-outline-cobalt,
+        .btn-danger-custom,
+        .btn-warning-custom {
+            font-size: 0.7rem;
+            padding: 0.4rem 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .container-fluid {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        .row.g-3 {
+            --bs-gutter-y: 0.75rem;
+        }
+        .row.g-4 {
+            --bs-gutter-y: 1rem;
+        }
+        .kpi-card .kpi-value {
+            font-size: 1rem;
+        }
+        .kpi-card .kpi-label {
+            font-size: 0.55rem;
+        }
+        .report-card .card-body {
+            padding: 1.25rem !important;
+        }
+        .report-card .icon-box {
+            width: 36px;
+            height: 36px;
+            font-size: 0.9rem;
+        }
+        .dashboard-tab-link {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .dashboard-tab-link i {
+            font-size: 0.75rem;
+        }
+    }
+
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .kpi-card {
+        animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+    .kpi-card:nth-child(2) { animation-delay: 0.10s; }
+    .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+    .kpi-card:nth-child(4) { animation-delay: 0.20s; }
+
+    .report-card {
+        animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .report-card:nth-child(1) { animation-delay: 0.10s; }
+    .report-card:nth-child(2) { animation-delay: 0.15s; }
+    .report-card:nth-child(3) { animation-delay: 0.20s; }
+    .report-card:nth-child(4) { animation-delay: 0.25s; }
+    .report-card:nth-child(5) { animation-delay: 0.30s; }
+    .report-card:nth-child(6) { animation-delay: 0.35s; }
+    .report-card:nth-child(7) { animation-delay: 0.40s; }
+    .report-card:nth-child(8) { animation-delay: 0.45s; }
+    .report-card:nth-child(9) { animation-delay: 0.50s; }
+    .report-card:nth-child(10) { animation-delay: 0.55s; }
+    .report-card:nth-child(11) { animation-delay: 0.60s; }
+    .report-card:nth-child(12) { animation-delay: 0.65s; }
+    .report-card:nth-child(13) { animation-delay: 0.70s; }
 </style>
 
-<div class="container-fluid px-4 py-4">
+<div class="container-fluid py-4 px-3 px-lg-4">
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <!-- ==========================================
+    PAGE HEADER
+    ========================================== -->
+    <div class="page-header d-flex flex-wrap flex-sm-nowrap align-items-center justify-content-between gap-3 mb-3">
         <div>
-            <h2 class="fw-bold mb-1 text-dark" style="letter-spacing: -0.5px;">Financial Intelligence</h2>
-            <p class="text-muted small mb-0">Live SACCO Portfolio Analytics & Risk Monitoring</p>
+            <h2>
+                <i class="bi bi-graph-up-arrow"></i>
+                Financial Intelligence
+            </h2>
+            <p>Live SACCO Portfolio Analytics &amp; Risk Monitoring</p>
         </div>
-        
-        <button class="btn btn-outline-secondary btn-sm px-3 rounded-pill fw-semibold shadow-sm">
-            <i class="bi bi-cloud-download me-2"></i>Export Master Report
+        <button class="btn-export" onclick="exportReport()">
+            <i class="bi bi-cloud-download"></i> Export Master Report
         </button>
     </div>
 
-    <div class="d-flex dashboard-tabs-nav mb-4 gap-2">
+    <!-- ==========================================
+    TABS
+    ========================================== -->
+    <div class="dashboard-tabs-nav d-flex gap-2">
         <a href="{% url 'ceo_dashboard' %}" class="dashboard-tab-link active">
-            <i class="bi bi-speedometer2 me-2"></i>CEO Executive Overview
+            <i class="bi bi-speedometer2"></i> CEO Executive Overview
         </a>
         <a href="{% url 'treasury_dashboard' %}" class="dashboard-tab-link">
-            <i class="bi bi-bank2 me-2"></i>Treasury & Liquidity Management
+            <i class="bi bi-bank2"></i> Treasury &amp; Liquidity Management
         </a>
     </div>
 
+    <!-- ==========================================
+    KPI METRICS - REAL DATA
+    ========================================== -->
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card report-card rounded-4 border-0 shadow-sm p-3">
-                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem; letter-spacing: 0.5px;">Portfolio at Risk (PAR > 30)</small>
-                <div class="d-flex align-items-baseline gap-2 mt-1">
-                    <h3 class="metric-value fw-bold mb-0 text-danger">{{ portfolio_at_risk|default:"4.82%" }}</h3>
-                    <small class="text-success fw-bold" style="font-size: 0.75rem;">↓ 0.4%</small>
+        <div class="col-md-3 col-6">
+            <div class="kpi-card">
+                <div class="kpi-label">Portfolio at Risk (PAR &gt; 30)</div>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <div class="kpi-value text-danger">{{ par_30|default:"0"|floatformat:1 }}%</div>
+                    <span class="kpi-change {% if par_change < 0 %}positive{% else %}negative{% endif %}">
+                        {% if par_change < 0 %}↓{% else %}↑{% endif %} {{ par_change|floatformat:1 }}%
+                    </span>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-3">
-            <div class="card report-card rounded-4 border-0 shadow-sm p-3">
-                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem; letter-spacing: 0.5px;">Liquidity Ratio</small>
-                <div class="d-flex align-items-baseline mt-1">
-                    <h3 class="metric-value fw-bold mb-0 text-success">{{ liquidity_ratio|default:"23.4%" }}</h3>
+        <div class="col-md-3 col-6">
+            <div class="kpi-card">
+                <div class="kpi-label">Liquidity Ratio</div>
+                <div class="d-flex align-items-center mt-1">
+                    <div class="kpi-value text-success">{{ liquidity_ratio|default:"0"|floatformat:1 }}%</div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-3">
-            <div class="card report-card rounded-4 border-0 shadow-sm p-3">
-                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem; letter-spacing: 0.5px;">Active Loan Accounts</small>
-                <div class="d-flex align-items-baseline mt-1">
-                    <h3 class="metric-value fw-bold mb-0" style="color: var(--brand-blue);">{{ active_loans_count|default:"148" }}</h3>
+        <div class="col-md-3 col-6">
+            <div class="kpi-card">
+                <div class="kpi-label">Active Loan Accounts</div>
+                <div class="d-flex align-items-center mt-1">
+                    <div class="kpi-value text-cobalt">{{ active_loans_count|default:"0"|intcomma }}</div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-3">
-            <div class="card report-card rounded-4 border-0 shadow-sm p-3">
-                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem; letter-spacing: 0.5px;">Gross Loan Portfolio Balance</small>
-                <div class="d-flex align-items-baseline mt-1">
-                    <h3 class="metric-value fw-bold mb-0 text-dark">UGX {{ total_reserves}}</h3>
+        <div class="col-md-3 col-6">
+            <div class="kpi-card">
+                <div class="kpi-label">Gross Loan Portfolio Balance</div>
+                <div class="d-flex align-items-center mt-1">
+                    <div class="kpi-value">UGX {{ total_loan_portfolio|default:"0"|floatformat:0|intcomma }}</div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- ==========================================
+    ALL REPORT CARDS
+    ========================================== -->
     <div class="row g-4">
-        
-        <div class="col-md-4">
-            <div class="card h-100 report-card rounded-4 border-0 shadow-sm">
+        <!-- 1. Portfolio Status -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
                 <div class="card-body p-4">
-                    <div class="icon-box" style="background: var(--brand-blue-soft);">
-                        <i class="bi bi-pie-chart-fill fs-4" style="color: var(--brand-blue);"></i>
+                    <div class="icon-box cobalt">
+                        <i class="bi bi-pie-chart-fill"></i>
                     </div>
-                    <h5 class="fw-bold text-dark">Portfolio Status</h5>
-                    <p class="text-muted small">Comprehensive view of ledgers, interest breakdown, and aging classifications.</p>
-                    <a href="{% url 'interest_report' %}" class="btn btn-brand w-100 rounded-3 mt-2 py-2">Open Ledger</a>
+                    <h5>Portfolio Status</h5>
+                    <p>Comprehensive view of ledgers, interest breakdown, and aging classifications.</p>
+                    <a href="{% url 'portfolio_status_report' %}" class="btn-cobalt">
+                        <i class="bi bi-journal-text"></i> Open Ledger
+                    </a>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card h-100 report-card rounded-4 border-0 shadow-sm">
+        <!-- 2. Loan Performance -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
                 <div class="card-body p-4">
-                    <div class="icon-box" style="background: rgba(13, 202, 240, 0.06);">
-                        <i class="bi bi-graph-up fs-4 text-info"></i>
+                    <div class="icon-box info">
+                        <i class="bi bi-graph-up"></i>
                     </div>
-                    <h5 class="fw-bold text-dark">Loan Performance</h5>
-                    <p class="text-muted small">Analyze principal balances, repayment trends, collection efficiency, and officer risk.</p>
-                    <a href="{% url 'loan_portfolio_report' %}" class="btn btn-outline-brand w-100 rounded-3 mt-2 py-2">Performance Report</a>
+                    <h5>Loan Performance</h5>
+                    <p>Analyze principal balances, repayment trends, collection efficiency, and officer risk.</p>
+                    <a href="{% url 'loan_portfolio_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> Performance Report
+                    </a>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card h-100 report-card rounded-4 border-0 shadow-sm">
+        <!-- 3. Savings Analytics -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
                 <div class="card-body p-4">
-                    <div class="icon-box" style="background: rgba(25, 135, 84, 0.06);">
-                        <i class="bi bi-safe2-fill fs-4 text-success"></i>
+                    <div class="icon-box success">
+                        <i class="bi bi-safe2-fill"></i>
                     </div>
-                    <h5 class="fw-bold text-dark">Savings Analytics</h5>
-                    <p class="text-muted small">Monitor member deposit trends, shares accumulation, and product utilization variance.</p>
-                    <a href="{% url 'savings_report' %}" class="btn btn-outline-brand w-100 rounded-3 mt-2 py-2">Savings Overview</a>
+                    <h5>Savings Analytics</h5>
+                    <p>Monitor member deposit trends, shares accumulation, and product utilization variance.</p>
+                    <a href="{% url 'savings_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> Savings Overview
+                    </a>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card h-100 report-card rounded-4 border-0 shadow-sm border-start border-4 border-danger">
+        <!-- 4. Arrears & Delinquency -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0 border-danger-left">
                 <div class="card-body p-4">
-                    <div class="icon-box" style="background: rgba(220, 53, 69, 0.06);">
-                        <i class="bi bi-shield-exclamation fs-4 text-danger"></i>
+                    <div class="icon-box danger">
+                        <i class="bi bi-shield-exclamation"></i>
                     </div>
-                    <h5 class="fw-bold text-danger">Arrears & Delinquency</h5>
-                    <p class="text-muted small">Real-time isolation of past-due balances, default aging buckets, and provisions tracking.</p>
-                    <a href="{% url 'arrears_report' %}" class="btn btn-danger w-100 rounded-3 mt-2 py-2">Review Defaults</a>
+                    <h5 style="color: var(--danger);">Arrears &amp; Delinquency</h5>
+                    <p>Real-time isolation of past-due balances, default aging buckets, and provisions tracking.</p>
+                    <a href="{% url 'arrears_report' %}" class="btn-danger-custom">
+                        <i class="bi bi-exclamation-triangle"></i> Review Defaults
+                    </a>
                 </div>
             </div>
         </div>
 
+        <!-- 5. Loan Report (General) -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box cobalt">
+                        <i class="bi bi-bar-chart-fill"></i>
+                    </div>
+                    <h5>Loan Report</h5>
+                    <p>Detailed view of all loans, including disbursements, repayments, and outstanding balances.</p>
+                    <a href="{% url 'loan_report' %}" class="btn-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> View Loans
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Member Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box info">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <h5>Member Report</h5>
+                    <p>Track member demographics, activity, and portfolio contribution across the SACCO.</p>
+                    <a href="{% url 'member_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> Member Insights
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Financial Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box success">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <h5>Financial Report</h5>
+                    <p>Comprehensive income/expense, balance sheet, and cash flow analysis.</p>
+                    <a href="{% url 'financial_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> Financials
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Officer Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box warning">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                    <h5>Officer Report</h5>
+                    <p>Performance metrics, loan book quality, and collections per officer.</p>
+                    <a href="{% url 'officer_report' %}" class="btn-warning-custom">
+                        <i class="bi bi-file-earmark-text"></i> Officer Performance
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. Accounting Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box cobalt">
+                        <i class="bi bi-journal-richtext"></i>
+                    </div>
+                    <h5>Accounting Report</h5>
+                    <p>General ledger, trial balance, and audit trail for full accountability.</p>
+                    <a href="{% url 'accounting_report' %}" class="btn-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> Accounting
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10. Audit Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box danger">
+                        <i class="bi bi-clipboard-check"></i>
+                    </div>
+                    <h5>Audit Report</h5>
+                    <p>System logs, user actions, and compliance verification records.</p>
+                    <a href="{% url 'audit_report' %}" class="btn-danger-custom">
+                        <i class="bi bi-file-earmark-text"></i> Audit Trail
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 11. Inventory Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box info">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <h5>Inventory Report</h5>
+                    <p>Track assets, collateral, and physical items under management.</p>
+                    <a href="{% url 'inventory_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> Inventory
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 12. Interest Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box success">
+                        <i class="bi bi-percent"></i>
+                    </div>
+                    <h5>Interest Report</h5>
+                    <p>Interest income breakdown, accruals, and forecasts.</p>
+                    <a href="{% url 'interest_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> Interest Overview
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 13. General Ledger Report (NEW) -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box cobalt">
+                        <i class="bi bi-journal-text"></i>
+                    </div>
+                    <h5>General Ledger</h5>
+                    <p>Complete general ledger with debit/credit entries, account balances, and transaction history.</p>
+                    <a href="{% url 'general_ledger_report' %}" class="btn-cobalt">
+                        <i class="bi bi-journal-richtext"></i> View Ledger
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+    function exportReport() {
+        Swal.fire({
+            title: 'Exporting Report',
+            text: 'Generating master report...',
+            icon: 'info',
+            confirmButtonColor: '#1632af',
+            timer: 2000,
+            timerProgressBar: true
+        });
+    }
+</script>
+
 {% endblock %}

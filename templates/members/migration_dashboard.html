@@ -1,198 +1,757 @@
 {% extends "base.html" %}
 {% load humanize %}
 
-{% block title %}Data Migration Studio |Core Platform{% endblock %}
+{% block title %}Data Migration Studio | {{ company.name }}{% endblock %}
 
 {% block content %}
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-<div class="container-fluid px-4 py-4" x-data="migrationStudio()">
-    
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center border-bottom pb-4 mb-4" style="border-color: var(--border-color);">
+<style>
+    :root {
+        --brand-cobalt: #1632af;
+        --brand-cobalt-dark: #0f248a;
+        --brand-cobalt-light: #2a4ad8;
+        --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+        --brand-cobalt-glow: rgba(22, 50, 175, 0.12);
+        --border-color: #e2e8f0;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --bg-body: #f1f5f9;
+        --card-bg: #ffffff;
+        --hover-bg: #f8fafc;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+        --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+        --shadow-lg: 0 20px 50px rgba(0,0,0,0.08);
+        --radius: 16px;
+        --radius-sm: 12px;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+    }
+
+    body {
+        background: var(--bg-body);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .migration-wrapper {
+        max-width: 1340px;
+        margin: 0 auto;
+        padding: 1.5rem 1.5rem 3rem;
+    }
+
+    /* Page Header */
+    .page-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1.5rem;
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .page-header h2 {
+        font-size: 1.6rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--text-primary);
+    }
+
+    .page-header h2 i {
+        color: var(--brand-cobalt);
+    }
+
+    .page-header .subtitle {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+
+    .btn-download {
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        border: none;
+        font-weight: 600;
+        padding: 0.65rem 1.5rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        box-shadow: 0 4px 15px rgba(22, 50, 175, 0.2);
+    }
+
+    .btn-download:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
+        color: #ffffff;
+    }
+
+    /* Cards */
+    .migration-card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        transition: box-shadow 0.3s ease;
+        overflow: hidden;
+    }
+
+    .migration-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .migration-card .card-header {
+        background: var(--bg-body);
+        border-bottom: 1px solid var(--border-color);
+        padding: 0.9rem 1.25rem;
+        font-weight: 700;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .migration-card .card-header i {
+        color: var(--brand-cobalt);
+    }
+
+    .migration-card .card-body {
+        padding: 1.5rem;
+    }
+
+    /* File drop zone */
+    .drop-zone {
+        border: 2px dashed var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 2.5rem 1.5rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        background: var(--bg-body);
+        cursor: pointer;
+        position: relative;
+    }
+
+    .drop-zone:hover {
+        border-color: var(--brand-cobalt);
+        background: var(--brand-cobalt-bg);
+    }
+
+    .drop-zone.dragover {
+        border-color: var(--brand-cobalt);
+        background: var(--brand-cobalt-bg);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+    }
+
+    .drop-zone .icon {
+        font-size: 2.5rem;
+        color: var(--text-muted);
+        opacity: 0.5;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .drop-zone .main-text {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+    }
+
+    .drop-zone .main-text .highlight {
+        color: var(--brand-cobalt);
+    }
+
+    .drop-zone .sub-text {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.3rem;
+    }
+
+    .drop-zone input[type="file"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    /* Selected file badge */
+    .file-badge {
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 0.6rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+
+    .file-badge .file-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        overflow: hidden;
+    }
+
+    .file-badge .file-info i {
+        color: var(--success);
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .file-badge .file-info span {
+        font-weight: 500;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .file-badge .btn-remove {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.2rem;
+        padding: 0 0.25rem;
+        transition: color 0.2s ease;
+        cursor: pointer;
+    }
+
+    .file-badge .btn-remove:hover {
+        color: var(--danger);
+    }
+
+    /* Buttons */
+    .btn-outline-secondary {
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1.5px solid var(--border-color);
+        font-weight: 600;
+        padding: 0.6rem 1.25rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        width: 100%;
+    }
+
+    .btn-outline-secondary:hover {
+        background: var(--brand-cobalt-bg);
+        border-color: var(--brand-cobalt);
+        color: var(--brand-cobalt);
+        transform: translateY(-2px);
+    }
+
+    .btn-outline-secondary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .btn-success-import {
+        background: var(--success);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        padding: 0.6rem 1.25rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        width: 100%;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-success-import:hover {
+        background: #059669;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        color: #ffffff;
+    }
+
+    .btn-success-import:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Stats cards */
+    .stat-box {
+        padding: 1rem 1.25rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .stat-box:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .stat-box .stat-value {
+        font-size: 1.6rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+    }
+
+    .stat-box .stat-label {
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        margin-top: 0.15rem;
+    }
+
+    .stat-box.success .stat-value { color: var(--success); }
+    .stat-box.cobalt .stat-value { color: var(--brand-cobalt); }
+    .stat-box.danger .stat-value { color: var(--danger); }
+
+    /* Logs terminal */
+    .terminal {
+        background: #0f172a;
+        color: #e2e8f0;
+        border-radius: var(--radius-sm);
+        padding: 1rem 1.25rem;
+        min-height: 250px;
+        max-height: 480px;
+        overflow-y: auto;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        font-size: 0.8rem;
+        line-height: 1.6;
+        border: 1px solid #1e2937;
+    }
+
+    .terminal .log-entry {
+        padding: 0.2rem 0;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .terminal .log-entry .log-index {
+        color: var(--text-muted);
+        user-select: none;
+        min-width: 30px;
+    }
+
+    .terminal .log-entry.log-success {
+        color: #10b981;
+    }
+
+    .terminal .log-entry.log-error {
+        color: #ef4444;
+    }
+
+    .terminal .log-entry.log-warning {
+        color: #f59e0b;
+    }
+
+    .terminal .log-entry.log-info {
+        color: #94a3b8;
+    }
+
+    /* Tab navigation */
+    .nav-tabs-custom {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .nav-tabs-custom .nav-btn {
+        background: transparent;
+        border: 1px solid transparent;
+        padding: 0.4rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .nav-tabs-custom .nav-btn:hover {
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+    }
+
+    .nav-tabs-custom .nav-btn.active {
+        background: var(--card-bg);
+        border-color: var(--border-color);
+        box-shadow: var(--shadow-sm);
+        color: var(--brand-cobalt);
+    }
+
+    /* Table */
+    .migration-table {
+        width: 100%;
+        font-size: 0.82rem;
+        border-collapse: collapse;
+    }
+
+    .migration-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(--hover-bg);
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .migration-table thead th {
+        padding: 0.75rem 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.6rem;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    .migration-table thead th.text-end {
+        text-align: right;
+    }
+    .migration-table thead th.text-center {
+        text-align: center;
+    }
+
+    .migration-table tbody td {
+        padding: 0.6rem 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+
+    .migration-table tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .migration-table .mono {
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    .migration-table .text-end {
+        text-align: right;
+    }
+    .migration-table .text-center {
+        text-align: center;
+    }
+
+    .table-scroll {
+        max-height: 480px;
+        overflow-y: auto;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .page-header h2 {
+            font-size: 1.4rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .migration-wrapper {
+            padding: 1rem;
+        }
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .btn-download {
+            width: 100%;
+            justify-content: center;
+        }
+        .drop-zone {
+            padding: 1.5rem 1rem;
+        }
+        .stat-box .stat-value {
+            font-size: 1.2rem;
+        }
+        .migration-table {
+            font-size: 0.75rem;
+        }
+        .migration-table thead th,
+        .migration-table tbody td {
+            padding: 0.4rem 0.5rem;
+        }
+        .terminal {
+            font-size: 0.7rem;
+            padding: 0.75rem 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .page-header h2 {
+            font-size: 1.2rem;
+        }
+        .stat-box {
+            padding: 0.75rem;
+        }
+        .stat-box .stat-value {
+            font-size: 1rem;
+        }
+        .nav-tabs-custom .nav-btn {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.7rem;
+        }
+    }
+
+    /* Utilities */
+    .opacity-50 {
+        opacity: 0.5;
+        transition: opacity 0.3s ease;
+    }
+
+    .z-1 {
+        z-index: 1;
+    }
+
+    .shadow-xs {
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+</style>
+
+<div class="migration-wrapper" x-data="migrationStudio()">
+
+    <!-- Page Header -->
+    <div class="page-header">
         <div>
-            <h2 class="fw-bold mb-1" style="color: var(--text-primary); font-size: 1.75rem;">Data Migration Studio</h2>
-            <p class="small mb-0" style="color: var(--text-secondary); font-size: 0.9rem;">Bulk initialize legacy customers, opening savings ledger balances, and active historical loan portfolios.</p>
+            <h2>
+                <i class="bi bi-database-gear"></i>
+                Data Migration Studio
+            </h2>
+            <div class="subtitle">
+                <i class="bi bi-info-circle me-1"></i>
+                Bulk initialize legacy customers, opening savings ledger balances, and active historical loan portfolios.
+            </div>
         </div>
-        <div class="mt-3 mt-md-0">
-            <a href="{% url 'template_download' %}" 
-               class="btn d-inline-flex align-items-center gap-2 px-4 py-2.5 text-white fw-medium shadow-sm border-0 transition button-brand"
-               style="background-color: var(--brand-cobalt); border-radius: 10px; font-size: 0.9rem;">
-                <i class="bi bi-cloud-arrow-down-fill fs-5"></i>
+        <div>
+            <a href="{% url 'template_download' %}" class="btn-download">
+                <i class="bi bi-cloud-arrow-down-fill"></i>
                 <span>Download Excel Template</span>
             </a>
         </div>
     </div>
 
     <div class="row g-4">
-        
+
+        <!-- Left: Controls -->
         <div class="col-12 col-lg-4">
-            <div class="card p-4 shadow-sm border mb-4" style="background: var(--card-bg); border-color: var(--border-color); border-radius: 16px;">
-                <h5 class="fw-bold mb-3" style="color: var(--text-primary); font-size: 1.1rem;">File Import Control</h5>
-                
-                <div class="p-5 text-center border border-2 border-dashed rounded-4 position-relative transition"
-                     :style="isDragging ? 'border-color: var(--brand-cobalt); background: var(--hover-bg);' : 'border-color: var(--border-color); background: var(--bg);'"
-                     @dragover.prevent="isDragging = true"
-                     @dragleave.prevent="isDragging = false"
-                     @drop.prevent="isDragging = false; handleFileDrop($event)"
-                     style="border-radius: 12px;">
-                    
-                    <input type="file" id="fileInput" ref="fileInput" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" @change="handleFileSelect" style="z-index: 10;">
-                    
-                    <div class="py-2">
-                        <i class="bi bi-cloud-upload text-muted display-6 mb-2 d-block"></i>
-                        <div class="small" style="color: var(--text-primary); font-size: 0.95rem;">
-                            <span class="fw-bold" style="color: var(--brand-cobalt);">Click to browse files</span> or drag and drop here
+            <div class="migration-card">
+                <div class="card-header">
+                    <i class="bi bi-upload"></i>
+                    File Import Control
+                </div>
+                <div class="card-body">
+                    <!-- Drop Zone -->
+                    <div class="drop-zone"
+                         :class="isDragging ? 'dragover' : ''"
+                         @dragover.prevent="isDragging = true"
+                         @dragleave.prevent="isDragging = false"
+                         @drop.prevent="isDragging = false; handleFileDrop($event)">
+                        <input type="file" id="fileInput" ref="fileInput" @change="handleFileSelect">
+                        <i class="bi bi-cloud-upload icon"></i>
+                        <div class="main-text">
+                            <span class="highlight">Click to browse</span> or drag &amp; drop
                         </div>
-                        <p class="text-muted mb-0 mt-2" style="font-size: 0.75rem;">Supported Formats: Excel (.xlsx, .xls) or formatted .csv</p>
+                        <div class="sub-text">Supported: .xlsx, .xls, .csv</div>
                     </div>
-                </div>
 
-                <div x-show="selectedFile" class="mt-3 p-3 rounded-3 d-flex align-items-center justify-content-between text-xs" style="background: var(--hover-bg); border: 1px solid var(--border-color); border-radius: 8px;" x-cloak>
-                    <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
-                        <i class="bi bi-file-earmark-spreadsheet-fill text-success fs-5"></i>
-                        <span class="fw-medium text-truncate" style="color: var(--text-primary); font-size: 0.85rem;" x-text="selectedFile ? selectedFile.name : ''"></span>
+                    <!-- Selected file badge -->
+                    <div x-show="selectedFile" x-cloak>
+                        <div class="file-badge">
+                            <div class="file-info">
+                                <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+                                <span x-text="selectedFile.name"></span>
+                            </div>
+                            <button class="btn-remove" @click="resetStudio" title="Remove file">✕</button>
+                        </div>
                     </div>
-                    <button @click="resetStudio" class="btn btn-sm btn-link text-danger p-0 text-decoration-none fw-bold" style="font-size: 1rem;">✕</button>
-                </div>
 
-                <div class="mt-4 d-grid gap-2">
-                    <button @click="generatePreview" 
-                            :disabled="!selectedFile || isProcessing"
-                            class="btn py-2.5 fw-semibold border shadow-sm transition"
-                            style="background-color: var(--bg); border-color: var(--border-color); color: var(--text-primary); border-radius: 10px; font-size: 0.9rem;">
-                        Generate Schema Preview
-                    </button>
-                    
-                    <button @click="commitFinalImport" 
-                            x-show="previewRows.length > 0 && !importCompleted"
-                            class="btn text-white py-2.5 fw-bold shadow-sm transition"
-                            style="background-color: #10b981; border: none; border-radius: 10px; font-size: 0.9rem;" x-cloak>
-                        Commit Production Import
-                    </button>
+                    <!-- Action buttons -->
+                    <div class="mt-3 d-grid gap-2">
+                        <button @click="generatePreview"
+                                :disabled="!selectedFile || isProcessing"
+                                class="btn-outline-secondary">
+                            <i class="bi bi-eye"></i> Generate Preview
+                        </button>
+                        <button @click="commitFinalImport"
+                                x-show="previewRows.length > 0 && !importCompleted"
+                                class="btn-success-import" x-cloak>
+                            <i class="bi bi-check-circle"></i> Commit Production Import
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div x-show="isProcessing" class="card p-3 shadow-sm border" style="background: var(--card-bg); border-color: var(--border-color); border-radius: 12px;" x-cloak>
-                <div class="d-flex align-items-center justify-content-between small mb-2" style="font-size: 0.85rem;">
-                    <span class="fw-medium" style="color: var(--text-secondary);" x-text="processingStage">Processing system configurations...</span>
-                    <span class="fw-bold" style="color: var(--brand-cobalt);" x-text="progressPercent + '%'"></span>
-                </div>
-                <div class="progress" style="height: 6px; border-radius: 999px; background-color: var(--border-color);">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                         role="progressbar" 
-                         :style="`width: ${progressPercent}%; background-color: var(--brand-cobalt); transition: width 0.3s ease;`"></div>
+            <!-- Processing spinner -->
+            <div x-show="isProcessing" class="migration-card mt-3" x-cloak>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center small mb-2">
+                        <span class="fw-medium text-secondary" x-text="processingStage">Processing...</span>
+                        <span class="fw-bold" style="color: var(--brand-cobalt);" x-text="progressPercent + '%'"></span>
+                    </div>
+                    <div class="progress" style="height: 6px; border-radius: 999px; background-color: var(--border-color);">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar"
+                             :style="`width: ${progressPercent}%; background-color: var(--brand-cobalt); transition: width 0.3s ease;`"></div>
+                    </div>
                 </div>
             </div>
         </div>
 
+        <!-- Right: Preview & Logs -->
         <div class="col-12 col-lg-8">
-            
+
+            <!-- Import Stats (shown after import) -->
             <div x-show="importCompleted" class="row g-3 mb-4" x-cloak>
                 <div class="col-6 col-md-3">
-                    <div class="p-3 border text-center shadow-sm" style="background-color: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.2); border-radius: 12px;">
-                        <div class="h3 fw-bold text-success mb-0" x-text="stats.members">0</div>
-                        <div class="text-success fw-bold text-uppercase mt-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Members Created</div>
+                    <div class="stat-box success">
+                        <div class="stat-value" x-text="stats.members">0</div>
+                        <div class="stat-label">Members Created</div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
-                    <div class="p-3 border text-center shadow-sm" style="background-color: rgba(42, 74, 216, 0.06); border-color: rgba(42, 74, 216, 0.2); border-radius: 12px;">
-                        <div class="h5 fw-bold mb-1 mt-1" style="color: var(--brand-cobalt);" x-text="'UGX ' + formatCurrency(stats.savings)">0</div>
-                        <div class="fw-bold text-uppercase" style="color: var(--brand-cobalt); font-size: 0.65rem; letter-spacing: 0.5px;">Savings Capitalized</div>
+                    <div class="stat-box cobalt">
+                        <div class="stat-value" x-text="'UGX ' + formatCurrency(stats.savings)">0</div>
+                        <div class="stat-label">Savings Capitalized</div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
-                    <div class="p-3 border text-center shadow-sm" style="background-color: rgba(42, 74, 216, 0.06); border-color: rgba(42, 74, 216, 0.2); border-radius: 12px;">
-                        <div class="h3 fw-bold mb-0" style="color: var(--brand-cobalt);" x-text="stats.loans">0</div>
-                        <div class="fw-bold text-uppercase mt-1" style="color: var(--brand-cobalt); font-size: 0.65rem; letter-spacing: 0.5px;">Loans Initialized</div>
+                    <div class="stat-box cobalt">
+                        <div class="stat-value" x-text="stats.loans">0</div>
+                        <div class="stat-label">Loans Initialized</div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
-                    <div class="p-3 border text-center shadow-sm" style="background-color: rgba(239, 68, 68, 0.06); border-color: rgba(239, 68, 68, 0.2); border-radius: 12px;">
-                        <div class="h3 fw-bold text-danger mb-0" x-text="stats.failed_rows">0</div>
-                        <div class="text-danger fw-bold text-uppercase mt-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Rejected Rows</div>
+                    <div class="stat-box danger">
+                        <div class="stat-value" x-text="stats.failed_rows">0</div>
+                        <div class="stat-label">Rejected Rows</div>
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm border overflow-hidden" style="background: var(--card-bg); border-color: var(--border-color); border-radius: 16px;">
-                <div class="card-header border-bottom py-2" style="background: var(--hover-bg);">
-                    <ul class="nav nav-pills card-header-pills gap-2" style="font-size: 0.85rem;">
-                        <li class="nav-item">
-                            <button @click="activeTab = 'preview'" 
-                                    class="btn btn-sm border px-3 py-1.5 fw-medium transition" 
-                                    :class="activeTab === 'preview' ? 'bg-white border-light shadow-sm' : 'border-transparent text-secondary'"
-                                    :style="activeTab === 'preview' ? 'color: var(--brand-cobalt);' : ''"
-                                    style="border-radius: 8px;">
-                                Data Preview Matrix (<span x-text="previewRows.length">0</span>)
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button @click="activeTab = 'logs'" 
-                                    class="btn btn-sm border px-3 py-1.5 fw-medium transition" 
-                                    :class="activeTab === 'logs' ? 'bg-white border-light shadow-sm' : 'border-transparent text-secondary'"
-                                    :style="activeTab === 'logs' ? 'color: var(--brand-cobalt);' : ''"
-                                    style="border-radius: 8px;">
-                                Engine Processing Logs (<span x-text="executionLogs.length">0</span>)
-                            </button>
-                        </li>
-                    </ul>
+            <!-- Main card -->
+            <div class="migration-card">
+                <div class="card-header">
+                    <i class="bi bi-table"></i>
+                    <span>Data Preview &amp; Logs</span>
                 </div>
-
                 <div class="card-body p-0">
-                    <div x-show="activeTab === 'preview'" class="table-responsive" style="max-height: 480px; overflow-y: auto;">
-                        <template x-if="previewRows.length === 0">
-                            <div class="text-center py-5 my-3 text-muted small">
-                                <i class="bi bi-inbox d-block display-6 mb-2 text-secondary"></i>
-                                No active source migration records parsed yet. Provide a file dataset to map fields.
-                            </div>
-                        </template>
-                        
-                        <table x-show="previewRows.length > 0" class="table table-hover table-striped mb-0 align-middle" style="font-size: 0.82rem;" x-cloak>
-                            <thead class="position-sticky top-0 shadow-xs z-1" style="background-color: var(--hover-bg); color: var(--text-primary); border-bottom: 2px solid var(--border-color);">
-                                <tr>
-                                    <th class="py-3 px-3 text-muted text-center" style="width: 60px;">Row</th>
-                                    <th class="py-3">Member No</th>
-                                    <th class="py-3">Full Name</th>
-                                    <th class="py-3">NIN Identity</th>
-                                    <th class="py-3 text-end">Savings Balance</th>
-                                    <th class="py-3 text-center">Loan Ref</th>
-                                    <th class="py-3 text-end pe-3">Principal Amt</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <template x-for="row in previewRows" :key="row.row_index">
-                                    <tr style="color: var(--text-primary); border-bottom: 1px solid var(--border-color);">
-                                        <td class="py-2.5 px-3 text-muted text-center font-monospace" x-text="row.row_index"></td>
-                                        <td class="py-2.5 font-monospace fw-bold" style="color: var(--brand-cobalt);" x-text="row.member_number || 'AUTO-GEN'"></td>
-                                        <td class="py-2.5 fw-semibold" x-text="row.name"></td>
-                                        <td class="py-2.5 text-muted font-monospace" x-text="row.nin || '-'"></td>
-                                        <td class="py-2.5 text-end fw-bold text-secondary" x-text="'UGX ' + formatCurrency(row.savings_balance)"></td>
-                                        <td class="py-2.5 text-center font-monospace small text-muted" x-text="row.loan_reference || '-'"></td>
-                                        <td class="py-2.5 text-end fw-bold text-dark pe-3" x-text="row.principal > 0 ? 'UGX ' + formatCurrency(row.principal) : '-'"></td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
+                    <!-- Tabs -->
+                    <div class="px-3 pt-3 border-bottom">
+                        <div class="nav-tabs-custom">
+                            <button @click="activeTab = 'preview'"
+                                    class="nav-btn"
+                                    :class="activeTab === 'preview' ? 'active' : ''">
+                                <i class="bi bi-table me-1"></i> Preview (<span x-text="previewRows.length">0</span>)
+                            </button>
+                            <button @click="activeTab = 'logs'"
+                                    class="nav-btn"
+                                    :class="activeTab === 'logs' ? 'active' : ''">
+                                <i class="bi bi-terminal me-1"></i> Logs (<span x-text="executionLogs.length">0</span>)
+                            </button>
+                        </div>
                     </div>
 
-                    <div x-show="activeTab === 'logs'" class="p-3" x-cloak>
-                        <div class="font-monospace p-3 rounded-3 text-light overflow-y-auto" style="max-height: 480px; min-height: 250px; background-color: #0f172a; font-size: 0.8rem; line-height: 1.6; border: 1px solid #1e293b;">
-                            <template x-if="executionLogs.length === 0">
-                                <div class="text-muted italic text-center py-5">Diagnostic transaction engine idle. Awaiting operational input execution updates...</div>
-                            </template>
-                            <template x-for="(log, idx) in executionLogs" :key="idx">
-                                <div class="py-1 border-bottom border-secondary border-opacity-10 d-flex gap-2"
-                                     :class="log.includes('Rejected') || log.includes('error') || log.includes('CRITICAL') ? 'text-danger' : (log.includes('Successfully') || log.includes('safely') ? 'text-success' : 'text-white-50')">
-                                    <span class="text-muted select-none" x-text="`[${idx+1}]`" style="min-width: 30px; display: inline-block;"></span>
-                                    <span x-text="log"></span>
+                    <!-- Tab content -->
+                    <div class="p-0">
+                        <!-- Preview tab -->
+                        <div x-show="activeTab === 'preview'" class="table-scroll">
+                            <template x-if="previewRows.length === 0">
+                                <div class="text-center py-5 my-3 text-muted small">
+                                    <i class="bi bi-inbox display-6 d-block mb-2 text-secondary opacity-50"></i>
+                                    No data parsed yet. Upload a file and click "Generate Preview".
                                 </div>
                             </template>
+                            <table x-show="previewRows.length > 0" class="migration-table" x-cloak>
+                                <thead>
+                                    <tr>
+                                        <th class="text-center" style="width: 50px;">#</th>
+                                        <th>Member No</th>
+                                        <th>Full Name</th>
+                                        <th>NIN</th>
+                                        <th class="text-end">Savings</th>
+                                        <th class="text-center">Loan Ref</th>
+                                        <th class="text-end">Principal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="row in previewRows" :key="row.row_index">
+                                        <tr>
+                                            <td class="text-center text-muted mono" x-text="row.row_index"></td>
+                                            <td class="mono fw-bold" style="color: var(--brand-cobalt);" x-text="row.member_number || 'AUTO-GEN'"></td>
+                                            <td class="fw-semibold" x-text="row.name"></td>
+                                            <td class="text-muted mono" x-text="row.nin || '-'"></td>
+                                            <td class="text-end fw-bold text-secondary" x-text="'UGX ' + formatCurrency(row.savings_balance)"></td>
+                                            <td class="text-center mono small text-muted" x-text="row.loan_reference || '-'"></td>
+                                            <td class="text-end fw-bold" x-text="row.principal > 0 ? 'UGX ' + formatCurrency(row.principal) : '-'"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Logs tab -->
+                        <div x-show="activeTab === 'logs'" class="p-3" x-cloak>
+                            <div class="terminal">
+                                <template x-if="executionLogs.length === 0">
+                                    <div class="text-muted text-center py-5">Awaiting operational input execution updates...</div>
+                                </template>
+                                <template x-for="(log, idx) in executionLogs" :key="idx">
+                                    <div class="log-entry"
+                                         :class="{
+                                             'log-success': log.includes('Successfully') || log.includes('safely'),
+                                             'log-error': log.includes('Rejected') || log.includes('error') || log.includes('CRITICAL'),
+                                             'log-warning': log.includes('warning') || log.includes('partial'),
+                                             'log-info': !log.includes('Successfully') && !log.includes('error') && !log.includes('warning')
+                                         }">
+                                        <span class="log-index" x-text="`[${idx+1}]`"></span>
+                                        <span x-text="log"></span>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
 </div>
 
 <script>
@@ -235,7 +794,7 @@
                 this.isProcessing = true;
                 this.progressPercent = 30;
                 this.processingStage = "Analyzing workbook schema headers and compiling visual preview dataset...";
-                
+
                 let formData = new FormData();
                 formData.append('file', this.selectedFile);
 
@@ -245,10 +804,10 @@
                         headers: { "X-CSRFToken": "{{ csrf_token }}" },
                         body: formData
                     });
-                    
+
                     let data = await response.json();
                     this.progressPercent = 100;
-                    
+
                     if (response.ok) {
                         this.previewRows = data.rows || [];
                         this.executionLogs = ["Structural workbook rows mapped out safely. Validate details layout prior to executing commits."];
@@ -271,7 +830,7 @@
                 this.isProcessing = true;
                 this.progressPercent = 15;
                 this.processingStage = "Executing row-by-row secure transactional database operations...";
-                
+
                 let formData = new FormData();
                 formData.append('file', this.selectedFile);
 
@@ -285,14 +844,14 @@
                         headers: { "X-CSRFToken": "{{ csrf_token }}" },
                         body: formData
                     });
-                    
+
                     clearInterval(progInterval);
                     this.progressPercent = 100;
                     let data = await response.json();
-                    
+
                     this.executionLogs = data.logs || [];
                     this.activeTab = 'logs';
-                    
+
                     if (response.ok || response.status === 201) {
                         this.stats = data.stats;
                         this.importCompleted = true;

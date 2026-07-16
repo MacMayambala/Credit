@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}General Ledger Report | MAC Technologies{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .flatpickr-calendar {
+        border-radius: 16px !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+        border: 1px solid var(--border-color) !important;
+        background: var(--card-bg) !important;
+    }
+    .flatpickr-calendar .flatpickr-months {
+        background: var(--brand-blue) !important;
+        border-radius: 16px 16px 0 0 !important;
+        padding: 8px 0 !important;
+    }
+    .flatpickr-calendar .flatpickr-current-month {
+        color: #ffffff !important;
+    }
+    .flatpickr-calendar .flatpickr-day.selected {
+        background: var(--brand-blue) !important;
+        border-color: var(--brand-blue) !important;
+    }
+    .date-input-wrapper {
+        position: relative;
+    }
+    .date-input-wrapper .form-control {
+        padding-right: 2.5rem;
+        cursor: pointer;
+    }
+    .date-input-wrapper .calendar-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+        font-size: 1.1rem;
+    }
+    .filter-section {
+        background: var(--bg-body);
+        border-radius: 12px;
+        padding: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap flex-sm-nowrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-journal-text" style="color: var(--brand-blue); font-size: 1.5rem;"></i>
+            Reports / General Ledger Report
+        </h4>
+        <p class="text-muted small mb-0 mt-1">
+            <i class="bi bi-list-check me-1"></i>
+            A list of all journal transactions showing opening, list of transactions and closing balancing per account
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'hardware:reports_index' %}" class="btn btn-outline-secondary rounded-pill px-3 d-flex align-items-center gap-2">
+            <i class="bi bi-arrow-left"></i> Back to Reports
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 mb-4" style="background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border-color);">
+    <div class="card-body p-4">
+        <form method="get" class="row g-3">
+            <!-- Search -->
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small text-muted text-uppercase">Search</label>
+                <input type="text" name="search" class="form-control" style="border-radius: 12px; border-color: var(--border-color);" placeholder="Search...">
+            </div>
+            
+            <!-- Date Range -->
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small text-muted text-uppercase">Date Range</label>
+                <div class="date-input-wrapper">
+                    <input type="text" id="startDate" name="start_date" class="form-control" 
+                           value="{{ start_date }}" style="border-radius: 12px; border-color: var(--border-color); cursor: pointer;">
+                    <i class="bi bi-calendar3 calendar-icon"></i>
+                </div>
+            </div>
+            <div class="col-md-2" style="padding-top: 27px;">
+                <div class="date-input-wrapper">
+                    <input type="text" id="endDate" name="end_date" class="form-control" 
+                           value="{{ end_date }}" style="border-radius: 12px; border-color: var(--border-color); cursor: pointer;">
+                    <i class="bi bi-calendar3 calendar-icon"></i>
+                </div>
+            </div>
+            
+            <!-- Sort By -->
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small text-muted text-uppercase">Sort by</label>
+                <select name="sort_by" class="form-select" style="border-radius: 12px; border-color: var(--border-color);">
+                    <option value="date">Date</option>
+                    <option value="amount">Amount</option>
+                    <option value="account">Account</option>
+                </select>
+            </div>
+            
+            <!-- Run Report Button -->
+            <div class="col-md-2" style="padding-top: 27px;">
+                <button type="submit" class="btn w-100" style="background: var(--brand-blue); color: #ffffff; border: none; border-radius: 12px;">
+                    <i class="bi bi-play-circle me-1"></i> RUN REPORT
+                </button>
+            </div>
+        </form>
+        
+        <!-- Additional Filters -->
+        <div class="filter-section mt-3">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold small text-muted text-uppercase">Channel</label>
+                    <select class="form-select" style="border-radius: 8px; border-color: var(--border-color);">
+                        <option>All</option>
+                        <option>Direct</option>
+                        <option>Credit</option>
+                        <option>Debit</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold small text-muted text-uppercase">Debit Type</label>
+                    <select class="form-select" style="border-radius: 8px; border-color: var(--border-color);">
+                        <option>All</option>
+                        <option>Cash</option>
+                        <option>Transfer</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold small text-muted text-uppercase">Branch</label>
+                    <select class="form-select" style="border-radius: 8px; border-color: var(--border-color);">
+                        <option>All</option>
+                        <option>Head Office</option>
+                        <option>Branch 1</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small text-muted text-uppercase">User</label>
+                    <select class="form-select" style="border-radius: 8px; border-color: var(--border-color);">
+                        <option>All Users</option>
+                        {% for user in request.users %}
+                        <option>{{ user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small text-muted text-uppercase">Chart of Accounts</label>
+                    <select class="form-select" style="border-radius: 8px; border-color: var(--border-color);">
+                        <option>All Accounts</option>
+                        {% for account in accounts %}
+                        <option>{{ account.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" id="onlyNonZero" name="only_non_zero" {% if only_non_zero == 'on' %}checked{% endif %}>
+                        <label class="form-check-label small text-muted" for="onlyNonZero">Only None Zero Accounts</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" id="onlyWithTransactions" name="only_with_transactions" {% if only_with_transactions == 'on' %}checked{% endif %}>
+                        <label class="form-check-label small text-muted" for="onlyWithTransactions">Only Accounts with Transactions</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results Table -->
+<div class="card border-0" style="background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border-color);">
+    <div class="card-header bg-transparent border-bottom p-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0">
+                <i class="bi bi-table me-2" style="color: var(--brand-blue);"></i>
+                General Ledger Results
+                <span class="badge ms-2" style="background: var(--brand-blue-bg); color: var(--brand-blue);">
+                    {{ total_transactions }} transactions
+                </span>
+            </h6>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="exportReport()">
+                    <i class="bi bi-download"></i> Export
+                </button>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background: var(--bg-body);">
+                    <tr>
+                        <th class="py-3 px-4 text-muted small text-uppercase">#</th>
+                        <th class="py-3 px-4 text-muted small text-uppercase">Date</th>
+                        <th class="py-3 px-4 text-muted small text-uppercase">Transaction</th>
+                        <th class="py-3 px-4 text-muted small text-uppercase">Account</th>
+                        <th class="py-3 px-4 text-muted small text-uppercase text-end">Debit</th>
+                        <th class="py-3 px-4 text-muted small text-uppercase text-end">Credit</th>
+                        <th class="py-3 px-4 text-muted small text-uppercase text-end">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td class="py-2 px-4">{{ forloop.counter }}</td>
+                        <td class="py-2 px-4">{{ transaction.date|date:"d M, Y" }}</td>
+                        <td class="py-2 px-4">
+                            <code style="background: var(--brand-blue-bg); color: var(--brand-blue); padding: 0.1rem 0.4rem; border-radius: 4px;">
+                                #{{ transaction.id|stringformat:"08d" }}
+                            </code>
+                        </td>
+                        <td class="py-2 px-4">{{ transaction.customer.name|default:"Walk-in" }}</td>
+                        <td class="py-2 px-4 text-end">UGX {{ transaction.total_amount|intcomma }}</td>
+                        <td class="py-2 px-4 text-end">-</td>
+                        <td class="py-2 px-4 text-end fw-bold">UGX {{ transaction.total_amount|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-5 text-center text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-3 opacity-25"></i>
+                            <p class="mb-0">No transactions found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot style="background: var(--bg-body); border-top: 2px solid var(--border-color);">
+                    <tr>
+                        <td colspan="4" class="py-3 px-4 fw-bold">Total</td>
+                        <td class="py-3 px-4 text-end fw-bold">UGX {{ total_amount|intcomma }}</td>
+                        <td class="py-3 px-4 text-end fw-bold">-</td>
+                        <td class="py-3 px-4 text-end fw-bold">UGX {{ total_amount|intcomma }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    flatpickr("#startDate", {
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        disableMobile: true
+    });
+    flatpickr("#endDate", {
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        disableMobile: true
+    });
+});
+
+function exportReport() {
+    Swal.fire({
+        title: 'Exporting Report',
+        text: 'Generating CSV file...',
+        icon: 'info',
+        confirmButtonColor: '#16508e',
+        timer: 2000,
+        timerProgressBar: true
+    });
+}
+</script>
+{% endblock %}

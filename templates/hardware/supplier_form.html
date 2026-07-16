@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Supplier | MAC Technologies{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="d-flex flex-wrap flex-sm-nowrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-building" style="color: var(--brand-cobalt); font-size: 1.5rem;"></i>
+            {% if form.instance.pk %}Edit{% else %}Add{% endif %} Supplier
+        </h4>
+        <p class="text-muted small mb-0 mt-1">
+            <i class="bi bi-info-circle me-1"></i>
+            {% if form.instance.pk %}Update supplier information{% else %}Create a new supplier profile{% endif %}
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'hardware:supplier_list' %}" class="btn btn-outline-secondary d-flex align-items-center gap-2 rounded-pill px-4">
+            <i class="bi bi-arrow-left"></i>
+            <span>Back to Suppliers</span>
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="content-card" style="padding: 2rem 2.25rem;">
+
+            <form method="post" novalidate class="needs-validation">
+                {% csrf_token %}
+
+                <div class="row g-4">
+                    <!-- Supplier Name -->
+                    <div class="col-md-6">
+                        <label class="form-label">
+                            <i class="bi bi-building me-1" style="color: var(--brand-cobalt);"></i>
+                            Supplier Name <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback d-block">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Contact Person -->
+                    <div class="col-md-6">
+                        <label class="form-label">
+                            <i class="bi bi-person me-1" style="color: var(--brand-cobalt);"></i>
+                            Contact Person
+                        </label>
+                        {{ form.contact_person }}
+                        {% if form.contact_person.errors %}
+                            <div class="invalid-feedback d-block">{{ form.contact_person.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted" style="font-size: 0.7rem;">Primary point of contact</small>
+                    </div>
+
+                    <!-- Phone -->
+                    <div class="col-md-6">
+                        <label class="form-label">
+                            <i class="bi bi-telephone me-1" style="color: var(--brand-cobalt);"></i>
+                            Phone <span class="text-danger">*</span>
+                        </label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                            <div class="invalid-feedback d-block">{{ form.phone.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted" style="font-size: 0.7rem;">e.g., +256 700 000 000</small>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="col-md-6">
+                        <label class="form-label">
+                            <i class="bi bi-envelope me-1" style="color: var(--brand-cobalt);"></i>
+                            Email
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback d-block">{{ form.email.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted" style="font-size: 0.7rem;">e.g., supplier@company.com</small>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <hr class="my-4" style="border-color: var(--border-color); opacity: 0.5;">
+
+                <!-- Actions -->
+                <div class="d-flex flex-wrap flex-sm-nowrap justify-content-between align-items-center gap-3">
+
+                    <div class="text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Fields marked with <span class="text-danger">*</span> are required
+                    </div>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{% url 'hardware:supplier_list' %}" class="btn btn-light rounded-pill px-4 d-flex align-items-center gap-2">
+                            <i class="bi bi-x-circle"></i>
+                            <span>Cancel</span>
+                        </a>
+
+                        <button type="submit" class="btn rounded-pill px-5 d-flex align-items-center gap-2" 
+                                style="background: var(--brand-cobalt); color: #ffffff; border: none; box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);">
+                            <i class="bi bi-save"></i>
+                            <span>{% if form.instance.pk %}Update{% else %}Save{% endif %} Supplier</span>
+                        </button>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Make Django form fields match your UI system */
+    input, select, textarea {
+        width: 100%;
+        padding: 0.6rem 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+        font-family: inherit;
+    }
+
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 3px rgba(22, 50, 175, 0.12);
+    }
+
+    input.is-invalid, select.is-invalid, textarea.is-invalid {
+        border-color: #ef4444;
+    }
+
+    input.is-invalid:focus, select.is-invalid:focus, textarea.is-invalid:focus {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+    }
+
+    /* Labels */
+    .form-label {
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.4rem;
+        display: block;
+    }
+
+    /* Help text */
+    .form-text {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+
+    /* Invalid feedback */
+    .invalid-feedback {
+        font-size: 0.75rem;
+        color: #ef4444;
+        margin-top: 0.25rem;
+        display: block;
+    }
+
+    /* Content card hover */
+    .content-card:hover {
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 576px) {
+        .content-card {
+            padding: 1.25rem !important;
+        }
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        .d-flex.flex-wrap.flex-sm-nowrap {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+        .d-flex.flex-wrap.flex-sm-nowrap > div {
+            text-align: center;
+        }
+        .row.g-4 > div {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+
+    /* Animation for form */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .content-card {
+        animation: fadeInUp 0.4s ease forwards;
+    }
+</style>
+
+<!-- JavaScript for form handling -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Bootstrap form validation
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+
+        // Keyboard shortcut: Ctrl+Enter to submit
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                const form = document.querySelector('form');
+                if (form) {
+                    e.preventDefault();
+                    form.submit();
+                }
+            }
+        });
+
+        // Auto-format phone number (optional)
+        const phoneInput = document.querySelector('input[name="phone"]');
+        if (phoneInput) {
+            phoneInput.addEventListener('blur', function() {
+                let value = this.value.trim();
+                if (value && !value.startsWith('+')) {
+                    // If phone doesn't start with +, add +256 (Uganda default)
+                    if (!value.startsWith('0') && value.length >= 9) {
+                        this.value = '+256 ' + value;
+                    }
+                }
+            });
+        }
+
+        console.log('💡 Keyboard shortcuts: Ctrl+Enter (Submit form)');
+    });
+</script>
+
+{% endblock %}

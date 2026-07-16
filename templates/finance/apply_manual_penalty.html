@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Apply Manual Penalty | {{ company.name }}{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --brand-cobalt: #1632af;
+        --brand-cobalt-dark: #0f248a;
+        --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+        --border-color: #e2e8f0;
+        --bg-body: #f1f5f9;
+        --card-bg: #ffffff;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --radius: 16px;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+        --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+    }
+
+    body { background: var(--bg-body); }
+
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        transition: box-shadow 0.3s ease;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .form-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .form-card .card-header {
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1.2rem 1.5rem;
+    }
+
+    .form-card .card-header h5 {
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-card .card-header h5 i {
+        color: var(--brand-cobalt);
+    }
+
+    .form-card .card-body {
+        padding: 1.5rem;
+    }
+
+    .form-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+    }
+
+    .form-control, .form-select {
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0.7rem 1rem;
+        font-size: 0.95rem;
+        background: var(--bg-body);
+        transition: all 0.25s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px rgba(22, 50, 175, 0.1);
+        outline: none;
+    }
+
+    .btn-primary-solid {
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        padding: 0.7rem 2rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(22,50,175,0.2);
+    }
+
+    .btn-primary-solid:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(22,50,175,0.3);
+        color: #ffffff;
+    }
+
+    .btn-ghost {
+        background: var(--card-bg);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .btn-ghost:hover {
+        background: var(--hover-bg);
+        border-color: var(--brand-cobalt);
+        color: var(--brand-cobalt);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .loan-info {
+        background: var(--brand-cobalt-bg);
+        border-radius: 12px;
+        padding: 0.8rem 1.2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .loan-info .label {
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+    }
+
+    .loan-info .value {
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .help-text {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    @media (max-width: 576px) {
+        .form-card .card-body { padding: 1rem; }
+        .btn-primary-solid { width: 100%; justify-content: center; }
+        .btn-ghost { width: 100%; justify-content: center; }
+        .d-flex.gap-2 { flex-direction: column; }
+    }
+</style>
+
+<div class="container py-4">
+    <div class="form-card">
+        <div class="card-header">
+            <h5>
+                <i class="bi bi-exclamation-triangle"></i>
+                Apply Manual Penalty
+            </h5>
+        </div>
+        <div class="card-body">
+            <!-- Loan Summary -->
+            <div class="loan-info">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <div class="label">Loan Reference</div>
+                        <div class="value">{{ loan.loan_reference }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="label">Member</div>
+                        <div class="value">{{ loan.member.get_full_name }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="label">Current Balance</div>
+                        <div class="value">UGX {{ loan.balance|floatformat:0|intcomma }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="label">Status</div>
+                        <div class="value">{{ loan.get_status_display }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label">Penalty Amount (UGX) <span class="text-danger">*</span></label>
+                    <input type="number" step="0.01" name="amount" class="form-control" placeholder="e.g. 5000" required>
+                    <div class="help-text">Enter the exact penalty amount to be applied.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Reason for Penalty <span class="text-danger">*</span></label>
+                    <textarea name="reason" class="form-control" rows="3" placeholder="Explain why this penalty is being applied..." required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Apply to Specific Installment? <small class="text-muted">(Optional)</small></label>
+                    <select name="installment_id" class="form-select">
+                        <option value="">— Entire Loan —</option>
+                        {% for inst in installments %}
+                        <option value="{{ inst.id }}">
+                            Due: {{ inst.due_date|date:"d M Y" }} | Balance: UGX {{ inst.balance|floatformat:0|intcomma }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="help-text">If you want the penalty to apply to a specific installment, select it here.</div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4 pt-3 border-top">
+                    <button type="submit" class="btn-primary-solid flex-grow-1">
+                        <i class="bi bi-check-circle"></i> Apply Penalty
+                    </button>
+                    <a href="{% url 'loan_detail' loan.id %}" class="btn-ghost">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

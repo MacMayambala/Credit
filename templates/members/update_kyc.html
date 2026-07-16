@@ -1,29 +1,522 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Update KYC Documents | {{ company.name }}{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="card shadow-sm border-0 rounded-4 mx-auto" style="max-width: 500px;">
-        <div class="card-body p-4">
-            <h5 class="fw-bold mb-4">Update KYC Documents</h5>
-            <form method="POST" enctype="multipart/form-data">
+
+<style>
+    :root {
+        --brand-cobalt: #1632af;
+        --brand-cobalt-dark: #0f248a;
+        --brand-cobalt-light: #2a4ad8;
+        --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+        --brand-cobalt-glow: rgba(22, 50, 175, 0.12);
+        --border-color: #e2e8f0;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --bg-body: #f1f5f9;
+        --card-bg: #ffffff;
+        --hover-bg: #f8fafc;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+        --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+        --shadow-lg: 0 20px 50px rgba(0,0,0,0.08);
+        --radius: 16px;
+        --radius-sm: 12px;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+    }
+
+    body {
+        background: var(--bg-body);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .kyc-wrapper {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+    }
+
+    /* ============================================
+       PAGE HEADER & BREADCRUMB
+       ============================================ */
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .page-header h2 {
+        font-size: 1.6rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--text-primary);
+    }
+
+    .page-header h2 i {
+        color: var(--brand-cobalt);
+    }
+
+    .page-subtitle {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .breadcrumb-custom {
+        font-size: 0.85rem;
+        background: transparent;
+        padding: 0;
+        margin-bottom: 0.25rem;
+    }
+
+    .breadcrumb-custom .breadcrumb-item a {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+
+    .breadcrumb-custom .breadcrumb-item a:hover {
+        color: var(--brand-cobalt);
+    }
+
+    .breadcrumb-custom .breadcrumb-item.active {
+        color: var(--brand-cobalt);
+        font-weight: 600;
+    }
+
+    .breadcrumb-custom .breadcrumb-item+.breadcrumb-item::before {
+        content: "›";
+        font-size: 1.2rem;
+        color: var(--text-muted);
+    }
+
+    /* ============================================
+       MAIN CARD
+       ============================================ */
+    .kyc-card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        transition: box-shadow 0.3s ease;
+        overflow: hidden;
+    }
+
+    .kyc-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .kyc-card .card-header {
+        padding: 1.25rem 1.5rem;
+        background: var(--bg-body);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .kyc-card .card-header h5 {
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin: 0;
+        color: var(--text-primary);
+    }
+
+    .kyc-card .card-header i {
+        color: var(--brand-cobalt);
+        font-size: 1.2rem;
+    }
+
+    .kyc-card .card-body {
+        padding: 2rem;
+    }
+
+    /* ============================================
+       FORM CONTROLS
+       ============================================ */
+    .form-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        margin-bottom: 0.3rem;
+        display: block;
+    }
+
+    .form-label .required {
+        color: var(--danger);
+        margin-left: 2px;
+    }
+
+    /* File input styling */
+    .file-upload-wrapper {
+        position: relative;
+        border: 2px dashed var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 1.5rem 1rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        background: var(--bg-body);
+        cursor: pointer;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+
+    .file-upload-wrapper:hover {
+        border-color: var(--brand-cobalt);
+        background: var(--brand-cobalt-bg);
+    }
+
+    .file-upload-wrapper i {
+        font-size: 2rem;
+        color: var(--text-muted);
+        transition: color 0.3s ease;
+    }
+
+    .file-upload-wrapper:hover i {
+        color: var(--brand-cobalt);
+    }
+
+    .file-upload-wrapper .file-label {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+
+    .file-upload-wrapper .file-sub {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .file-upload-wrapper input[type="file"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .file-upload-wrapper .file-name {
+        font-size: 0.8rem;
+        color: var(--success);
+        font-weight: 600;
+        margin-top: 0.3rem;
+        display: none;
+    }
+
+    .file-upload-wrapper.has-file .file-name {
+        display: block;
+    }
+
+    .file-upload-wrapper.has-file {
+        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.04);
+    }
+
+    /* ============================================
+       BUTTONS
+       ============================================ */
+    .btn-primary {
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        padding: 0.7rem 1.5rem;
+        border-radius: var(--radius-sm);
+        transition: all 0.25s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(22, 50, 175, 0.2);
+        text-decoration: none;
+        width: 100%;
+    }
+
+    .btn-primary:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
+        color: #ffffff;
+    }
+
+    .btn-outline-secondary {
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1.5px solid var(--border-color);
+        font-weight: 600;
+        padding: 0.7rem 1.5rem;
+        border-radius: var(--radius-sm);
+        transition: all 0.25s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        width: 100%;
+    }
+
+    .btn-outline-secondary:hover {
+        background: var(--brand-cobalt-bg);
+        border-color: var(--brand-cobalt);
+        color: var(--brand-cobalt);
+        transform: translateY(-2px);
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 768px) {
+        .kyc-wrapper {
+            padding: 1.5rem 1rem;
+        }
+        .kyc-card .card-body {
+            padding: 1.5rem;
+        }
+        .page-header h2 {
+            font-size: 1.4rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .kyc-card .card-body {
+            padding: 1rem;
+        }
+        .file-upload-wrapper {
+            padding: 1rem;
+            min-height: 80px;
+        }
+        .file-upload-wrapper i {
+            font-size: 1.6rem;
+        }
+        .file-upload-wrapper .file-label {
+            font-size: 0.8rem;
+        }
+    }
+
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .kyc-card {
+        animation: fadeInUp 0.4s ease forwards;
+    }
+
+    /* ============================================
+       PRINT STYLES
+       ============================================ */
+    @media print {
+        .btn-primary,
+        .btn-outline-secondary {
+            display: none !important;
+        }
+        .file-upload-wrapper {
+            border: 1px solid #ccc;
+        }
+    }
+</style>
+
+<div class="kyc-wrapper">
+
+    <!-- ==========================================
+    PAGE HEADER
+    ========================================== -->
+    <div class="page-header">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb breadcrumb-custom mb-1">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'customer_list' %}">
+                        <i class="bi bi-people me-1"></i> Members
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'member_profile' member.id %}">
+                        <i class="bi bi-person me-1"></i> {{ member.get_full_name }}
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    <i class="bi bi-shield-check me-1"></i> KYC Update
+                </li>
+            </ol>
+        </nav>
+        <h2>
+            <i class="bi bi-shield-check"></i>
+            Update KYC Documents
+        </h2>
+        <div class="page-subtitle">
+            <i class="bi bi-info-circle"></i>
+            Upload updated identity and signature documents for {{ member.get_full_name }}
+        </div>
+    </div>
+
+    <!-- ==========================================
+    MAIN CARD
+    ========================================== -->
+    <div class="kyc-card">
+        <div class="card-header">
+            <i class="bi bi-file-earmark-arrow-up"></i>
+            <h5>Document Upload</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                 {% csrf_token %}
-                
-                <div class="mb-3">
-                    <label class="form-label small fw-bold">National ID (Front)</label>
-                    {{ form.id_front }}
-                </div>
 
+                <!-- National ID Front -->
                 <div class="mb-4">
-                    <label class="form-label small fw-bold">Signature Sample</label>
-                    {{ form.signature }}
+                    <label class="form-label">
+                        <i class="bi bi-card-heading me-1"></i>
+                        National ID (Front) <span class="required">*</span>
+                    </label>
+                    <div class="file-upload-wrapper" id="idFrontWrapper">
+                        <i class="bi bi-card-heading"></i>
+                        <span class="file-label">Upload ID Front</span>
+                        <span class="file-sub">Supported: JPG, PNG, PDF (Max 5MB)</span>
+                        {{ form.id_front }}
+                        <span class="file-name" id="idFrontFileName"></span>
+                    </div>
+                    {% if form.id_front.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in form.id_front.errors %}
+                                <i class="bi bi-exclamation-circle me-1"></i>{{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
 
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100 fw-bold">UPLOAD PHOTOS</button>
-                    <a href="{% url 'member_profile' member.id %}" class="btn btn-light border w-100">CANCEL</a>
+                <!-- Signature -->
+                <div class="mb-4">
+                    <label class="form-label">
+                        <i class="bi bi-vector-pen me-1"></i>
+                        Signature Sample <span class="required">*</span>
+                    </label>
+                    <div class="file-upload-wrapper" id="signatureWrapper">
+                        <i class="bi bi-vector-pen"></i>
+                        <span class="file-label">Upload Signature</span>
+                        <span class="file-sub">Supported: JPG, PNG (Max 5MB)</span>
+                        {{ form.signature }}
+                        <span class="file-name" id="signatureFileName"></span>
+                    </div>
+                    {% if form.signature.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in form.signature.errors %}
+                                <i class="bi bi-exclamation-circle me-1"></i>{{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Current documents preview (optional) -->
+                <div class="mb-4 p-3 bg-light rounded-3" style="border: 1px solid var(--border-color);">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle text-muted"></i>
+                        <span class="small text-muted">
+                            <strong>Current documents:</strong>
+                            {% if member.id_front %}
+                                <span class="text-success">ID uploaded</span>
+                            {% else %}
+                                <span class="text-warning">No ID uploaded</span>
+                            {% endif %}
+                            &nbsp;·&nbsp;
+                            {% if member.signature %}
+                                <span class="text-success">Signature uploaded</span>
+                            {% else %}
+                                <span class="text-warning">No signature uploaded</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="btn-primary">
+                        <i class="bi bi-cloud-upload"></i> Upload Documents
+                    </button>
+                    <a href="{% url 'member_profile' member.id %}" class="btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
                 </div>
             </form>
         </div>
     </div>
+
 </div>
+
+<!-- Bootstrap Validation Script -->
+<script>
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+
+<!-- File name display -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const idFrontInput = document.querySelector('input[name="id_front"]');
+        const idFrontWrapper = document.getElementById('idFrontWrapper');
+        const idFrontFileName = document.getElementById('idFrontFileName');
+
+        const signatureInput = document.querySelector('input[name="signature"]');
+        const signatureWrapper = document.getElementById('signatureWrapper');
+        const signatureFileName = document.getElementById('signatureFileName');
+
+        function handleFileSelect(input, wrapper, fileNameDisplay) {
+            input.addEventListener('change', function() {
+                if (this.files && this.files.length > 0) {
+                    const file = this.files[0];
+                    fileNameDisplay.textContent = file.name;
+                    wrapper.classList.add('has-file');
+                } else {
+                    fileNameDisplay.textContent = '';
+                    wrapper.classList.remove('has-file');
+                }
+            });
+        }
+
+        if (idFrontInput && idFrontWrapper && idFrontFileName) {
+            handleFileSelect(idFrontInput, idFrontWrapper, idFrontFileName);
+        }
+
+        if (signatureInput && signatureWrapper && signatureFileName) {
+            handleFileSelect(signatureInput, signatureWrapper, signatureFileName);
+        }
+    });
+</script>
+
 {% endblock %}

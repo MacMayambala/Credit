@@ -1,22 +1,35 @@
 {% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}New Loan Application | {{ company.name }}{% endblock %}
 
 {% block content %}
 
 <style>
     :root {
-        --brand-blue: #1632af;
-        --brand-blue-soft: rgba(22, 50, 175, 0.08);
+        --brand-cobalt: #1632af;
+        --brand-cobalt-dark: #0f248a;
+        --brand-cobalt-light: #2a4ad8;
+        --brand-cobalt-bg: rgba(22, 50, 175, 0.08);
+        --brand-cobalt-glow: rgba(22, 50, 175, 0.15);
         --slate-50: #f8fafc;
         --slate-200: #e2e8f0;
         --slate-700: #334155;
         --slate-900: #0f172a;
+        --border-color: #e2e8f0;
+        --text-muted: #94a3b8;
+        --text-secondary: #475569;
+        --bg-body: #f1f5f9;
+        --bg-card: #ffffff;
     }
 
-    body { background-color: var(--slate-50); }
+    body { background-color: var(--bg-body); }
 
     .form-card {
-        border: 1px solid var(--slate-200);
+        border: 1px solid var(--border-color);
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+        background: var(--bg-card);
+        border-radius: 20px;
     }
 
     .step-indicator {
@@ -26,67 +39,103 @@
         align-items: center;
         justify-content: center;
         border-radius: 12px;
-        background: var(--brand-blue);
+        background: var(--brand-cobalt);
         color: white;
         font-weight: 700;
         font-size: 1.15rem;
         flex-shrink: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        box-shadow: 0 4px 12px rgba(22, 50, 175, 0.2);
     }
 
     .form-label {
-        font-size: 0.78rem;
+        font-size: 0.75rem;
         font-weight: 700;
         color: var(--slate-700);
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        margin-bottom: 0.45rem;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.4rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     .form-control, .form-select {
-        border: 1px solid var(--slate-200);
-        padding: 13px 16px;
-        font-size: 0.97rem;
-        border-radius: 8px;
-        transition: all 0.2s ease;
+        border: 1px solid var(--border-color);
+        padding: 0.7rem 1rem;
+        font-size: 0.9rem;
+        border-radius: 12px;
+        transition: all 0.25s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg-card);
+        color: var(--text-primary);
     }
 
     .form-control:focus, .form-select:focus {
-        border-color: var(--brand-blue);
-        box-shadow: 0 0 0 4px var(--brand-blue-soft);
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+    }
+
+    .form-control::placeholder {
+        color: var(--text-muted);
     }
 
     .section-title {
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: 700;
         color: var(--slate-900);
-        margin-bottom: 1.25rem;
+        margin-bottom: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     .btn-brand {
-        background: var(--brand-blue);
+        background: var(--brand-cobalt);
         color: white;
         font-weight: 700;
-        padding: 14px 32px;
-        border-radius: 10px;
+        padding: 0.8rem 2rem;
+        border-radius: 12px;
         border: none;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .btn-brand:hover {
-        background: #11268a;
+        background: var(--brand-cobalt-dark);
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(22, 50, 175, 0.25);
+        box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
+        color: #ffffff;
+    }
+
+    .btn-light {
+        background: var(--bg-body);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        font-weight: 600;
+        padding: 0.8rem 2rem;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.95rem;
+    }
+
+    .btn-light:hover {
+        background: var(--brand-cobalt-bg);
+        border-color: var(--brand-cobalt);
+        color: var(--brand-cobalt);
+        transform: translateY(-2px);
     }
 
     .section-divider {
-        border-bottom: 1px solid var(--slate-200);
-        margin: 2.75rem 0;
+        border-bottom: 1px solid var(--border-color);
+        margin: 2.5rem 0;
     }
 
     .avatar-placeholder {
         width: 52px;
         height: 52px;
-        background: var(--brand-blue);
+        background: var(--brand-cobalt);
         color: white;
         display: flex;
         align-items: center;
@@ -94,40 +143,281 @@
         border-radius: 14px;
         font-weight: 700;
         font-size: 1.1rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        box-shadow: 0 4px 12px rgba(22, 50, 175, 0.2);
     }
 
     .help-text {
-        font-size: 0.8rem;
-        color: #64748b;
+        font-size: 0.75rem;
+        color: var(--text-muted);
         margin-top: 4px;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .badge-new {
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+        border: 1px solid rgba(22, 50, 175, 0.15);
+        padding: 0.4rem 1.2rem;
+        border-radius: 100px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .input-group .input-group-text {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-left: none;
+        border-radius: 0 12px 12px 0;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 0.7rem 1rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .input-group .form-control {
+        border-radius: 12px 0 0 12px;
+    }
+
+    .input-group .form-control:focus + .input-group-text {
+        border-color: var(--brand-cobalt);
+        border-left-color: var(--brand-cobalt);
+    }
+
+    /* Breadcrumb */
+    .breadcrumb-custom {
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: transparent;
+        padding: 0;
+        margin-bottom: 0.25rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .breadcrumb-custom .breadcrumb-item a {
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .breadcrumb-custom .breadcrumb-item a:hover {
+        color: var(--brand-cobalt);
+    }
+
+    .breadcrumb-custom .breadcrumb-item.active {
+        color: var(--brand-cobalt);
+    }
+
+    .breadcrumb-custom .breadcrumb-item+.breadcrumb-item::before {
+        content: "›";
+        font-size: 1.2rem;
+        color: var(--text-muted);
+    }
+
+    /* Sidebar */
+    .sidebar-checklist {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 1.5rem;
+        position: sticky;
+        top: 20px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .sidebar-checklist h6 {
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .sidebar-checklist ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .sidebar-checklist ul li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-checklist ul li:last-child {
+        border-bottom: none;
+    }
+
+    .sidebar-checklist ul li i {
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+    .sidebar-checklist .help-box {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: var(--bg-body);
+        border-radius: 12px;
+    }
+
+    .sidebar-checklist .help-box span.d-block {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+    }
+
+    .sidebar-checklist .help-box .phone-number {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--brand-cobalt);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .sidebar-checklist .help-box small {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+    }
+
+    /* Summary Box */
+    .summary-box {
+        background: var(--brand-cobalt-bg);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-top: 1rem;
+        border-left: 4px solid var(--brand-cobalt);
+    }
+
+    .summary-box .summary-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        font-weight: 700;
+    }
+
+    .summary-box .summary-value {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--text-primary);
+    }
+
+    .summary-box .summary-value span {
+        color: var(--brand-cobalt);
+    }
+
+    /* Penalty conditional fields */
+    .penalty-field-group {
+        transition: all 0.3s ease;
+    }
+
+    .penalty-field-group.hidden {
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        .form-card .card-body {
+            padding: 1.5rem !important;
+        }
+        .step-indicator {
+            width: 36px;
+            height: 36px;
+            font-size: 0.95rem;
+        }
+        .section-title {
+            font-size: 0.95rem;
+        }
+        .btn-brand, .btn-light {
+            width: 100%;
+            justify-content: center;
+        }
+        .sidebar-checklist {
+            position: relative;
+            top: 0;
+            margin-top: 1rem;
+        }
+        .container-fluid {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        .avatar-placeholder {
+            width: 44px;
+            height: 44px;
+            font-size: 0.9rem;
+        }
+        h1.fw-bold {
+            font-size: 1.3rem;
+        }
+        .row.align-items-center .col-md-4.text-md-end {
+            text-align: left !important;
+            margin-top: 0.5rem;
+        }
+        .badge-new {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.8rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .form-card .card-body {
+            padding: 1rem !important;
+        }
+        .row.g-4 {
+            --bs-gutter-y: 1rem;
+        }
+        .form-control, .form-select {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+        }
+        .form-label {
+            font-size: 0.65rem;
+        }
+        .section-divider {
+            margin: 1.5rem 0;
+        }
+        .breadcrumb-custom {
+            font-size: 0.7rem;
+        }
     }
 </style>
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 px-3 px-lg-4">
 
     <!-- Header -->
-    <div class="row align-items-center mb-5">
+    <div class="row align-items-center mb-4">
         <div class="col-md-8">
-            <nav aria-label="breadcrumb" class="mb-2">
-                <ol class="breadcrumb small fw-medium">
-                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none text-muted">Portfolio</a></li>
-                    <li class="breadcrumb-item active text-primary">New Loan Application</li>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb breadcrumb-custom mb-1">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'dashboard' %}"><i class="bi bi-house me-1"></i> Portfolio</a>
+                    </li>
+                    <li class="breadcrumb-item active">
+                        <i class="bi bi-file-earmark-text me-1"></i> New Loan Application
+                    </li>
                 </ol>
             </nav>
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3 mt-2">
                 <div class="avatar-placeholder">
                     {{ selected_member.first_name|slice:":1" }}{{ selected_member.last_name|slice:":1" }}
                 </div>
                 <div>
-                    <h1 class="fw-bold text-dark mb-1">Loan Application</h1>
-                    <p class="text-muted mb-0 fs-5">
-                        Applicant: <strong>{{ selected_member.first_name }} {{ selected_member.last_name }}</strong>
+                    <h1 class="fw-bold mb-0" style="color: var(--text-primary); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">Loan Application</h1>
+                    <p class="text-muted mb-0" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
+                        Applicant: <strong style="color: var(--text-primary);">{{ selected_member.first_name }} {{ selected_member.last_name }}</strong>
+                        <span class="ms-2 text-muted">({{ selected_member.member_number }})</span>
                     </p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4 text-md-end">
-            <span class="badge badge-reducing rounded-pill px-4 py-2 fs-6">
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <span class="badge-new">
                 <i class="bi bi-file-earmark-text me-2"></i>New Application
             </span>
         </div>
@@ -135,7 +425,8 @@
 
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} border-0 shadow-sm rounded-3 mb-4">
+            <div class="alert alert-{{ message.tags }} border-0 shadow-sm rounded-3 mb-4" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
+                <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'error' %}bi-x-circle-fill{% else %}bi-info-circle-fill{% endif %} me-2"></i>
                 {{ message }}
             </div>
         {% endfor %}
@@ -149,7 +440,7 @@
 
                 <div class="card form-card border-0 rounded-4 overflow-hidden">
 
-                    <div class="card-body p-5">
+                    <div class="card-body p-4 p-md-5">
 
                         <!-- Section 1: Loan Parameters -->
                         <div class="d-flex align-items-center gap-3 mb-4">
@@ -159,7 +450,7 @@
 
                         <div class="row g-4">
                             <div class="col-md-6">
-                                <label class="form-label">Loan Product</label>
+                                <label class="form-label"><i class="bi bi-box me-1"></i> Loan Product</label>
                                 <select name="product_type" class="form-select" required>
                                     {% for value, label in product_choices %}
                                         <option value="{{ value }}">{{ label }}</option>
@@ -167,7 +458,7 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Repayment Frequency</label>
+                                <label class="form-label"><i class="bi bi-arrow-repeat me-1"></i> Repayment Frequency</label>
                                 <select name="repayment_frequency" class="form-select" required>
                                     <option value="monthly">Monthly</option>
                                     <option value="weekly">Weekly</option>
@@ -177,29 +468,47 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label">Principal Amount (UGX)</label>
-                                <input type="number" name="principal_amount" class="form-control fw-bold" placeholder="0.00" required>
+                                <label class="form-label"><i class="bi bi-currency-dollar me-1"></i> Principal Amount (UGX)</label>
+                                <input type="number" step="0.01" name="principal_amount" class="form-control fw-bold" placeholder="0.00" required id="principalAmount">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Interest Rate (%)</label>
+                                <label class="form-label"><i class="bi bi-percent me-1"></i> Interest Rate (%)</label>
                                 <div class="input-group">
-                                    <input type="number" step="0.01" name="interest_rate" class="form-control fw-bold" value="3.0" required>
-                                    <span class="input-group-text bg-white border-start-0">%</span>
+                                    <input type="number" step="0.01" name="interest_rate" class="form-control fw-bold" value="3.0" required id="interestRate">
+                                    <span class="input-group-text">%</span>
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Term Value</label>
-                                <input type="number" name="term_value" class="form-control fw-bold" placeholder="12" min="1" required>
+                                <label class="form-label"><i class="bi bi-hash me-1"></i> Term Value</label>
+                                <input type="number" name="term_value" class="form-control fw-bold" placeholder="12" min="1" required id="termValue">
                                 <small class="help-text">Number of repayment cycles</small>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Start Date</label>
+                                <label class="form-label"><i class="bi bi-calendar3 me-1"></i> Start Date</label>
                                 <input type="date" name="start_date" class="form-control" value="{% now 'Y-m-d' %}" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Purpose of Loan</label>
+                                <label class="form-label"><i class="bi bi-chat-text me-1"></i> Purpose of Loan</label>
                                 <input type="text" name="purpose" class="form-control" placeholder="e.g. School fees, Business expansion" required>
+                            </div>
+                        </div>
+
+                        <!-- Quick Summary (calculated on input) -->
+                        <div class="summary-box" id="summaryBox">
+                            <div class="row g-2">
+                                <div class="col-md-4 col-6">
+                                    <div class="summary-label">Est. Total Repayment</div>
+                                    <div class="summary-value"><span id="totalRepayment">0</span> UGX</div>
+                                </div>
+                                <div class="col-md-4 col-6">
+                                    <div class="summary-label">Est. Monthly Payment</div>
+                                    <div class="summary-value"><span id="monthlyPayment">0</span> UGX</div>
+                                </div>
+                                <div class="col-md-4 col-6">
+                                    <div class="summary-label">Interest Amount</div>
+                                    <div class="summary-value"><span id="interestAmount">0</span> UGX</div>
+                                </div>
                             </div>
                         </div>
 
@@ -213,19 +522,19 @@
 
                         <div class="row g-4">
                             <div class="col-md-6">
-                                <label class="form-label">Guarantor 1 Name</label>
+                                <label class="form-label"><i class="bi bi-person me-1"></i> Guarantor 1 Name</label>
                                 <input type="text" name="guarantor_1_name" class="form-control" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Guarantor 1 Phone</label>
+                                <label class="form-label"><i class="bi bi-telephone me-1"></i> Guarantor 1 Phone</label>
                                 <input type="tel" name="guarantor_1_phone" class="form-control" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label text-muted">Guarantor 2 Name <small>(Optional)</small></label>
+                                <label class="form-label text-muted"><i class="bi bi-person me-1"></i> Guarantor 2 Name <small class="text-muted">(Optional)</small></label>
                                 <input type="text" name="guarantor_2_name" class="form-control">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label text-muted">Guarantor 2 Phone</label>
+                                <label class="form-label text-muted"><i class="bi bi-telephone me-1"></i> Guarantor 2 Phone</label>
                                 <input type="tel" name="guarantor_2_phone" class="form-control">
                             </div>
                         </div>
@@ -240,34 +549,34 @@
 
                         <div class="row g-4">
                             <div class="col-md-6">
-                                <label class="form-label">Collateral Type</label>
+                                <label class="form-label"><i class="bi bi-shield me-1"></i> Collateral Type</label>
                                 <input type="text" name="collateral_type" class="form-control" placeholder="e.g. Land Title, Vehicle, Savings">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Estimated Value (UGX)</label>
-                                <input type="number" name="collateral_value" class="form-control">
+                                <label class="form-label"><i class="bi bi-currency-dollar me-1"></i> Estimated Value (UGX)</label>
+                                <input type="number" name="collateral_value" class="form-control" step="0.01">
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Collateral Description</label>
+                                <label class="form-label"><i class="bi bi-file-text me-1"></i> Collateral Description</label>
                                 <textarea name="collateral_description" class="form-control" rows="3" placeholder="Details about collateral..."></textarea>
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Physical Residence / Location</label>
+                                <label class="form-label"><i class="bi bi-geo-alt me-1"></i> Physical Residence / Location</label>
                                 <input type="text" name="location" class="form-control" placeholder="Village, Parish, District" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Contact Person</label>
+                                <label class="form-label"><i class="bi bi-person me-1"></i> Contact Person</label>
                                 <input type="text" name="contact_person" class="form-control">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Contact Phone</label>
+                                <label class="form-label"><i class="bi bi-telephone me-1"></i> Contact Phone</label>
                                 <input type="tel" name="contact_phone" class="form-control">
                             </div>
                         </div>
 
                         <div class="section-divider"></div>
 
-                        <!-- Section 4: Penalty Settings -->
+                        <!-- Section 4: Penalty Configuration -->
                         <div class="d-flex align-items-center gap-3 mb-4">
                             <div class="step-indicator">4</div>
                             <h5 class="section-title mb-0">Penalty Configuration</h5>
@@ -275,25 +584,49 @@
 
                         <div class="row g-4">
                             <div class="col-md-6">
-                                <label class="form-label">Penalty Type</label>
-                                <select name="penalty_type" class="form-select">
+                                <label class="form-label"><i class="bi bi-exclamation-triangle me-1"></i> Penalty Type</label>
+                                <select name="penalty_type" class="form-select" id="penaltyType">
                                     <option value="daily_flat">Daily Flat Amount</option>
                                     <option value="daily_percentage">Daily Percentage</option>
                                     <option value="fixed">One-time Fixed Penalty</option>
                                     <option value="compound">Compound Penalty</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Penalty Rate / Value</label>
-                                <input type="number" step="0.01" name="penalty_rate" class="form-control" placeholder="e.g. 2.5 or 1500">
+
+                            <!-- Penalty Rate / Value (dynamic) -->
+                            <div class="col-md-6 penalty-field-group" id="penaltyRateGroup">
+                                <label class="form-label"><i class="bi bi-sliders me-1"></i> Penalty Rate / Value</label>
+                                <input type="number" step="0.01" name="penalty_rate" class="form-control" id="penaltyRate" placeholder="e.g. 2.5 or 1500">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Default Flat Penalty (UGX)</label>
-                                <input type="number" name="penalty_flat_amount" class="form-control" value="1000">
+
+                            <!-- Flat Amount (always visible, default) -->
+                            <div class="col-md-6 penalty-field-group" id="penaltyFlatGroup">
+                                <label class="form-label"><i class="bi bi-cash me-1"></i> Default Flat Penalty (UGX)</label>
+                                <input type="number" name="penalty_flat_amount" class="form-control" value="1000" id="penaltyFlatAmount">
                             </div>
+
+                            <!-- Grace Period -->
                             <div class="col-md-6">
-                                <label class="form-label">Grace Period (Days)</label>
+                                <label class="form-label"><i class="bi bi-clock me-1"></i> Grace Period (Days)</label>
                                 <input type="number" name="penalty_grace_days" class="form-control" value="3" min="0">
+                                <small class="help-text">Days after due date before penalty starts</small>
+                            </div>
+
+                            <!-- Compound toggle -->
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" name="compound" id="compoundCheck" value="true" style="border-radius: 4px;">
+                                    <label class="form-check-label" for="compoundCheck" style="font-weight: 600; font-size: 0.9rem;">
+                                        Compound Penalty on overdue amount
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Max Penalty Cap (optional) -->
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="bi bi-arrow-up-circle me-1"></i> Max Penalty Cap (UGX) <small class="text-muted">(optional)</small></label>
+                                <input type="number" name="max_penalty_cap" class="form-control" value="0" min="0">
+                                <small class="help-text">0 = unlimited</small>
                             </div>
                         </div>
 
@@ -302,17 +635,19 @@
                         <!-- Notes -->
                         <div class="row">
                             <div class="col-12">
-                                <label class="form-label">Additional Notes / Remarks</label>
+                                <label class="form-label"><i class="bi bi-sticky me-1"></i> Additional Notes / Remarks</label>
                                 <textarea name="notes" class="form-control" rows="4" placeholder="Any special conditions, observations, or instructions..."></textarea>
                             </div>
                         </div>
 
                         <!-- Submit -->
-                        <div class="mt-5 pt-4 border-top d-flex flex-column flex-md-row gap-3">
-                            <button type="submit" class="btn btn-brand btn-lg flex-grow-1 shadow-sm">
-                                <i class="bi bi-check-circle me-2"></i>Submit Loan Application
+                        <div class="mt-5 pt-4 border-top d-flex flex-wrap gap-3" style="border-color: var(--border-color) !important;">
+                            <button type="submit" class="btn btn-brand flex-grow-1 shadow-sm">
+                                <i class="bi bi-check-circle"></i> Submit Loan Application
                             </button>
-                            <a href="{% url 'dashboard' %}" class="btn btn-light btn-lg px-5">Cancel</a>
+                            <a href="{% url 'dashboard' %}" class="btn btn-light">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
                         </div>
 
                     </div>
@@ -322,35 +657,130 @@
 
         <!-- Sidebar -->
         <div class="col-xl-4">
-            <div class="card border-0 shadow-sm rounded-4 bg-white p-4 sticky-top" style="top: 20px;">
-                <h6 class="fw-bold text-dark mb-3">Submission Checklist</h6>
-                <ul class="list-unstyled small text-muted">
-                    <li class="mb-3 d-flex align-items-start">
-                        <i class="bi bi-check-square-fill text-success me-3 mt-1"></i>
-                        Member has active savings account
+            <div class="sidebar-checklist">
+                <h6><i class="bi bi-check2-square me-2" style="color: var(--brand-cobalt);"></i>Submission Checklist</h6>
+                <ul>
+                    <li>
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <span>Member has active savings account</span>
                     </li>
-                    <li class="mb-3 d-flex align-items-start">
-                        <i class="bi bi-check-square-fill text-success me-3 mt-1"></i>
-                        Guarantors are verified members
+                    <li>
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <span>Guarantors are verified members</span>
                     </li>
-                    <li class="mb-3 d-flex align-items-start">
-                        <i class="bi bi-info-circle-fill text-primary me-3 mt-1"></i>
-                        Penalty rules are configurable per loan
+                    <li>
+                        <i class="bi bi-info-circle-fill" style="color: var(--brand-cobalt);"></i>
+                        <span>Penalty rules are configurable per loan</span>
                     </li>
-                    <li class="mb-3 d-flex align-items-start">
-                        <i class="bi bi-info-circle-fill text-primary me-3 mt-1"></i>
-                        Repayment schedule will be auto-generated
+                    <li>
+                        <i class="bi bi-info-circle-fill" style="color: var(--brand-cobalt);"></i>
+                        <span>Repayment schedule will be auto-generated</span>
                     </li>
                 </ul>
 
-                <div class="mt-4 p-3 rounded-3 bg-light">
-                    <span class="d-block text-muted small fw-bold text-uppercase mb-1">Need Help?</span>
-                    <span class="d-block fw-semibold text-dark">0700 100 200</span>
-                    <small class="text-muted">Credit Officer Support</small>
+                <div class="help-box">
+                    <span class="d-block"><i class="bi bi-headset me-1"></i> Need Help?</span>
+                    <span class="phone-number"><i class="bi bi-telephone-fill me-2"></i>0700 100 200</span>
+                    <small>Credit Officer Support</small>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    (function () {
+        'use strict';
+
+        // ===== BOOTSTRAP VALIDATION =====
+        var forms = document.querySelectorAll('.needs-validation');
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+
+        // ===== DYNAMIC PENALTY FIELD VISIBILITY =====
+        const penaltyType = document.getElementById('penaltyType');
+        const penaltyRateGroup = document.getElementById('penaltyRateGroup');
+        const penaltyFlatGroup = document.getElementById('penaltyFlatGroup');
+        const penaltyRate = document.getElementById('penaltyRate');
+        const penaltyFlat = document.getElementById('penaltyFlatAmount');
+
+        function updatePenaltyFields() {
+            const type = penaltyType.value;
+            // For 'fixed' and 'daily_flat', we show flat amount, hide rate.
+            // For 'daily_percentage' and 'compound', we show rate, hide flat.
+            if (type === 'fixed' || type === 'daily_flat') {
+                penaltyRateGroup.classList.add('hidden');
+                penaltyFlatGroup.classList.remove('hidden');
+                penaltyRate.removeAttribute('required');
+                penaltyFlat.setAttribute('required', 'required');
+                penaltyRate.placeholder = 'Not used';
+            } else if (type === 'daily_percentage' || type === 'compound') {
+                penaltyRateGroup.classList.remove('hidden');
+                penaltyFlatGroup.classList.add('hidden');
+                penaltyFlat.removeAttribute('required');
+                penaltyRate.setAttribute('required', 'required');
+                penaltyRate.placeholder = 'e.g. 2.5 for 2.5%';
+            } else {
+                // fallback
+                penaltyRateGroup.classList.add('hidden');
+                penaltyFlatGroup.classList.add('hidden');
+                penaltyRate.removeAttribute('required');
+                penaltyFlat.removeAttribute('required');
+            }
+        }
+
+        // Initial call
+        updatePenaltyFields();
+
+        // Event listener
+        penaltyType.addEventListener('change', updatePenaltyFields);
+
+        // ===== LOAN SUMMARY CALCULATOR =====
+        const principalInput = document.getElementById('principalAmount');
+        const rateInput = document.getElementById('interestRate');
+        const termInput = document.getElementById('termValue');
+        const totalSpan = document.getElementById('totalRepayment');
+        const monthlySpan = document.getElementById('monthlyPayment');
+        const interestSpan = document.getElementById('interestAmount');
+
+        function updateSummary() {
+            const principal = parseFloat(principalInput.value) || 0;
+            const rate = parseFloat(rateInput.value) || 0;
+            const term = parseInt(termInput.value) || 1;
+
+            if (principal <= 0 || term <= 0) {
+                totalSpan.textContent = '0';
+                monthlySpan.textContent = '0';
+                interestSpan.textContent = '0';
+                return;
+            }
+
+            // Simple interest calculation (flat rate over term)
+            const interest = principal * (rate / 100) * term;
+            const total = principal + interest;
+            const monthly = total / term;
+
+            totalSpan.textContent = total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            monthlySpan.textContent = monthly.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            interestSpan.textContent = interest.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        // Update on input changes
+        principalInput.addEventListener('input', updateSummary);
+        rateInput.addEventListener('input', updateSummary);
+        termInput.addEventListener('input', updateSummary);
+
+        // Initial update
+        updateSummary();
+
+    })();
+</script>
 
 {% endblock %}

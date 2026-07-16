@@ -1,89 +1,261 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Login | {{ company.name|default:"MAC Technologies" }}{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center align-items-center" style="min-height: 75vh;">
-    <div class="col-md-10 col-lg-7 col-xl-5">
-        
-        <!-- Login Card -->
-        <div class="text-center mb-4">
-            <div class="brand-logo mx-auto mb-3" style="
-                width: 70px; 
-                height: 70px; 
-                background: linear-gradient(135deg, var(--brand-cobalt), #3b82f6); 
-                color: white; 
-                border-radius: 18px; 
-                display: flex; 
-                align-items: center; 
-                justify-content: center;
-                font-size: 2rem;
-                box-shadow: 0 10px 20px rgba(22, 50, 175, 0.2);">
-                <i class="bi bi-shield-lock-fill"></i>
+<style>
+    /* Background logo watermark */
+    .login-wrapper {
+        position: relative;
+        min-height: 75vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .bg-logo {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        user-select: none;
+        z-index: 0;
+        opacity: 0.04;
+        width: 80%;
+        max-width: 500px;
+        text-align: center;
+    }
+
+    .bg-logo img {
+        width: 100%;
+        height: auto;
+        max-height: 300px;
+        object-fit: contain;
+    }
+
+    .bg-logo i {
+        font-size: 20rem;
+        color: var(--brand-cobalt);
+        display: block;
+    }
+
+    .login-card-container {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+    }
+
+    /* Existing styles preserved below */
+    .brand-logo {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 30px rgba(22, 50, 175, 0.15);
+        overflow: hidden;
+        background: #ffffff;
+        border: 2px solid var(--border-color);
+    }
+
+    .brand-logo img {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+    }
+
+    h2.fw-bold {
+        color: var(--text-primary);
+        letter-spacing: -0.8px;
+    }
+
+    .input-group:focus-within .input-group-text,
+    .input-group:focus-within .form-control {
+        border-color: var(--brand-cobalt) !important;
+    }
+    
+    .form-control:focus {
+        box-shadow: none;
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 3px rgba(22, 50, 175, 0.1);
+    }
+
+    .input-group-text {
+        padding-left: 1.2rem;
+        padding-right: 1.2rem;
+    }
+
+    .form-check-input:checked {
+        background-color: var(--brand-cobalt);
+        border-color: var(--brand-cobalt);
+    }
+
+    .form-check-input:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 3px rgba(22, 50, 175, 0.1);
+    }
+
+    .btn-primary {
+        background-color: var(--brand-cobalt);
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--brand-cobalt-hover, #11268a) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+        100% { transform: scale(1); }
+    }
+
+    .brand-logo {
+        animation: pulse 3s ease-in-out infinite;
+    }
+
+    @media (max-width: 576px) {
+        .brand-logo {
+            width: 60px !important;
+            height: 60px !important;
+        }
+        .brand-logo img {
+            width: 45px !important;
+            height: 45px !important;
+        }
+        h2.fw-bold {
+            font-size: 1.5rem !important;
+        }
+        .btn-primary {
+            font-size: 0.9rem !important;
+            padding: 0.75rem !important;
+        }
+        .input-group-text {
+            padding-left: 0.8rem !important;
+            padding-right: 0.8rem !important;
+        }
+        .form-control-lg {
+            font-size: 0.9rem !important;
+            padding: 0.5rem 0.75rem !important;
+        }
+        .bg-logo {
+            width: 60%;
+            max-width: 300px;
+        }
+        .bg-logo i {
+            font-size: 12rem;
+        }
+    }
+</style>
+
+<div class="login-wrapper">
+    <!-- Background logo watermark -->
+    <div class="bg-logo">
+        {% if company.logo %}
+            <img src="{{ company.logo.url }}" alt="{{ company.name }}">
+        {% else %}
+            <img src="{% static 'images/mac.png' %}" alt="MAC Technologies">
+        {% endif %}
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-card-container">
+        <div class="row justify-content-center">
+            <div class="col-md-10 col-lg-7 col-xl-5">
+                <div class="text-center mb-4">
+                    <div class="brand-logo mx-auto mb-3">
+                        {% if company.logo %}
+                            <img src="{{ company.logo.url }}" alt="{{ company.name }}">
+                        {% else %}
+                            <img src="{% static 'images/mac.png' %}" alt="MAC Technologies">
+                        {% endif %}
+                    </div>
+                    <h2 class="fw-bold">{{ company.name|default:"MAC Technologies" }}</h2>
+                    <p class="text-secondary small">Authorized Personnel Access Only</p>
+                </div>
+
+                <div class="p-1">
+                    <form method="POST" action="{% url 'login' %}" novalidate>
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase" style="letter-spacing: 0.5px; color: var(--text-secondary);">
+                                <i class="bi bi-person me-1"></i> Username
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0 border-2" style="border-color: var(--border-color);">
+                                    <i class="bi bi-person text-muted"></i>
+                                </span>
+                                <input type="text" 
+                                       name="username" 
+                                       class="form-control form-control-lg border-start-0 border-2" 
+                                       style="border-color: var(--border-color); font-size: 1rem;"
+                                       placeholder="Enter your username" 
+                                       required autofocus>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label class="form-label small fw-bold text-uppercase" style="letter-spacing: 0.5px; color: var(--text-secondary);">
+                                    <i class="bi bi-lock me-1"></i>Password
+                                </label>
+                                <a href="{% url 'password_reset' %}" class="small mb-2 text-decoration-none fw-bold" style="color: var(--brand-cobalt);">Forgot?</a>
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0 border-2" style="border-color: var(--border-color);">
+                                    <i class="bi bi-lock text-muted"></i>
+                                </span>
+                                <input type="password" 
+                                       name="password" 
+                                       id="passwordInput" 
+                                       class="form-control form-control-lg border-start-0 border-end-0 border-2" 
+                                       style="border-color: var(--border-color); font-size: 1rem;"
+                                       placeholder="••••••••" 
+                                       required>
+                                <span class="input-group-text bg-transparent border-start-0 border-2" 
+                                      style="border-color: var(--border-color); cursor: pointer;" 
+                                      onclick="togglePassword()">
+                                    <i class="bi bi-eye text-muted" id="toggleIcon"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 d-flex align-items-center justify-content-between">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="remember" id="rememberMe" style="border-color: var(--border-color);">
+                                <label class="form-check-label small text-muted" for="rememberMe">
+                                    Remember me
+                                </label>
+                            </div>
+                            <span class="small text-muted">
+                                <i class="bi bi-shield-check me-1" style="color: var(--brand-cobalt);"></i> Secure SSL
+                            </span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> LOG IN
+                        </button>
+
+                        <div class="text-center mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                            <p class="small text-muted mb-0">
+                                <i class="bi bi-shield-lock me-1"></i>
+                                Confidential Infrastructure. <a href="#" class="text-decoration-none fw-bold" style="color: var(--brand-cobalt);">System Support</a>
+                            </p>
+                            <p class="small text-muted mt-2 mb-0">
+                                <i class="bi bi-clock me-1"></i>
+                                &copy; {% now "Y" %} {{ company.name|default:"MAC Technologies" }}. All rights reserved.
+                            </p>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <h2 class="fw-bold" style="color: var(--text-primary); letter-spacing: -0.8px;">MAC FinTech</h2>
-            <p class="text-secondary small">Authorized Personnel Access Only</p>
-        </div>
-
-        <div class="p-1">
-            <form method="POST" action="{% url 'login' %}" novalidate>
-                {% csrf_token %}
-
-                <!-- Username -->
-                <div class="mb-3">
-                    <label class="form-label small fw-bold text-uppercase" style="letter-spacing: 0.5px; color: var(--text-secondary);">
-                        Username or Email
-                    </label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-transparent border-end-0 border-2" style="border-color: var(--border-color);">
-                            <i class="bi bi-person text-muted"></i>
-                        </span>
-                        <input type="text" 
-                               name="username" 
-                               class="form-control form-control-lg border-start-0 border-2" 
-                               style="border-color: var(--border-color); font-size: 1rem;"
-                               placeholder="Enter your username" 
-                               required autofocus>
-                    </div>
-                </div>
-
-                <!-- Password -->
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <label class="form-label small fw-bold text-uppercase" style="letter-spacing: 0.5px; color: var(--text-secondary);">
-                            Security Password
-                        </label>
-                        <a href="{% url 'password_reset' %}" class="small mb-2 text-decoration-none fw-bold" style="color: var(--brand-cobalt);">Forgot?</a>
-                    </div>
-                    <div class="input-group">
-                        <span class="input-group-text bg-transparent border-end-0 border-2" style="border-color: var(--border-color);">
-                            <i class="bi bi-lock text-muted"></i>
-                        </span>
-                        <input type="password" 
-                               name="password" 
-                               id="passwordInput" 
-                               class="form-control form-control-lg border-start-0 border-end-0 border-2" 
-                               style="border-color: var(--border-color); font-size: 1rem;"
-                               placeholder="••••••••" 
-                               required>
-                        <span class="input-group-text bg-transparent border-start-0 border-2" 
-                              style="border-color: var(--border-color); cursor: pointer;" 
-                              onclick="togglePassword()">
-                            <i class="bi bi-eye text-muted" id="toggleIcon"></i>
-                        </span>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm" 
-                        style="background-color: var(--brand-cobalt); border: none;">
-                    SIGN IN TO PORTAL <i class="bi bi-arrow-right-short ms-1"></i>
-                </button>
-
-                <div class="text-center mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
-                    <p class="small text-muted mb-0">
-                        Confidential Infrastructure. <a href="#" class="text-decoration-none fw-bold" style="color: var(--brand-cobalt);">System Support</a>
-                    </p>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -100,23 +272,15 @@
             icon.classList.replace('bi-eye-slash', 'bi-eye');
         }
     }
+
+    // Keyboard shortcut: Press Enter to submit
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const form = document.querySelector('form');
+            if (form && document.activeElement?.tagName === 'INPUT') {
+                form.submit();
+            }
+        }
+    });
 </script>
-
-<style>
-    /* Styling for focus states within the input groups */
-    .input-group:focus-within .input-group-text,
-    .input-group:focus-within .form-control {
-        border-color: var(--brand-cobalt) !important;
-    }
-    
-    .form-control:focus {
-        box-shadow: none;
-    }
-
-    /* Custom sizing for the input groups */
-    .input-group-text {
-        padding-left: 1.2rem;
-        padding-right: 1.2rem;
-    }
-</style>
 {% endblock %}

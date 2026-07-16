@@ -33,6 +33,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('finance.urls')),
     path('', include('members.urls')),
+    path("hardware/", include("hardware.urls")),
 ]
 
 # Serve Media files during local development

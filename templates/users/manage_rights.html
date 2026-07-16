@@ -1,140 +1,621 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}User Access Control | MAC Technologies{% endblock %}
+{% block title %}User Access Control | {{ company.name }}{% endblock %}
 
 {% block content %}
-<!-- Top Header and Action Bar -->
-<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
-    <div>
-        <h2 class="h4 mb-1 fw-bold" style="color: var(--text-primary);">User Access Control</h2>
-        <p class="text-muted small mb-0">Assign organizational security groups and roles directly to staff members.</p>
-    </div>
-    <span class="badge px-3 py-2 bg-secondary bg-opacity-10 text-secondary rounded-pill small fw-semibold">
-        Role-Based Access Control (RBAC)
-    </span>
-</div>
-
-<!-- Main Workspace Table -->
-<div class="card border shadow-sm rounded-4 overflow-hidden" style="background: var(--sidebar-bg); border-color: var(--border-color) !important;">
-    <div class="px-4 py-3 border-bottom font-monospace text-uppercase" style="background: var(--hover-bg); border-color: var(--border-color) !important; font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.05em;">
-        Staff Directory & Role Assignments
-    </div>
-    
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light" style="--bs-table-bg: var(--hover-bg); color: var(--text-secondary);">
-                <tr>
-                    <th class="px-4 py-3 small fw-bold" style="width: 25%; border-color: var(--border-color);">User Details</th>
-                    <th class="px-4 py-3 small fw-bold" style="width: 55%; border-color: var(--border-color);">Assigned Roles / Groups</th>
-                    <th class="px-4 py-3 small fw-bold text-center" style="width: 20%; border-color: var(--border-color);">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users %}
-                    <tr style="border-color: var(--border-color) !important;">
-                        <!-- User Identity Column -->
-                        <td class="px-4 py-3">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-bold text-white small shadow-sm" 
-                                     style="width: 38px; height: 38px; background: var(--brand-cobalt); font-size: 0.85rem;">
-                                    {{ user.username|slice:":2"|upper }}
-                                </div>
-                                <div>
-                                    <strong class="text-dark d-block" style="font-size: 0.92rem;">{{ user.get_full_name|default:user.username }}</strong>
-                                    <span class="text-muted small font-monospace" style="font-size: 0.75rem;">@{{ user.username }}</span>
-                                </div>
-                            </div>
-                        </td>
-                        
-                        <!-- Role Assignment Matrix Checkboxes -->
-                        <td class="px-4 py-3">
-                            <form id="form-user-{{ user.id }}" method="POST" action="{% url 'manage_user_rights' %}" class="d-flex flex-wrap gap-2 align-items-center mb-0">
-                                {% csrf_token %}
-                                <input type="hidden" name="user_id" value="{{ user.id }}">
-                                
-                                {% for group in groups %}
-                                    <div class="custom-role-badge">
-                                        <input class="btn-check" 
-                                               type="checkbox" 
-                                               name="groups" 
-                                               value="{{ group.id }}" 
-                                               id="group-{{ user.id }}-{{ group.id }}"
-                                               {% if group in user.groups.all %}checked{% endif %}>
-                                        <label class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 text-nowrap transition-all" 
-                                               for="group-{{ user.id }}-{{ group.id }}" 
-                                               style="font-size: 0.78rem; font-weight: 500;">
-                                            <i class="bi {% if group in user.groups.all %}bi-shield-check-fill{% else %}bi-shield{% endif %} me-1"></i>
-                                            {{ group.name }}
-                                        </label>
-                                    </div>
-                                {% empty %}
-                                    <span class="text-danger small bg-danger bg-opacity-10 border border-danger border-opacity-10 rounded-2 p-2">
-                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> No system groups initialized. Configure them in Django Admin first.
-                                    </span>
-                                {% endfor %}
-                            </form>
-                        </td>
-                        
-                        <!-- Row Action Button -->
-                        <td class="px-4 py-3 text-center">
-                            <button type="submit" 
-                                    form="form-user-{{ user.id }}" 
-                                    class="btn text-white btn-sm px-4 py-2 rounded-3 fw-semibold border-0 shadow-sm transition-all shadow-hover" 
-                                    style="background: var(--brand-cobalt); font-size: 0.8rem;">
-                                <i class="bi bi-save2 me-1"></i> Save Rights
-                            </button>
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="3" class="text-center py-5 text-muted border-0">
-                            <div class="my-3">
-                                <i class="bi bi-people text-secondary display-6 bg-light rounded-circle p-3 mb-2 d-inline-block"></i>
-                                <h6 class="fw-bold mt-2 text-dark">No Active Personnel Found</h6>
-                                <p class="text-muted small mb-0">There are currently no active user profiles registered to modify rights metrics.</p>
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
 
 <style>
-    /* Scope internal transitions and responsive behaviors */
-    .transition-all { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-    
-    /* Turn unchecked checkboxes into subtle outlines, and checked items into bright Cobalt identifiers */
-    .custom-role-badge .btn-check + .btn-outline-secondary {
-        border-color: var(--border-color);
-        background: transparent;
-        color: var(--text-secondary);
+    :root {
+        --brand-cobalt: #1632af;
+        --brand-cobalt-dark: #0f248a;
+        --brand-cobalt-light: #2a4ad8;
+        --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+        --brand-cobalt-glow: rgba(22, 50, 175, 0.12);
+        --border-color: #e2e8f0;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --bg-body: #f1f5f9;
+        --card-bg: #ffffff;
+        --hover-bg: #f8fafc;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+        --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+        --shadow-lg: 0 20px 50px rgba(0,0,0,0.08);
+        --radius: 16px;
+        --radius-sm: 12px;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
     }
-    
-    .custom-role-badge .btn-check + .btn-outline-secondary:hover {
-        background: var(--hover-bg);
-        border-color: var(--text-secondary);
+
+    body {
+        background: var(--bg-body);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .access-wrapper {
+        max-width: 1340px;
+        margin: 0 auto;
+        padding: 1.5rem 1.5rem 3rem;
+    }
+
+    /* ============================================
+       PAGE HEADER
+       ============================================ */
+    .page-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .page-header h2 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
         color: var(--text-primary);
     }
 
-    .custom-role-badge .btn-check:checked + .btn-outline-secondary {
-        background-color: var(--brand-cobalt) !important;
-        border-color: var(--brand-cobalt) !important;
-        color: white !important;
-        box-shadow: 0 4px 10px rgba(22, 50, 175, 0.15);
+    .page-header h2 i {
+        color: var(--brand-cobalt);
     }
 
-    /* Change icons inside the button pills dynamically upon selection change via CSS */
-    .custom-role-badge .btn-check:checked + .btn-outline-secondary i::before {
-        content: "\f533"; /* bootstrap-icons code for shield-check-fill */
+    .page-header .subtitle {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 0.1rem;
     }
 
-    /* Primary save button pop physics */
-    .shadow-hover:hover {
-        background: var(--brand-cobalt-light) !important;
+    .page-header .badge-rbac {
+        padding: 0.4rem 1.2rem;
+        border-radius: 100px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+        border: 1px solid rgba(22, 50, 175, 0.1);
+        white-space: nowrap;
+    }
+
+    /* ============================================
+       MAIN CARD
+       ============================================ */
+    .access-card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .access-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .access-card .card-header {
+        padding: 0.8rem 1.5rem;
+        background: var(--hover-bg);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .access-card .card-header .header-icon {
+        color: var(--brand-cobalt);
+        font-size: 1.1rem;
+    }
+
+    .access-card .card-header .header-title {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    /* ============================================
+       TABLE
+       ============================================ */
+    .table-access {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+
+    .table-access thead {
+        background: var(--hover-bg);
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .table-access thead th {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        text-align: left;
+        border-color: var(--border-color);
+    }
+
+    .table-access tbody td {
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+
+    .table-access tbody tr {
+        transition: background 0.2s ease;
+    }
+
+    .table-access tbody tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .table-access tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* ============================================
+       USER AVATAR
+       ============================================ */
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(22, 50, 175, 0.15);
+    }
+
+    .user-info .user-name {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        display: block;
+    }
+
+    .user-info .user-username {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ============================================
+       ROLE BADGE TOGGLES
+       ============================================ */
+    .role-badge-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        align-items: center;
+    }
+
+    .role-badge-group .role-toggle {
+        position: relative;
+    }
+
+    .role-badge-group .role-toggle input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+    }
+
+    .role-badge-group .role-toggle .role-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.9rem;
+        border-radius: 100px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 1.5px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        user-select: none;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .role-badge-group .role-toggle .role-label:hover {
+        background: var(--hover-bg);
+        border-color: var(--text-muted);
         transform: translateY(-1px);
-        box-shadow: 0 5px 12px rgba(22, 50, 175, 0.2) !important;
+    }
+
+    .role-badge-group .role-toggle .role-label i {
+        font-size: 0.7rem;
+        transition: all 0.2s ease;
+    }
+
+    .role-badge-group .role-toggle input[type="checkbox"]:checked + .role-label {
+        background: var(--brand-cobalt);
+        border-color: var(--brand-cobalt);
+        color: #ffffff;
+        box-shadow: 0 2px 10px rgba(22, 50, 175, 0.2);
+    }
+
+    .role-badge-group .role-toggle input[type="checkbox"]:checked + .role-label i::before {
+        content: "\f533"; /* shield-check-fill */
+    }
+
+    .role-badge-group .role-toggle input[type="checkbox"]:focus-visible + .role-label {
+        outline: 2px solid var(--brand-cobalt);
+        outline-offset: 2px;
+    }
+
+    .role-badge-group .empty-roles {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        padding: 0.3rem 0.8rem;
+        background: var(--bg-body);
+        border-radius: var(--radius-sm);
+        border: 1px dashed var(--border-color);
+    }
+
+    /* ============================================
+       SAVE BUTTON
+       ============================================ */
+    .btn-save-rights {
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        border: none;
+        font-weight: 600;
+        padding: 0.4rem 1.2rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        box-shadow: 0 2px 10px rgba(22, 50, 175, 0.15);
+        cursor: pointer;
+    }
+
+    .btn-save-rights:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(22, 50, 175, 0.25);
+        color: #ffffff;
+    }
+
+    .btn-save-rights:active {
+        transform: translateY(0);
+    }
+
+    .btn-save-rights i {
+        font-size: 0.9rem;
+    }
+
+    /* ============================================
+       EMPTY STATE
+       ============================================ */
+    .empty-state {
+        padding: 3rem 1.5rem;
+        text-align: center;
+    }
+
+    .empty-state .empty-icon {
+        font-size: 3.5rem;
+        opacity: 0.15;
+        color: var(--text-muted);
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state h5 {
+        font-weight: 700;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+        font-size: 1.1rem;
+    }
+
+    .empty-state p {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-bottom: 0;
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 992px) {
+        .access-wrapper {
+            padding: 1rem;
+        }
+        .page-header h2 {
+            font-size: 1.3rem;
+        }
+        .table-access {
+            font-size: 0.85rem;
+        }
+        .table-access thead th,
+        .table-access tbody td {
+            padding: 0.6rem 1rem;
+        }
+        .role-badge-group .role-toggle .role-label {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.7rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        .page-header .badge-rbac {
+            align-self: flex-start;
+        }
+        .table-access thead {
+            display: none;
+        }
+        .table-access tbody tr {
+            display: block;
+            margin-bottom: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 0.75rem;
+            background: var(--card-bg);
+        }
+        .table-access tbody td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4rem 0;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .table-access tbody td:last-child {
+            border-bottom: none;
+        }
+        .table-access tbody td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .table-access tbody td .d-flex {
+            justify-content: flex-end;
+        }
+        .table-access tbody td .user-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 0.7rem;
+        }
+        .table-access tbody td .user-info .user-name {
+            font-size: 0.85rem;
+        }
+        .role-badge-group {
+            justify-content: flex-end;
+        }
+        .role-badge-group .role-toggle .role-label {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.6rem;
+        }
+        .btn-save-rights {
+            font-size: 0.75rem;
+            padding: 0.3rem 1rem;
+        }
+        .empty-state .empty-icon {
+            font-size: 2.8rem;
+        }
+        .empty-state h5 {
+            font-size: 0.95rem;
+        }
+        .empty-state p {
+            font-size: 0.8rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .access-wrapper {
+            padding: 0.75rem;
+        }
+        .access-card .card-header {
+            padding: 0.6rem 1rem;
+        }
+        .table-access tbody tr {
+            padding: 0.5rem;
+        }
+        .table-access tbody td {
+            padding: 0.3rem 0;
+            font-size: 0.75rem;
+        }
+        .role-badge-group .role-toggle .role-label {
+            font-size: 0.6rem;
+            padding: 0.1rem 0.5rem;
+            gap: 0.15rem;
+        }
+        .role-badge-group .role-toggle .role-label i {
+            font-size: 0.6rem;
+        }
+        .btn-save-rights {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.8rem;
+        }
+        .btn-save-rights i {
+            font-size: 0.75rem;
+        }
+        .page-header h2 {
+            font-size: 1.1rem;
+        }
+        .page-header .badge-rbac {
+            font-size: 0.55rem;
+            padding: 0.3rem 0.8rem;
+        }
+    }
+
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .access-card {
+        animation: fadeInUp 0.4s ease forwards;
+    }
+
+    /* ============================================
+       PRINT STYLES
+       ============================================ */
+    @media print {
+        .btn-save-rights {
+            display: none !important;
+        }
+        .access-card {
+            box-shadow: none !important;
+            border: 1px solid #ccc !important;
+        }
+        .role-badge-group .role-toggle .role-label {
+            border: 1px solid #ccc !important;
+        }
+        .role-badge-group .role-toggle input[type="checkbox"]:checked + .role-label {
+            background: #ccc !important;
+            color: #000 !important;
+        }
+        .table-access tbody tr {
+            break-inside: avoid;
+        }
     }
 </style>
+
+<div class="access-wrapper">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h2>
+                <i class="bi bi-shield-lock"></i>
+                User Access Control
+            </h2>
+            <div class="subtitle">
+                <i class="bi bi-info-circle me-1"></i>
+                Assign organizational security groups and roles directly to staff members
+            </div>
+        </div>
+        <span class="badge-rbac">
+            <i class="bi bi-shield-check me-1"></i>
+            Role-Based Access Control (RBAC)
+        </span>
+    </div>
+
+    <!-- Main Card -->
+    <div class="access-card">
+        <div class="card-header">
+            <i class="bi bi-people-fill header-icon"></i>
+            <span class="header-title">Staff Directory &amp; Role Assignments</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table-access">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">User Details</th>
+                        <th style="width: 55%;">Assigned Roles / Groups</th>
+                        <th style="width: 20%;" class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <!-- User Identity -->
+                        <td data-label="User Details">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="user-avatar">
+                                    {{ user.username|slice:":2"|upper }}
+                                </div>
+                                <div class="user-info">
+                                    <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
+                                    <span class="user-username">@{{ user.username }}</span>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Role Assignments -->
+                        <td data-label="Roles">
+                            <form id="form-user-{{ user.id }}" method="POST" action="{% url 'manage_user_rights' %}" class="mb-0">
+                                {% csrf_token %}
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+
+                                <div class="role-badge-group">
+                                    {% for group in groups %}
+                                    <span class="role-toggle">
+                                        <input type="checkbox"
+                                               name="groups"
+                                               value="{{ group.id }}"
+                                               id="group-{{ user.id }}-{{ group.id }}"
+                                               {% if group in user.groups.all %}checked{% endif %}>
+                                        <label class="role-label" for="group-{{ user.id }}-{{ group.id }}">
+                                            <i class="bi {% if group in user.groups.all %}bi-shield-check-fill{% else %}bi-shield{% endif %}"></i>
+                                            {{ group.name }}
+                                        </label>
+                                    </span>
+                                    {% empty %}
+                                    <span class="empty-roles">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                        No system groups initialized
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            </form>
+                        </td>
+
+                        <!-- Action Button -->
+                        <td data-label="Actions" class="text-center">
+                            <button type="submit"
+                                    form="form-user-{{ user.id }}"
+                                    class="btn-save-rights">
+                                <i class="bi bi-save2"></i> Save Rights
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center border-0">
+                            <div class="empty-state">
+                                <i class="bi bi-people empty-icon"></i>
+                                <h5>No Active Personnel Found</h5>
+                                <p>There are currently no active user profiles registered to modify rights metrics.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
 {% endblock %}

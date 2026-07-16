@@ -1,125 +1,776 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
+{% block title %}Auto Repayment Dashboard | {{ company.name }}{% endblock %}
+
 {% block content %}
-<div class="p-1">
-    
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center pb-4 mb-4 border-bottom" style="border-color: var(--border-color) !important;">
-        <div class="mb-3 mb-sm-0">
-            <h4 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -0.02em;">Automated Loan Repayment Dashboard</h4>
-            <p class="mb-0 small" style="color: var(--text-secondary);">
-                <i class="bi bi-shield-check me-1" style="color: var(--brand-cobalt);"></i> Manage dynamic periodic schedules and monitor collection ledgers.
+
+<style>
+    :root {
+        --brand-cobalt: #1632af;
+        --brand-cobalt-dark: #0f248a;
+        --brand-cobalt-light: #2a4ad8;
+        --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+        --brand-cobalt-glow: rgba(22, 50, 175, 0.12);
+        --border-color: #e2e8f0;
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --bg-body: #f1f5f9;
+        --bg-card: #ffffff;
+        --bg-hover: #f8fafc;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+        --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+        --shadow-lg: 0 20px 50px rgba(0,0,0,0.08);
+        --radius: 16px;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+    }
+
+    body {
+        background: var(--bg-body);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .auto-repay-wrapper {
+        max-width: 1340px;
+        margin: 0 auto;
+        padding: 1.5rem 1.5rem 3rem;
+    }
+
+    /* ============================================
+       PAGE HEADER
+       ============================================ */
+    .page-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1.5rem;
+        padding-bottom: 1.25rem;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .page-header .header-left h2 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--text-primary);
+    }
+
+    .page-header .header-left h2 i {
+        color: var(--brand-cobalt);
+    }
+
+    .page-header .header-left p {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin: 0.1rem 0 0 0;
+    }
+
+    .page-header .header-left p i {
+        color: var(--brand-cobalt);
+    }
+
+    .btn-force-run {
+        background: var(--danger);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding: 0.6rem 1.5rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-force-run:hover {
+        background: #dc2626;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.35);
+        color: #ffffff;
+    }
+
+    .btn-force-run i {
+        animation: pulse-icon 2s infinite;
+    }
+
+    @keyframes pulse-icon {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.9); }
+    }
+
+    /* ============================================
+       CARDS
+       ============================================ */
+    .card-custom {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .card-custom:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .card-custom .card-header-custom {
+        padding: 0.9rem 1.25rem;
+        background: var(--bg-hover);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .card-custom .card-header-custom h6 {
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin: 0;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-custom .card-header-custom h6 i {
+        color: var(--brand-cobalt);
+    }
+
+    .card-custom .card-body-custom {
+        padding: 1.25rem;
+    }
+
+    .card-custom .card-footer-custom {
+        padding: 1rem 1.25rem;
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        border-top: none;
+    }
+
+    /* ============================================
+       FORM CONTROLS
+       ============================================ */
+    .form-label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .input-group-custom {
+        display: flex;
+        align-items: stretch;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background: var(--bg-card);
+        transition: all 0.2s ease;
+        overflow: hidden;
+    }
+
+    .input-group-custom:focus-within {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+    }
+
+    .input-group-custom .input-group-text {
+        background: var(--bg-card);
+        border: none;
+        padding: 0.5rem 0.8rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        font-size: 0.9rem;
+    }
+
+    .input-group-custom .form-control,
+    .input-group-custom .form-select {
+        border: none;
+        background: var(--bg-card);
+        padding: 0.5rem 0.8rem;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .input-group-custom .form-control:focus,
+    .input-group-custom .form-select:focus {
+        box-shadow: none;
+        outline: none;
+    }
+
+    .input-group-custom .form-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.8rem center;
+        background-size: 12px 10px;
+        padding-right: 2.2rem;
+    }
+
+    .form-check-input {
+        width: 2.5rem;
+        height: 1.25rem;
+        border-radius: 100px;
+        border: 2px solid var(--border-color);
+        background: var(--bg-card);
+        cursor: pointer;
+        transition: all 0.25s ease;
+        appearance: none;
+        -webkit-appearance: none;
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .form-check-input::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        transition: all 0.25s ease;
+    }
+
+    .form-check-input:checked {
+        background: var(--brand-cobalt);
+        border-color: var(--brand-cobalt);
+    }
+
+    .form-check-input:checked::after {
+        transform: translateX(20px);
+        background: #ffffff;
+    }
+
+    .form-check-input:focus {
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+        outline: none;
+    }
+
+    .toggle-label {
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .toggle-label i {
+        font-size: 1rem;
+    }
+
+    /* ============================================
+       BUTTONS
+       ============================================ */
+    .btn-commit {
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding: 0.6rem 1.5rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        box-shadow: 0 4px 15px rgba(22, 50, 175, 0.2);
+        cursor: pointer;
+    }
+
+    .btn-commit:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(22, 50, 175, 0.35);
+        color: #ffffff;
+    }
+
+    /* ============================================
+       TABLES
+       ============================================ */
+    .table-custom {
+        width: 100%;
+        font-size: 0.85rem;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .table-custom thead th {
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        background: var(--bg-hover);
+        border-bottom: 2px solid var(--border-color);
+        padding: 0.6rem 1rem;
+        text-align: left;
+    }
+
+    .table-custom thead th.text-center { text-align: center; }
+    .table-custom thead th.text-end { text-align: right; }
+
+    .table-custom tbody td {
+        padding: 0.6rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+
+    .table-custom tbody tr {
+        transition: background 0.15s ease;
+    }
+
+    .table-custom tbody tr:hover {
+        background: var(--bg-hover);
+    }
+
+    .table-custom tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .table-custom .fw-bold {
+        font-weight: 700;
+    }
+    .table-custom .text-center { text-align: center; }
+    .table-custom .text-end { text-align: right; }
+    .table-custom .text-success { color: var(--success); }
+    .table-custom .text-danger { color: var(--danger); }
+    .table-custom .text-warning { color: var(--warning); }
+    .table-custom .text-muted { color: var(--text-muted); }
+
+    /* ============================================
+       BADGES
+       ============================================ */
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.8rem;
+        border-radius: 100px;
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border: 1px solid transparent;
+        white-space: nowrap;
+        min-width: 80px;
+        justify-content: center;
+    }
+
+    .badge-success {
+        background: rgba(16, 185, 129, 0.12);
+        color: var(--success);
+        border-color: rgba(16, 185, 129, 0.15);
+    }
+
+    .badge-partial {
+        background: rgba(245, 158, 11, 0.12);
+        color: #d97706;
+        border-color: rgba(245, 158, 11, 0.15);
+    }
+
+    .badge-failed {
+        background: rgba(239, 68, 68, 0.12);
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.15);
+    }
+
+    .badge-engine {
+        padding: 0.25rem 1rem;
+        border-radius: 100px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .badge-engine.active {
+        color: #ffffff;
+    }
+
+    .badge-engine.inactive {
+        color: #fcd34d;
+    }
+
+    .badge-closed {
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+        padding: 0.15rem 0.6rem;
+        border-radius: 100px;
+        font-weight: 700;
+        font-size: 0.7rem;
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 992px) {
+        .auto-repay-wrapper {
+            padding: 1rem;
+        }
+        .page-header .header-left h2 {
+            font-size: 1.3rem;
+        }
+        .table-custom {
+            font-size: 0.75rem;
+        }
+        .table-custom thead th,
+        .table-custom tbody td {
+            padding: 0.4rem 0.6rem;
+        }
+        .badge-status {
+            font-size: 0.5rem;
+            padding: 0.15rem 0.5rem;
+            min-width: 60px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+        .page-header .btn-force-run {
+            width: 100%;
+            justify-content: center;
+        }
+        .card-custom .card-body-custom {
+            padding: 1rem;
+        }
+        .card-custom .card-header-custom {
+            padding: 0.6rem 1rem;
+        }
+        .table-custom {
+            font-size: 0.7rem;
+        }
+        .table-custom thead th,
+        .table-custom tbody td {
+            padding: 0.3rem 0.4rem;
+        }
+        .badge-status {
+            font-size: 0.45rem;
+            padding: 0.1rem 0.3rem;
+            min-width: 50px;
+        }
+        .badge-engine {
+            font-size: 0.6rem;
+            padding: 0.15rem 0.6rem;
+        }
+        .btn-commit {
+            font-size: 0.8rem;
+            padding: 0.5rem 1rem;
+        }
+        .form-check-input {
+            width: 2rem;
+            height: 1rem;
+        }
+        .form-check-input::after {
+            width: 12px;
+            height: 12px;
+        }
+        .form-check-input:checked::after {
+            transform: translateX(16px);
+        }
+        .toggle-label {
+            font-size: 0.75rem;
+        }
+        .card-custom .card-footer-custom {
+            padding: 0.75rem 1rem;
+        }
+        .card-custom .card-footer-custom .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.3rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .auto-repay-wrapper {
+            padding: 0.75rem;
+        }
+        .page-header .header-left h2 {
+            font-size: 1.1rem;
+        }
+        .page-header .header-left p {
+            font-size: 0.75rem;
+        }
+        .btn-force-run {
+            font-size: 0.7rem;
+            padding: 0.4rem 1rem;
+        }
+        .row.g-4 {
+            --bs-gutter-y: 1rem;
+        }
+        .table-custom {
+            font-size: 0.6rem;
+        }
+        .table-custom thead th,
+        .table-custom tbody td {
+            padding: 0.2rem 0.3rem;
+        }
+        .badge-status {
+            font-size: 0.4rem;
+            padding: 0.05rem 0.2rem;
+            min-width: 40px;
+            gap: 0.1rem;
+        }
+        .badge-closed {
+            font-size: 0.6rem;
+            padding: 0.1rem 0.4rem;
+        }
+        .input-group-custom .form-control,
+        .input-group-custom .form-select {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.5rem;
+        }
+        .input-group-custom .input-group-text {
+            padding: 0.3rem 0.5rem;
+            font-size: 0.8rem;
+        }
+        .form-label {
+            font-size: 0.6rem;
+        }
+        .toggle-label {
+            font-size: 0.65rem;
+        }
+    }
+
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-custom {
+        animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .card-custom:nth-child(1) { animation-delay: 0.05s; }
+    .card-custom:nth-child(2) { animation-delay: 0.10s; }
+
+    /* ============================================
+       PRINT STYLES
+       ============================================ */
+    @media print {
+        .btn-force-run,
+        .btn-commit {
+            display: none !important;
+        }
+        .card-custom {
+            box-shadow: none !important;
+            border: 1px solid #ccc !important;
+        }
+        .card-custom .card-footer-custom {
+            background: #f5f5f5 !important;
+            color: #000 !important;
+        }
+        .badge-engine {
+            border: 1px solid #ccc !important;
+            background: transparent !important;
+            color: #000 !important;
+        }
+        .badge-engine.inactive {
+            color: #000 !important;
+        }
+        .badge-status {
+            border: 1px solid #ccc !important;
+            background: transparent !important;
+            color: #000 !important;
+        }
+    }
+</style>
+
+<div class="auto-repay-wrapper">
+
+    <!-- ==========================================
+    PAGE HEADER
+    ========================================== -->
+    <div class="page-header">
+        <div class="header-left">
+            <h2>
+                <i class="bi bi-robot"></i>
+                Automated Loan Repayment
+            </h2>
+            <p>
+                <i class="bi bi-shield-check me-1"></i>
+                Manage dynamic periodic schedules and monitor collection ledgers.
             </p>
         </div>
-        <form method="POST">
+        <form method="POST" class="flex-shrink-0">
             {% csrf_token %}
-            <button type="submit" name="manual_execution_trigger" class="btn fw-bold shadow-sm d-flex align-items-center gap-2 px-4 py-2 border-0 rounded-3 text-white" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); transition: transform 0.2s ease;">
-                <i class="bi bi-lightning-charge-fill animate-flash"></i> FORCE RUN SYSTEM REPAYMENTS NOW
+            <button type="submit" name="manual_execution_trigger" class="btn-force-run">
+                <i class="bi bi-lightning-charge-fill"></i>
+                Force Run System Repayments Now
             </button>
         </form>
     </div>
 
+    <!-- ==========================================
+    MAIN ROW
+    ========================================== -->
     <div class="row g-4">
+
+        <!-- LEFT COLUMN: Scheduler Controls -->
         <div class="col-xl-4 col-lg-5">
-            <div class="card border-0 shadow-sm overflow-hidden" style="background: var(--card-bg); border: 1px solid var(--border-color) !important; border-radius: 16px;">
-                <div class="p-4 border-bottom" style="border-color: var(--border-color) !important; background: var(--hover-bg);">
-                    <h6 class="fw-bold mb-0 d-flex align-items-center" style="color: var(--text-primary);">
-                        <i class="bi bi-sliders2-vertical me-2" style="color: var(--brand-cobalt);"></i>Scheduler Controls
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h6>
+                        <i class="bi bi-sliders2-vertical"></i>
+                        Scheduler Controls
                     </h6>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body-custom">
                     <form method="POST">
                         {% csrf_token %}
-                        
-                        <div class="p-3 rounded-3 mb-4 d-flex align-items-center justify-content-between border" style="background: var(--bg); border-color: var(--border-color) !important;">
-                            <label class="form-check-label fw-bold small" for="id_is_enabled" style="color: var(--text-primary);">
-                                <i class="bi bi-power me-1 {% if form.is_enabled.value %}text-success{% else %}text-danger{% endif %}"></i> Engine Execution State
+
+                        <!-- Engine Toggle -->
+                        <div class="p-3 rounded-3 mb-4 d-flex align-items-center justify-content-between"
+                             style="background: var(--bg-body); border: 1px solid var(--border-color);">
+                            <label class="toggle-label" for="id_is_enabled">
+                                <i class="bi bi-power me-1 {% if form.is_enabled.value %}text-success{% else %}text-danger{% endif %}"></i>
+                                Engine Execution State
                             </label>
-                            <div class="form-check form-switch p-0 m-0 d-flex align-items-center">
-                                <input class="form-check-input m-0 float-none" type="checkbox" name="is_enabled" id="id_is_enabled" style="transform: scale(1.25); cursor: pointer;" {% if form.is_enabled.value %}checked{% endif %}>
+                            <div class="form-check form-switch p-0 m-0">
+                                <input class="form-check-input" type="checkbox" name="is_enabled" id="id_is_enabled" {% if form.is_enabled.value %}checked{% endif %}>
                             </div>
                         </div>
-                        
+
+                        <!-- Execution Time -->
                         <div class="mb-3">
-                            <label class="form-label small text-uppercase fw-bold" style="color: var(--text-secondary); letter-spacing: 0.5px;">Daily Reference Time Mark</label>
-                            <div class="input-group shadow-sm rounded-3 overflow-hidden">
-                                <span class="input-group-text border-end-0" style="background: var(--card-bg); border-color: var(--border-color); color: var(--text-secondary);"><i class="bi bi-clock"></i></span>
+                            <label class="form-label"><i class="bi bi-clock me-1"></i> Daily Reference Time Mark</label>
+                            <div class="input-group-custom">
+                                <span class="input-group-text"><i class="bi bi-clock"></i></span>
                                 {{ form.execution_time }}
                             </div>
-                            <span class="text-muted extra-small d-block mt-1">Determines execution minute mark under hourly intervals.</span>
+                            <span class="text-muted small d-block mt-1" style="font-size: 0.7rem;">
+                                Determines execution minute mark under hourly intervals.
+                            </span>
                         </div>
-                        
+
+                        <!-- Frequency -->
                         <div class="mb-3">
-                            <label class="form-label small text-uppercase fw-bold" style="color: var(--text-secondary); letter-spacing: 0.5px;">Billing Recurrence Interval</label>
-                            <div class="input-group shadow-sm rounded-3 overflow-hidden">
-                                <span class="input-group-text border-end-0" style="background: var(--card-bg); border-color: var(--border-color); color: var(--text-secondary);"><i class="bi bi-calendar-event"></i></span>
+                            <label class="form-label"><i class="bi bi-calendar-event me-1"></i> Billing Recurrence Interval</label>
+                            <div class="input-group-custom">
+                                <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
                                 {{ form.frequency }}
                             </div>
                         </div>
-                        
+
+                        <!-- Grace Period -->
                         <div class="mb-4">
-                            <label class="form-label small text-uppercase fw-bold" style="color: var(--text-secondary); letter-spacing: 0.5px;">Overdue Grace Margins (Days)</label>
-                            <div class="input-group shadow-sm rounded-3 overflow-hidden">
-                                <span class="input-group-text border-end-0" style="background: var(--card-bg); border-color: var(--border-color); color: var(--text-secondary);"><i class="bi bi-exclamation-octagon"></i></span>
+                            <label class="form-label"><i class="bi bi-exclamation-octagon me-1"></i> Overdue Grace Margins (Days)</label>
+                            <div class="input-group-custom">
+                                <span class="input-group-text"><i class="bi bi-exclamation-octagon"></i></span>
                                 {{ form.grace_period_days }}
                             </div>
                         </div>
-                        
-                        <button type="submit" name="save_settings" class="btn w-100 fw-bold py-2.5 shadow-sm rounded-3 d-flex align-items-center justify-content-center gap-2 text-white border-0" style="background: var(--brand-cobalt); transition: background-color 0.2s ease;">
-                            <i class="bi bi-check-circle-fill"></i> COMMIT ENGINE CHANGES
+
+                        <button type="submit" name="save_settings" class="btn-commit">
+                            <i class="bi bi-check-circle-fill"></i>
+                            Commit Engine Changes
                         </button>
                     </form>
                 </div>
-                
-                <div class="card-footer p-4 border-0 text-white" style="background: var(--brand-cobalt);">
-                    <div class="d-flex justify-content-between align-items-center mb-2 small" style="opacity: 0.85;">
+
+                <!-- Footer -->
+                <div class="card-footer-custom">
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="opacity: 0.85; font-size: 0.8rem;">
                         <span><i class="bi bi-calendar2-check me-1"></i>Last Beat Signal:</span>
                         <span class="fw-semibold font-monospace">{{ celery_task.last_run_at|default:"No Record Logged" }}</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span style="opacity: 0.85;"><i class="bi bi-activity me-1"></i>Runtime Core Health:</span>
-                        <span class="badge px-3 py-2 fw-bold text-uppercase border shadow-sm" style="background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.25) !important;">
-                            {% if config.is_enabled %}<i class="bi bi-circle-fill text-success me-1 small"></i>Active Engine{% else %}<i class="bi bi-circle-fill text-warning me-1 small"></i>Stopped{% endif %}
+                        <span style="opacity: 0.85; font-size: 0.8rem;"><i class="bi bi-activity me-1"></i>Runtime Core Health:</span>
+                        <span class="badge-engine {% if config.is_enabled %}active{% else %}inactive{% endif %}">
+                            {% if config.is_enabled %}
+                                <i class="bi bi-circle-fill text-success me-1 small"></i>Active Engine
+                            {% else %}
+                                <i class="bi bi-circle-fill text-warning me-1 small"></i>Stopped
+                            {% endif %}
                         </span>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- RIGHT COLUMN: Summaries & Logs -->
         <div class="col-xl-8 col-lg-7">
-            <div class="card border-0 shadow-sm mb-4" style="background: var(--card-bg); border: 1px solid var(--border-color) !important; border-radius: 16px;">
-                <div class="p-4 border-bottom d-flex justify-content-between align-items-center" style="border-color: var(--border-color) !important;">
-                    <h6 class="fw-bold mb-0 d-flex align-items-center" style="color: var(--text-primary);">
-                        <i class="bi bi-graph-up-arrow text-success me-2"></i>Daily Ingestion Summaries (7-Day Range)
+
+            <!-- Daily Summaries -->
+            <div class="card-custom mb-4">
+                <div class="card-header-custom">
+                    <h6>
+                        <i class="bi bi-graph-up-arrow text-success"></i>
+                        Daily Ingestion Summaries (7-Day Range)
                     </h6>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body-custom p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
-                            <thead class="text-uppercase small border-bottom fw-bold" style="background: var(--hover-bg); color: var(--text-secondary);">
+                        <table class="table-custom">
+                            <thead>
                                 <tr>
-                                    <th class="ps-4 py-3 border-0">Execution Date</th>
-                                    <th class="text-center border-0">Processed</th>
-                                    <th class="text-end border-0">Recovered Balance</th>
-                                    <th class="text-center border-0">Partial</th>
-                                    <th class="text-center border-0">Failed Accounts</th>
-                                    <th class="text-center pe-4 border-0">Closed Loans</th>
+                                    <th>Execution Date</th>
+                                    <th class="text-center">Processed</th>
+                                    <th class="text-end">Recovered Balance</th>
+                                    <th class="text-center">Partial</th>
+                                    <th class="text-center">Failed</th>
+                                    <th class="text-center">Closed Loans</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for sum in summaries %}
-                                <tr style="border-bottom: 1px solid var(--border-color);">
-                                    <td class="ps-4 fw-bold" style="color: var(--text-primary);"><i class="bi bi-calendar3 me-2 text-muted"></i>{{ sum.date }}</td>
+                                <tr>
+                                    <td class="fw-bold" style="color: var(--text-primary);">
+                                        <i class="bi bi-calendar3 me-2 text-muted"></i>{{ sum.date }}
+                                    </td>
                                     <td class="text-center fw-semibold text-secondary">{{ sum.total_processed }}</td>
-                                    <td class="text-end fw-bold text-success text-nowrap">Shs {{ sum.total_recovered|floatformat:0 }}</td>
-                                    <td class="text-center fw-bold text-warning">{{ sum.partial_payments }}</td>
+                                    <td class="text-end fw-bold text-success">Shs {{ sum.total_recovered|floatformat:0 }}</td>
+                                    <td class="text-center fw-bold" style="color: #d97706;">{{ sum.partial_payments }}</td>
                                     <td class="text-center fw-bold text-danger">{{ sum.failed_deductions }}</td>
-                                    <td class="text-center pe-4">
-                                        <span class="badge bg-opacity-10 text-primary fw-bold rounded-pill px-2.5" style="background-color: var(--brand-cobalt);">{{ sum.closed_loans }}</span>
+                                    <td class="text-center">
+                                        <span class="badge-closed">{{ sum.closed_loans }}</span>
                                     </td>
                                 </tr>
                                 {% empty %}
-                                <tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-4 d-block mb-1"></i>No historical aggregation summaries stored.</td></tr>
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+                                        No historical aggregation summaries stored.
+                                    </td>
+                                </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -127,91 +778,65 @@
                 </div>
             </div>
 
-            <div class="card border-0 shadow-sm" style="background: var(--card-bg); border: 1px solid var(--border-color) !important; border-radius: 16px;">
-                <div class="p-4 border-bottom" style="border-color: var(--border-color) !important;">
-                    <h6 class="fw-bold mb-0 d-flex align-items-center" style="color: var(--text-primary);">
-                        <i class="bi bi-receipt-cutoff me-2" style="color: var(--brand-cobalt);"></i>Live Account Collection Logs
+            <!-- Live Collection Logs -->
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h6>
+                        <i class="bi bi-receipt-cutoff"></i>
+                        Live Account Collection Logs
                     </h6>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body-custom p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
-                            <thead class="small border-bottom fw-bold" style="background: var(--hover-bg); color: var(--text-secondary);">
+                        <table class="table-custom">
+                            <thead>
                                 <tr>
-                                    <th class="ps-4 py-3 border-0">Timestamp</th>
-                                    <th class="border-0">Loan Reference ID</th>
-                                    <th class="text-end border-0">Deducted Amount</th>
-                                    <th class="text-center pe-4 border-0">Deduction Status</th>
+                                    <th>Timestamp</th>
+                                    <th>Loan Reference</th>
+                                    <th class="text-end">Deducted Amount</th>
+                                    <th class="text-center">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for log in logs %}
-                                <tr style="border-bottom: 1px solid var(--border-color);">
-                                    <td class="ps-4 text-muted font-monospace text-nowrap"><i class="bi bi-clock me-1.5 small"></i>{{ log.timestamp|date:"Y-m-d h:i A"  }}</td>
+                                <tr>
+                                    <td class="text-muted font-monospace text-nowrap">
+                                        <i class="bi bi-clock me-1 small"></i>
+                                        {{ log.timestamp|date:"Y-m-d h:i A" }}
+                                    </td>
                                     <td class="fw-semibold" style="color: var(--text-primary);">{{ log.loan.loan_reference }}</td>
-                                    <td class="text-end fw-bold text-nowrap" style="color: var(--text-primary);">Shs {{ log.amount_recovered|floatformat:0 }}</td>
-                                    <td class="text-center pe-4">
-                                        <span class="badge w-70 py-2 fw-semibold border rounded-pill shadow-sm text-uppercase font-monospace extra-small
-                                            {% if log.status == 'success' %}bg-success-subtle text-success border-success-subtle
-                                            {% elif log.status == 'partial' %}bg-warning-subtle text-warning-dark border-warning-subtle
-                                            {% else %}bg-danger-subtle text-danger border-danger-subtle{% endif %}">
-                                            {% if log.status == 'success' %}<i class="bi bi-check-circle-fill me-1"></i>Full Paid
-                                            {% elif log.status == 'partial' %}<i class="bi bi-exclamation-circle-fill me-1"></i>Partial
-                                            {% else %}<i class="bi bi-x-circle-fill me-1"></i>Declined{% endif %}
+                                    <td class="text-end fw-bold">Shs {{ log.amount_recovered|floatformat:0 }}</td>
+                                    <td class="text-center">
+                                        <span class="badge-status
+                                            {% if log.status == 'success' %}badge-success
+                                            {% elif log.status == 'partial' %}badge-partial
+                                            {% else %}badge-failed{% endif %}">
+                                            {% if log.status == 'success' %}
+                                                <i class="bi bi-check-circle-fill"></i>Full Paid
+                                            {% elif log.status == 'partial' %}
+                                                <i class="bi bi-exclamation-circle-fill"></i>Partial
+                                            {% else %}
+                                                <i class="bi bi-x-circle-fill"></i>Declined
+                                            {% endif %}
                                         </span>
                                     </td>
                                 </tr>
                                 {% empty %}
-                                <tr><td colspan="4" class="text-center py-4 text-muted"><i class="bi bi-activity fs-4 d-block mb-1"></i>No collection run streams discovered.</td></tr>
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        <i class="bi bi-activity fs-4 d-block mb-1"></i>
+                                        No collection run streams discovered.
+                                    </td>
+                                </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 </div>
 
-<style>
-    /* Framework Context Sync Formatting Styles */
-    .extra-small { font-size: 0.75rem; }
-    .w-70 { min-width: 125px; }
-    .bg-success-subtle { background-color: rgba(16, 185, 129, 0.1) !important; }
-    .bg-warning-subtle { background-color: rgba(245, 158, 11, 0.1) !important; }
-    .bg-danger-subtle { background-color: rgba(239, 68, 68, 0.1) !important; }
-    .text-warning-dark { color: #d97706 !important; }
-    .border-success-subtle { border-color: rgba(16, 185, 129, 0.2) !important; }
-    .border-warning-subtle { border-color: rgba(245, 158, 11, 0.2) !important; }
-    .border-danger-subtle { border-color: rgba(239, 68, 68, 0.2) !important; }
-    
-    @keyframes flashAnimation {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(0.95); }
-    }
-    .animate-flash { animation: flashAnimation 2.5s infinite ease-in-out; }
-    
-    /* Input Form Custom Control Normalization */
-    .input-group > .form-control, .input-group > .form-select {
-        border-left: 0 !important;
-        background: var(--card-bg) !important;
-        color: var(--text-primary) !important;
-        border-color: var(--border-color) !important;
-        padding-top: 0.55rem;
-        padding-bottom: 0.55rem;
-    }
-    .input-group > .input-group-text {
-        border-right: 0 !important;
-        background: var(--card-bg) !important;
-        border-color: var(--border-color) !important;
-    }
-    .form-control:focus, .form-select:focus {
-        border-color: var(--brand-cobalt) !important;
-        box-shadow: none !important;
-    }
-    .form-check-input:checked {
-        background-color: var(--brand-cobalt) !important;
-        border-color: var(--brand-cobalt) !important;
-    }
-</style>
 {% endblock %}
