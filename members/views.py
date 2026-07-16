@@ -291,10 +291,26 @@ from django.urls import reverse
 import json
 from django.views.decorators.csrf import csrf_exempt # Optional: only if you handle CSRF via headers
 
+from django.db.models import Q, Count
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils import timezone
+from .models import Member
+
+def _annotate_age(members_page):
+    today = timezone.now().date()
+    for member in members_page:
+        if member.dob:
+            member.age = today.year - member.dob.year - ((today.month, today.day) < (member.dob.month, member.dob.day))
+        else:
+            member.age = None
+
 def customer_list(request):
-    # Change to POST.get
-    search_query = request.POST.get('q', '').strip()
-    page_number  = request.POST.get('page', 1)
+    search_query = request.GET.get('q', request.POST.get('q', '')).strip()
+    page_number = request.GET.get('page', request.POST.get('page', 1))
 
     qs = Member.objects.all().order_by('last_name')
 
@@ -306,20 +322,30 @@ def customer_list(request):
             Q(member_number__icontains=search_query)
         )
 
+    # Annotate each member with the count of active loans (to determine status)
+    qs = qs.annotate(active_loan_count=Count('loans', filter=Q(loans__is_active=True)))
+
     paginator = Paginator(qs, 5)
     members_page = paginator.get_page(page_number)
     _annotate_age(members_page)
 
+    # Set profile_url and status for each member
     for m in members_page:
         m.profile_url = reverse('member_profile', args=[m.id])
+        m.status = 'active' if m.active_loan_count > 0 else 'inactive'
+
+    # Count total active members (those with at least one active loan)
+    active_count = Member.objects.filter(loans__is_active=True).distinct().count()
+    new_this_month = Member.objects.filter(date_joined__month=timezone.now().month).count()
 
     context = {
         'members': members_page,
         'search_query': search_query,
-        'total_count': paginator.count
+        'total_count': paginator.count,
+        'active_count': active_count,
+        'new_this_month': new_this_month,
     }
 
-    # AJAX Response remains largely the same
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({
             'rows_html': render_to_string('members/partials/member_rows.html', context),
@@ -329,7 +355,6 @@ def customer_list(request):
         })
 
     return render(request, 'members/customer_list.html', context)
-
 # accounts/views.py
 
 # accounts/views.py

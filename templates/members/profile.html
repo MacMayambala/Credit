@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}{{ member.first_name }} {{ member.last_name }} | MAC Technologies{% endblock %}
+{% block title %}{{ member.first_name }} {{ member.last_name }} | {{ company.name }}{% endblock %}
 
 {% block content %}
 
@@ -9,11 +9,11 @@
 
 <style>
 :root {
-    --brand-blue: #16508e;
-    --brand-blue-dark: #0e3d6b;
-    --brand-blue-light: #1a6bb5;
-    --brand-blue-bg: rgba(22, 80, 142, 0.08);
-    --brand-blue-glow: rgba(22, 80, 142, 0.15);
+    --brand-cobalt: #1632af;
+    --brand-cobalt-dark: #0f248a;
+    --brand-cobalt-light: #2a4ad8;
+    --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+    --brand-cobalt-glow: rgba(22, 50, 175, 0.12);
     --border: #e2e8f0;
     --text-primary: #0f172a;
     --text-secondary: #475569;
@@ -28,6 +28,7 @@
     --warning: #f59e0b;
     --warning-bg: rgba(245, 158, 11, 0.1);
     --radius: 16px;
+    --radius-sm: 10px;
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
     --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.08);
@@ -35,7 +36,7 @@
 
 body {
     background: var(--bg-body);
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
 }
@@ -51,6 +52,22 @@ body {
     box-shadow: var(--shadow-md);
     margin-bottom: 2rem;
     transition: box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: var(--brand-cobalt-bg);
+    border-radius: 50%;
+    transform: translate(50%, -50%);
+    opacity: 0.3;
+    pointer-events: none;
 }
 
 .profile-header:hover {
@@ -71,14 +88,14 @@ body {
     width: 140px;
     height: 140px;
     border-radius: 20px;
-    background: var(--brand-blue-bg);
+    background: var(--brand-cobalt-bg);
     border: 4px solid var(--bg-card);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 3.5rem;
-    color: var(--brand-blue);
+    color: var(--brand-cobalt);
 }
 
 /* ============================================
@@ -91,24 +108,25 @@ body {
     padding: 0.5rem 1.25rem;
     font-weight: 600;
     font-size: 0.8rem;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     border: none;
     text-decoration: none;
+    font-family: 'Inter', sans-serif;
 }
 
 .btn-primary {
-    background: var(--brand-blue);
+    background: var(--brand-cobalt);
     color: #ffffff;
-    box-shadow: 0 4px 15px rgba(22, 80, 142, 0.25);
+    box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
 }
 
 .btn-primary:hover {
-    background: var(--brand-blue-dark);
+    background: var(--brand-cobalt-dark);
     color: #ffffff;
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(22, 80, 142, 0.3);
+    box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
 }
 
 .btn-outline-secondary {
@@ -119,8 +137,8 @@ body {
 
 .btn-outline-secondary:hover {
     background: var(--bg-hover);
-    border-color: var(--brand-blue);
-    color: var(--brand-blue);
+    border-color: var(--brand-cobalt);
+    color: var(--brand-cobalt);
     transform: translateY(-2px);
 }
 
@@ -162,11 +180,29 @@ body {
     padding: 1.5rem 2rem;
     transition: all 0.3s ease;
     box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--brand-cobalt), var(--brand-cobalt-light));
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .stat-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-md);
+}
+
+.stat-card:hover::after {
+    opacity: 1;
 }
 
 .stat-card .stat-label {
@@ -206,23 +242,24 @@ body {
    TABS
    ============================================ */
 .nav-pills-custom .nav-link {
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     padding: 0.6rem 1.5rem;
     font-weight: 600;
     font-size: 0.85rem;
     color: var(--text-secondary);
     transition: all 0.25s ease;
+    font-family: 'Inter', sans-serif;
 }
 
 .nav-pills-custom .nav-link:hover {
-    background: var(--brand-blue-bg);
-    color: var(--brand-blue);
+    background: var(--brand-cobalt-bg);
+    color: var(--brand-cobalt);
 }
 
 .nav-pills-custom .nav-link.active {
-    background: var(--brand-blue);
+    background: var(--brand-cobalt);
     color: #ffffff;
-    box-shadow: 0 4px 15px rgba(22, 80, 142, 0.25);
+    box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
 }
 
 /* ============================================
@@ -238,15 +275,23 @@ body {
 }
 
 .loan-item:hover {
-    border-color: var(--brand-blue);
+    border-color: var(--brand-cobalt);
     box-shadow: var(--shadow-sm);
     transform: translateX(4px);
 }
 
 .loan-item .loan-reference {
     font-weight: 700;
-    color: var(--brand-blue);
+    color: var(--brand-cobalt);
     font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.loan-item .loan-reference i {
+    font-size: 0.8rem;
+    opacity: 0.6;
 }
 
 /* ============================================
@@ -259,6 +304,9 @@ body {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
 }
 
 .badge-active {
@@ -304,16 +352,20 @@ body {
     vertical-align: middle;
 }
 
+.table-custom tbody tr {
+    transition: background 0.15s ease;
+}
+
 .table-custom tbody tr:hover {
     background: var(--bg-hover);
 }
 
-.reversed-row {
+.table-custom .reversed-row {
     background: var(--danger-bg) !important;
     opacity: 0.7;
 }
 
-.reversed-row td {
+.table-custom .reversed-row td {
     text-decoration: line-through;
     color: var(--danger);
 }
@@ -322,6 +374,7 @@ body {
     font-size: 0.65rem;
     color: var(--danger);
     font-style: italic;
+    margin-top: 0.2rem;
 }
 
 /* ============================================
@@ -366,7 +419,7 @@ body {
 }
 
 .receipt-header {
-    background: var(--brand-blue);
+    background: var(--brand-cobalt);
     color: #ffffff;
     padding: 1.5rem 2rem;
     text-align: center;
@@ -388,13 +441,13 @@ body {
 .receipt-header h5 {
     font-weight: 700;
     margin: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 
 .receipt-header .receipt-id {
     font-size: 0.75rem;
     opacity: 0.8;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 
 .receipt-body {
@@ -406,7 +459,7 @@ body {
     justify-content: space-between;
     padding: 0.6rem 0;
     border-bottom: 1px solid var(--border);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 
 .receipt-body .receipt-row:last-child {
@@ -426,7 +479,7 @@ body {
 }
 
 .receipt-body .receipt-row .value.amount {
-    color: var(--brand-blue);
+    color: var(--brand-cobalt);
     font-size: 1.1rem;
 }
 
@@ -436,8 +489,8 @@ body {
 }
 
 .receipt-body .receipt-total {
-    background: var(--brand-blue-bg);
-    border-radius: 12px;
+    background: var(--brand-cobalt-bg);
+    border-radius: var(--radius-sm);
     padding: 1rem 1.25rem;
     display: flex;
     justify-content: space-between;
@@ -449,21 +502,21 @@ body {
     font-weight: 700;
     color: var(--text-primary);
     font-size: 0.9rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 
 .receipt-body .receipt-total .value {
     font-weight: 800;
     font-size: 1.25rem;
-    color: var(--brand-blue);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--brand-cobalt);
+    font-family: 'Inter', sans-serif;
 }
 
 .receipt-footer-text {
     text-align: center;
     padding: 0.75rem 2rem;
     border-top: 1px solid var(--border);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 
 .receipt-footer-text small {
@@ -481,13 +534,13 @@ body {
 .receipt-actions .btn-print {
     flex: 1;
     padding: 0.6rem;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     border: none;
-    background: var(--brand-blue);
+    background: var(--brand-cobalt);
     color: #ffffff;
     font-weight: 700;
     font-size: 0.85rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', sans-serif;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
@@ -496,20 +549,20 @@ body {
 }
 
 .receipt-actions .btn-print:hover {
-    background: var(--brand-blue-dark);
+    background: var(--brand-cobalt-dark);
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(22, 80, 142, 0.25);
+    box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
 }
 
 .receipt-actions .btn-close-modal {
     padding: 0.6rem 1.5rem;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--border);
     background: transparent;
     color: var(--text-secondary);
     font-weight: 600;
     font-size: 0.85rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', sans-serif;
     transition: all 0.3s ease;
 }
 
@@ -591,7 +644,7 @@ body {
 
 .modal-meta {
     background: var(--bg-body);
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     padding: 0.75rem 1rem;
     margin-bottom: 1.25rem;
     font-size: 0.85rem;
@@ -622,7 +675,7 @@ body {
 .modal-btn-cancel {
     flex: 1;
     padding: 0.6rem 0;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     border: 1.5px solid var(--border);
     background: transparent;
     font-weight: 600;
@@ -640,7 +693,7 @@ body {
 .modal-btn-confirm {
     flex: 1;
     padding: 0.6rem 0;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     border: none;
     background: var(--danger-bg);
     color: var(--danger);
@@ -807,11 +860,11 @@ body {
    UTILITY
    ============================================ */
 .text-brand {
-    color: var(--brand-blue);
+    color: var(--brand-cobalt);
 }
 
 .bg-brand-light {
-    background: var(--brand-blue-bg);
+    background: var(--brand-cobalt-bg);
 }
 
 .font-mono {
@@ -862,7 +915,7 @@ body {
                     <i class="bi bi-people me-1"></i> Clients
                 </a>
             </li>
-            <li class="breadcrumb-item active fw-semibold" style="color: var(--brand-blue);">
+            <li class="breadcrumb-item active fw-semibold" style="color: var(--brand-cobalt);">
                 {{ member.first_name }} {{ member.last_name }}
             </li>
         </ol>
@@ -923,7 +976,7 @@ body {
         <div class="row mt-4 pt-4 border-top g-3">
             <div class="col-md-4">
                 <div class="d-flex align-items-center gap-3">
-                    <i class="bi bi-telephone-fill fs-4" style="color: var(--brand-blue);"></i>
+                    <i class="bi bi-telephone-fill fs-4" style="color: var(--brand-cobalt);"></i>
                     <div>
                         <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">Phone</div>
                         <div class="fw-medium">{{ member.phone_number }}</div>
@@ -932,7 +985,7 @@ body {
             </div>
             <div class="col-md-4">
                 <div class="d-flex align-items-center gap-3">
-                    <i class="bi bi-geo-alt-fill fs-4" style="color: var(--brand-blue);"></i>
+                    <i class="bi bi-geo-alt-fill fs-4" style="color: var(--brand-cobalt);"></i>
                     <div>
                         <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">Location</div>
                         <div class="fw-medium">{{ member.village }}, {{ member.parish }}, {{ member.district }}</div>
@@ -941,7 +994,7 @@ body {
             </div>
             <div class="col-md-4">
                 <div class="d-flex align-items-center gap-3">
-                    <i class="bi bi-envelope-fill fs-4" style="color: var(--brand-blue);"></i>
+                    <i class="bi bi-envelope-fill fs-4" style="color: var(--brand-cobalt);"></i>
                     <div>
                         <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">Email</div>
                         <div class="fw-medium">{{ member.email|default:"Not provided" }}</div>
@@ -1031,13 +1084,14 @@ body {
                         <div class="col-md-5">
                             <div class="d-flex align-items-center gap-3 flex-wrap">
                                 <span class="loan-reference">
-                                    <i class="bi bi-file-text me-1"></i>
+                                    <i class="bi bi-file-text"></i>
                                     {{ loan.loan_reference|default:loan.id|truncatechars:12 }}
                                 </span>
                                 <span class="badge-status 
                                     {% if loan.status == 'active' or loan.status == 'approved' %}badge-active
                                     {% elif loan.status == 'pending' %}badge-pending
                                     {% else %}badge-inactive{% endif %}">
+                                    {% if loan.status == 'active' %}<i class="bi bi-check-circle-fill"></i>{% endif %}
                                     {{ loan.status|upper }}
                                 </span>
                             </div>
@@ -1243,7 +1297,7 @@ RECEIPT MODAL
 
         <!-- Receipt Footer -->
         <div class="receipt-footer-text">
-            <small><i class="bi bi-check2-circle me-1" style="color: var(--brand-blue);"></i> Transaction completed successfully</small>
+            <small><i class="bi bi-check2-circle me-1" style="color: var(--brand-cobalt);"></i> Transaction completed successfully</small>
         </div>
 
         <!-- Receipt Actions -->
@@ -1331,15 +1385,15 @@ function printReceipt() {
                 <style>
                     body { padding: 2rem; font-family: 'Inter', sans-serif; }
                     .receipt-modal { max-width: 480px; margin: 0 auto; }
-                    .receipt-header { background: #16508e; color: white; padding: 1.5rem; text-align: center; border-radius: 12px 12px 0 0; }
+                    .receipt-header { background: #1632af; color: white; padding: 1.5rem; text-align: center; border-radius: 12px 12px 0 0; }
                     .receipt-body { padding: 1.5rem; background: white; }
                     .receipt-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0; }
                     .receipt-row .label { color: #64748b; font-size: 0.8rem; }
                     .receipt-row .value { font-weight: 700; font-size: 0.9rem; }
-                    .receipt-row .value.amount { color: #16508e; font-size: 1.1rem; }
+                    .receipt-row .value.amount { color: #1632af; font-size: 1.1rem; }
                     .receipt-divider { border-top: 2px dashed #e2e8f0; margin: 0.75rem 0; }
-                    .receipt-total { background: rgba(22, 80, 142, 0.08); border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
-                    .receipt-total .value { font-weight: 800; font-size: 1.25rem; color: #16508e; }
+                    .receipt-total { background: rgba(22, 50, 175, 0.08); border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
+                    .receipt-total .value { font-weight: 800; font-size: 1.25rem; color: #1632af; }
                     .receipt-footer-text { text-align: center; padding: 0.75rem; border-top: 1px solid #e2e8f0; font-size: 0.7rem; color: #64748b; }
                     .receipt-icon { width: 64px; height: 64px; background: rgba(255,255,255,0.15); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; font-size: 1.75rem; }
                     .receipt-actions { display: none !important; }
@@ -1411,7 +1465,6 @@ document.addEventListener('keydown', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('receiptModal');
     if (modal && modal.classList.contains('open')) {
-        // Auto-show with animation
         setTimeout(() => {
             modal.style.display = 'flex';
         }, 300);
