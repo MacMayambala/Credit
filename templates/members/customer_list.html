@@ -821,6 +821,7 @@ body {
 
         <!-- Toolbar -->
         <div class="card-toolbar">
+            <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
             <div class="search-wrap">
                 <i class="bi bi-search"></i>
                 <input type="text" id="searchInput" placeholder="Search by name, phone, ID..." autocomplete="off">
@@ -865,7 +866,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentPage = 1;
 
     function getCSRFToken() {
-        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+        return document.getElementById('csrfToken')?.value || 
+               document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+               getCookie('csrftoken');
     }
 
     function getCookie(name) {
@@ -902,7 +905,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (!res.ok) throw new Error('Request failed');
-
             const data = await res.json();
 
             memberList.innerHTML = data.rows_html || '';
@@ -921,13 +923,14 @@ document.addEventListener('DOMContentLoaded', function() {
             currentPage = page;
         } catch (err) {
             console.error('Search failed:', err);
+            memberList.innerHTML = `<li class="empty-state"><p>Error loading results. Please try again.</p></li>`;
         } finally {
             spinner.style.display = 'none';
             memberList.classList.remove('opacity-50');
         }
     }
 
-    // Pagination click handler with event delegation
+    // Pagination click handler (event delegation)
     pagination.addEventListener('click', function(e) {
         const btn = e.target.closest('[data-page]');
         if (btn) {
@@ -940,7 +943,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Search input handler
+    // Search input
     searchInput.addEventListener('input', function() {
         clearBtn.style.display = this.value.length ? 'block' : 'none';
         clearTimeout(debounceTimer);
@@ -957,7 +960,7 @@ document.addEventListener('DOMContentLoaded', function() {
         searchInput.focus();
     });
 
-    // Keyboard shortcut: Ctrl+/
+    // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === '/') {
             e.preventDefault();

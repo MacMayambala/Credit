@@ -1,14 +1,10 @@
 {% if members.has_previous or members.has_next %}
-
     {% if members.has_previous %}
         <li>
             <button class="page-link nav" data-page="1" title="First Page" aria-label="First">
                 &laquo;
             </button>
         </li>
-    {% endif %}
-
-    {% if members.has_previous %}
         <li>
             <button class="page-link nav" data-page="{{ members.previous_page_number }}" title="Previous" aria-label="Previous">
                 &lsaquo;
@@ -33,14 +29,10 @@
                 &rsaquo;
             </button>
         </li>
-    {% endif %}
-
-    {% if members.has_next %}
         <li>
             <button class="page-link nav" data-page="{{ members.paginator.num_pages }}" title="Last Page" aria-label="Last">
                 &raquo;
             </button>
         </li>
     {% endif %}
-
 {% endif %}
