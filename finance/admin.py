@@ -154,7 +154,28 @@ class LoanAdmin(admin.ModelAdmin):
             obj.disbursed_date = timezone.now().date()
         super().save_model(request, obj, form, change)
 
+# finance/admin.py
+from django.contrib import admin
+from .models import Company   # <-- import the model
 
+# finance/admin.py
+from django.contrib import admin
+from .models import Company   # add this import
+
+@admin.register(Company)
+class CompanyAdmin(admin.ModelAdmin):
+    list_display = ('name', 'phone', 'email', 'website', 'updated_at')
+    search_fields = ('name', 'email', 'phone')
+    readonly_fields = ('updated_at',)
+
+    # Prevent adding more than one company
+    def has_add_permission(self, request):
+        if Company.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 @admin.register(Installment)
 class InstallmentAdmin(admin.ModelAdmin):
     list_display = (
