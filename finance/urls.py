@@ -56,6 +56,7 @@ urlpatterns = [
 
     path('loan/<int:loan_id>/apply-penalty/', views.apply_manual_penalty, name='apply_manual_penalty'),
     path('penalty/<int:penalty_id>/waive/', views.waive_manual_penalty, name='waive_manual_penalty'),
+    path('waive-auto-penalty/<int:installment_id>/', views.waive_auto_penalty, name='waive_auto_penalty'),
     path('analytics/arrears-delinquency/', LoansInArrearsReportView.as_view(), name='arrears_report'),
      # ========================
     # REPORTS
@@ -76,6 +77,7 @@ urlpatterns = [
     path('reports/arrears/', views.arrears_report, name='arrears_report'),
     path('export/excel/', export_report_excel, name='export_report_excel'),
     path('reports/general-ledger/', views.general_ledger_report, name='general_ledger_report'),
+    path('reports/loan-portfolio/', views.loan_portfolio_report, name='loan_portfolio_report'),
     
 
     

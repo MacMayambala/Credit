@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}Financial Intelligence | MAC Technologies{% endblock %}
+{% block title %}Financial Intelligence | {{ company.name }}{% endblock %}
 
 {% block content %}
 
@@ -497,6 +497,7 @@
     .report-card:nth-child(11) { animation-delay: 0.60s; }
     .report-card:nth-child(12) { animation-delay: 0.65s; }
     .report-card:nth-child(13) { animation-delay: 0.70s; }
+    .report-card:nth-child(14) { animation-delay: 0.75s; }
 </style>
 
 <div class="container-fluid py-4 px-3 px-lg-4">
@@ -574,9 +575,17 @@
     </div>
 
     <!-- ==========================================
-    ALL REPORT CARDS
+    ALL REPORT CARDS – organised by category
     ========================================== -->
     <div class="row g-4">
+
+        <!-- === PORTFOLIO & LOANS === -->
+        <div class="col-12">
+            <h5 class="fw-bold text-muted text-uppercase small tracking-wider mb-3" style="letter-spacing: 0.06em;">
+                <i class="bi bi-bank me-2" style="color: var(--brand-cobalt);"></i> Portfolio &amp; Loans
+            </h5>
+        </div>
+
         <!-- 1. Portfolio Status -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
@@ -593,33 +602,33 @@
             </div>
         </div>
 
-        <!-- 2. Loan Performance -->
+        <!-- 2. Loan Performance (NEW) -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
                     <div class="icon-box info">
                         <i class="bi bi-graph-up"></i>
                     </div>
-                    <h5>Loan Performance</h5>
-                    <p>Analyze principal balances, repayment trends, collection efficiency, and officer risk.</p>
+                    <h5>Loan Portfolio</h5>
+                    <p>Disbursements, outstanding, closed loans with performing / substandard / loss classification.</p>
                     <a href="{% url 'loan_portfolio_report' %}" class="btn-outline-cobalt">
-                        <i class="bi bi-file-earmark-text"></i> Performance Report
+                        <i class="bi bi-file-earmark-text"></i> Portfolio Report
                     </a>
                 </div>
             </div>
         </div>
 
-        <!-- 3. Savings Analytics -->
+        <!-- 3. Loan Report (General) -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
-                    <div class="icon-box success">
-                        <i class="bi bi-safe2-fill"></i>
+                    <div class="icon-box cobalt">
+                        <i class="bi bi-bar-chart-fill"></i>
                     </div>
-                    <h5>Savings Analytics</h5>
-                    <p>Monitor member deposit trends, shares accumulation, and product utilization variance.</p>
-                    <a href="{% url 'savings_report' %}" class="btn-outline-cobalt">
-                        <i class="bi bi-file-earmark-text"></i> Savings Overview
+                    <h5>Loan Report</h5>
+                    <p>Detailed view of all loans, including disbursements, repayments, and outstanding balances.</p>
+                    <a href="{% url 'loan_report' %}" class="btn-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> View Loans
                     </a>
                 </div>
             </div>
@@ -641,39 +650,30 @@
             </div>
         </div>
 
-        <!-- 5. Loan Report (General) -->
+        <!-- === ACCOUNTING & FINANCIALS === -->
+        <div class="col-12 mt-4">
+            <h5 class="fw-bold text-muted text-uppercase small tracking-wider mb-3" style="letter-spacing: 0.06em;">
+                <i class="bi bi-journal-text me-2" style="color: var(--brand-cobalt);"></i> Accounting &amp; Financials
+            </h5>
+        </div>
+
+        <!-- 5. General Ledger -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
                     <div class="icon-box cobalt">
-                        <i class="bi bi-bar-chart-fill"></i>
+                        <i class="bi bi-journal-text"></i>
                     </div>
-                    <h5>Loan Report</h5>
-                    <p>Detailed view of all loans, including disbursements, repayments, and outstanding balances.</p>
-                    <a href="{% url 'loan_report' %}" class="btn-cobalt">
-                        <i class="bi bi-file-earmark-text"></i> View Loans
+                    <h5>General Ledger</h5>
+                    <p>Complete general ledger with debit/credit entries, account balances, and transaction history.</p>
+                    <a href="{% url 'general_ledger_report' %}" class="btn-cobalt">
+                        <i class="bi bi-journal-richtext"></i> View Ledger
                     </a>
                 </div>
             </div>
         </div>
 
-        <!-- 6. Member Report -->
-        <div class="col-lg-3 col-md-6">
-            <div class="report-card card border-0">
-                <div class="card-body p-4">
-                    <div class="icon-box info">
-                        <i class="bi bi-people-fill"></i>
-                    </div>
-                    <h5>Member Report</h5>
-                    <p>Track member demographics, activity, and portfolio contribution across the SACCO.</p>
-                    <a href="{% url 'member_report' %}" class="btn-outline-cobalt">
-                        <i class="bi bi-file-earmark-text"></i> Member Insights
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 7. Financial Report -->
+        <!-- 6. Financial Report -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
@@ -689,71 +689,7 @@
             </div>
         </div>
 
-        <!-- 8. Officer Report -->
-        <div class="col-lg-3 col-md-6">
-            <div class="report-card card border-0">
-                <div class="card-body p-4">
-                    <div class="icon-box warning">
-                        <i class="bi bi-person-badge"></i>
-                    </div>
-                    <h5>Officer Report</h5>
-                    <p>Performance metrics, loan book quality, and collections per officer.</p>
-                    <a href="{% url 'officer_report' %}" class="btn-warning-custom">
-                        <i class="bi bi-file-earmark-text"></i> Officer Performance
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 9. Accounting Report -->
-        <div class="col-lg-3 col-md-6">
-            <div class="report-card card border-0">
-                <div class="card-body p-4">
-                    <div class="icon-box cobalt">
-                        <i class="bi bi-journal-richtext"></i>
-                    </div>
-                    <h5>Accounting Report</h5>
-                    <p>General ledger, trial balance, and audit trail for full accountability.</p>
-                    <a href="{% url 'accounting_report' %}" class="btn-cobalt">
-                        <i class="bi bi-file-earmark-text"></i> Accounting
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 10. Audit Report -->
-        <div class="col-lg-3 col-md-6">
-            <div class="report-card card border-0">
-                <div class="card-body p-4">
-                    <div class="icon-box danger">
-                        <i class="bi bi-clipboard-check"></i>
-                    </div>
-                    <h5>Audit Report</h5>
-                    <p>System logs, user actions, and compliance verification records.</p>
-                    <a href="{% url 'audit_report' %}" class="btn-danger-custom">
-                        <i class="bi bi-file-earmark-text"></i> Audit Trail
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 11. Inventory Report -->
-        <div class="col-lg-3 col-md-6">
-            <div class="report-card card border-0">
-                <div class="card-body p-4">
-                    <div class="icon-box info">
-                        <i class="bi bi-box-seam"></i>
-                    </div>
-                    <h5>Inventory Report</h5>
-                    <p>Track assets, collateral, and physical items under management.</p>
-                    <a href="{% url 'inventory_report' %}" class="btn-outline-cobalt">
-                        <i class="bi bi-file-earmark-text"></i> Inventory
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 12. Interest Report -->
+        <!-- 7. Interest Report -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
@@ -769,22 +705,118 @@
             </div>
         </div>
 
-        <!-- 13. General Ledger Report (NEW) -->
+        <!-- 8. Accounting Report -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
                     <div class="icon-box cobalt">
-                        <i class="bi bi-journal-text"></i>
+                        <i class="bi bi-journal-richtext"></i>
                     </div>
-                    <h5>General Ledger</h5>
-                    <p>Complete general ledger with debit/credit entries, account balances, and transaction history.</p>
-                    <a href="{% url 'general_ledger_report' %}" class="btn-cobalt">
-                        <i class="bi bi-journal-richtext"></i> View Ledger
+                    <h5>Accounting Report</h5>
+                    <p>General ledger, trial balance, and audit trail for full accountability.</p>
+                    <a href="{% url 'accounting_report' %}" class="btn-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> Accounting
                     </a>
                 </div>
             </div>
         </div>
+
+        <!-- === MEMBERS & OFFICERS === -->
+        <div class="col-12 mt-4">
+            <h5 class="fw-bold text-muted text-uppercase small tracking-wider mb-3" style="letter-spacing: 0.06em;">
+                <i class="bi bi-people me-2" style="color: var(--brand-cobalt);"></i> Members &amp; Staff
+            </h5>
+        </div>
+
+        <!-- 9. Member Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box info">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <h5>Member Report</h5>
+                    <p>Track member demographics, activity, and portfolio contribution across the SACCO.</p>
+                    <a href="{% url 'member_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> Member Insights
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10. Officer Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box warning">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                    <h5>Officer Report</h5>
+                    <p>Performance metrics, loan book quality, and collections per officer.</p>
+                    <a href="{% url 'officer_report' %}" class="btn-warning-custom">
+                        <i class="bi bi-file-earmark-text"></i> Officer Performance
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 11. Savings Analytics -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box success">
+                        <i class="bi bi-safe2-fill"></i>
+                    </div>
+                    <h5>Savings Analytics</h5>
+                    <p>Monitor member deposit trends, shares accumulation, and product utilization variance.</p>
+                    <a href="{% url 'savings_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> Savings Overview
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- === AUDIT & INVENTORY === -->
+        <div class="col-12 mt-4">
+            <h5 class="fw-bold text-muted text-uppercase small tracking-wider mb-3" style="letter-spacing: 0.06em;">
+                <i class="bi bi-shield-check me-2" style="color: var(--brand-cobalt);"></i> Audit &amp; Inventory
+            </h5>
+        </div>
+
+        <!-- 12. Audit Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box danger">
+                        <i class="bi bi-clipboard-check"></i>
+                    </div>
+                    <h5>Audit Report</h5>
+                    <p>System logs, user actions, and compliance verification records.</p>
+                    <a href="{% url 'audit_report' %}" class="btn-danger-custom">
+                        <i class="bi bi-file-earmark-text"></i> Audit Trail
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 13. Inventory Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box info">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <h5>Inventory Report</h5>
+                    <p>Track assets, collateral, and physical items under management.</p>
+                    <a href="{% url 'inventory_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> Inventory
+                    </a>
+                </div>
+            </div>
+        </div>
+
     </div>
+
 </div>
 
 <script>

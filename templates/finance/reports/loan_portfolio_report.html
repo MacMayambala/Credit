@@ -1,0 +1,37 @@
+{% extends 'finance/reports/base_report.html' %}
+
+{% block extra_filters_after_status %}
+<!-- Product -->
+<div class="filter-group">
+    <label class="form-label"><i class="bi bi-box me-1"></i> Product</label>
+    <select name="product" class="form-select">
+        <option value="">All Products</option>
+        {% for value, label in product_choices %}
+        <option value="{{ value }}" {% if selected_product == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<!-- Classification -->
+<div class="filter-group">
+    <label class="form-label"><i class="bi bi-clipboard me-1"></i> Classification</label>
+    <select name="classification" class="form-select">
+        <option value="all" {% if selected_classification == 'all' %}selected{% endif %}>All Classifications</option>
+        <option value="performing" {% if selected_classification == 'performing' %}selected{% endif %}>Performing</option>
+        <option value="watch" {% if selected_classification == 'watch' %}selected{% endif %}>Watch</option>
+        <option value="substandard" {% if selected_classification == 'substandard' %}selected{% endif %}>Substandard</option>
+        <option value="doubtful" {% if selected_classification == 'doubtful' %}selected{% endif %}>Doubtful</option>
+        <option value="loss" {% if selected_classification == 'loss' %}selected{% endif %}>Loss</option>
+    </select>
+</div>
+
+<!-- Loan Status (Outstanding / Closed) -->
+<div class="filter-group">
+    <label class="form-label"><i class="bi bi-arrow-right-circle me-1"></i> Loan Status</label>
+    <select name="loan_status" class="form-select">
+        <option value="all" {% if selected_loan_status == 'all' %}selected{% endif %}>All Loans</option>
+        <option value="outstanding" {% if selected_loan_status == 'outstanding' %}selected{% endif %}>Outstanding</option>
+        <option value="closed" {% if selected_loan_status == 'closed' %}selected{% endif %}>Closed</option>
+    </select>
+</div>
+{% endblock %}

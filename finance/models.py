@@ -352,6 +352,16 @@ class Installment(models.Model):
     penalty_paid = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
 
     paid = models.BooleanField(default=False)
+    penalty_waived = models.BooleanField(default=False)
+    penalty_waived_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='waived_penalties'
+    )
+    penalty_waived_date = models.DateTimeField(null=True, blank=True)
+    penalty_waiver_reason = models.TextField(blank=True, null=True)
 
     def refresh_penalty(self):
         from finance.penalties import calculate_penalty
@@ -785,11 +795,25 @@ class Repayment(models.Model):
 # 4. BATCH PROCESSING ENGINE & UTILITY RECONCILIATION
 # =========================================================
 
+from decimal import Decimal
+from django.db import transaction
+from django.db.models import Sum, F, Value, DecimalField
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+import random
+
 @transaction.atomic
 def process_repayment(loan_id):
-    """Engine to safely deduct money from savings for automated batch processing sweeps."""
+    """
+    Engine to safely deduct money from savings for automated batch processing.
+    Now collects total overdue amount and pays it in a single transaction.
+    """
     try:
-        loan = Loan.objects.select_for_update().get(id=loan_id, status__in=['approved', 'arrears'], is_active=True)
+        loan = Loan.objects.select_for_update().get(
+            id=loan_id,
+            status__in=['approved', 'arrears'],
+            is_active=True
+        )
     except Loan.DoesNotExist:
         return False
 
@@ -801,25 +825,42 @@ def process_repayment(loan_id):
     if savings.balance <= 0:
         return False
 
-    inst = loan.installments.filter(paid=False).order_by('due_date').first()
-    if not inst:
+    today = timezone.now().date()
+
+    # --- 1. Calculate total overdue amount across all overdue installments ---
+    total_overdue = loan.installments.filter(
+        paid=False,
+        due_date__lte=today
+    ).aggregate(
+        total=Coalesce(
+            Sum(
+                F('principal_portion') - F('principal_paid') +
+                F('interest_portion') - F('interest_paid') +
+                F('penalty_amount') - F('penalty_paid')
+            ),
+            Value(Decimal('0.00'), output_field=DecimalField())
+        )
+    )['total']
+
+    if total_overdue <= 0:
         return False
 
-    collectible_amount = min(savings.balance, inst.amount_remaining)
+    # --- 2. Determine collectible amount ---
+    collectible_amount = min(savings.balance, total_overdue)
     if collectible_amount <= 0:
         return False
 
-    # Execute utilizing the safe transaction wrapper block
-    receipt_ref = f"AUTO-{random.randint(10000, 99999)}"
+    # --- 3. Create a single Repayment (which will allocate across all overdue installments) ---
+    receipt_ref = f"AUTO-REPAY-{random.randint(10000, 99999)}-{timezone.now().strftime('%Y%m%d%H%M%S')}"
     repayment_instance = Repayment(
         loan=loan,
         amount_paid=collectible_amount,
         receipt_number=receipt_ref,
-        notes="Automated system sweep optimization protocol run."
+        notes="Automated system sweep – single payment for all overdue installments."
     )
-    repayment_instance.save()
-    return True
+    repayment_instance.save()   # This triggers the waterfall allocation
 
+    return True
 
 # =========================================================
 # 5. IFRS COMPLIANT FINANCIAL REPORTING LAYER ENGINE

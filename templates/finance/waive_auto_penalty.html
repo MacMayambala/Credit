@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2>Waive Auto Penalty</h2>
+    <p><strong>Loan:</strong> {{ loan.loan_reference }}</p>
+    <p><strong>Due Date:</strong> {{ installment.due_date }}</p>
+    <p><strong>Current Penalty:</strong> UGX {{ installment.penalty_amount|floatformat:0 }}</p>
+    <p><strong>Principal Balance:</strong> UGX {{ installment.principal_balance|floatformat:0 }}</p>
+    <p><strong>Interest Balance:</strong> UGX {{ installment.interest_balance|floatformat:0 }}</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="reason" class="form-label">Reason for Waiver</label>
+            <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-danger">Confirm Waiver</button>
+        <a href="{% url 'loan_detail' loan.id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

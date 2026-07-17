@@ -6,6 +6,7 @@
 {% block content %}
 
 <style>
+    /* (All your existing CSS – unchanged) */
     :root {
         --brand-cobalt: #1632af;
         --brand-cobalt-dark: #0f248a;
@@ -1097,7 +1098,9 @@
     </div>
     <!-- END MANUAL PENALTIES CARD -->
 
-    <!-- Amortization Schedule -->
+    <!-- ========================================== -->
+    <!-- AMORTIZATION SCHEDULE with AUTO-PENALTY WAIVER -->
+    <!-- ========================================== -->
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden schedule-card">
         <div class="card-header bg-white py-4 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
@@ -1117,6 +1120,8 @@
                         <th class="text-end">Penalty</th>
                         <th class="text-end">Balance</th>
                         <th class="text-center">Status</th>
+                        <!-- NEW COLUMN for action -->
+                        <th class="text-center">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1151,10 +1156,24 @@
                                 </span>
                             {% endif %}
                         </td>
+                        <td class="text-center">
+                            <!-- Waive Auto-Penalty Button -->
+                            {% if perms.finance.can_waive_penalty and not item.paid and item.penalty_amount > 0 %}
+                                <a href="{% url 'waive_auto_penalty' item.id %}" 
+                                   class="btn-sm-outline-danger" 
+                                   title="Waive this penalty">
+                                    <i class="bi bi-check-circle"></i> Waive
+                                </a>
+                            {% elif item.penalty_amount == 0 and not item.paid and perms.finance.can_waive_penalty %}
+                                <span class="text-muted small">No penalty</span>
+                            {% elif item.paid %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center py-5">
+                        <td colspan="8" class="text-center py-5">
                             <i class="bi bi-info-circle fs-2 text-muted d-block mb-2 opacity-25"></i>
                             <span class="text-muted">No schedule generated for this loan yet.</span>
                         </td>

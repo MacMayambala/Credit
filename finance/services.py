@@ -10,269 +10,220 @@ from finance.models import (
 
 logger = logging.getLogger(__name__)
 
+import logging
+from decimal import Decimal
+from django.db import transaction
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Sum, F, Value, DecimalField
+from django.db.models.functions import Coalesce
+from finance.models import (
+    Loan, Installment, SavingsAccount, Transaction, 
+    AutoRepaymentSetting, AutoRepaymentLog, DailyRepaymentSummary,
+    Repayment  # <-- Added to use the waterfall
+)
+
+logger = logging.getLogger(__name__)
+
 class LoanRepaymentEngineService:
     """
-    Rigorously parses active historical and current loan parameters, executing 
-    isolated atomic wallet collections from associated savings accounts.
+    Auto-repayment engine – now processes all overdue installments for a loan
+    in a single sweep, using Repayment.save() to allocate the payment.
     """
 
     @classmethod
     def execute_bulk_auto_repayments(cls) -> dict:
         """
-        Scans, isolates, and sequentially processes due installments against configurations.
-        Optimized for large transaction loops.
+        Scans for loans with overdue installments and processes each loan once.
+        Returns a summary dict.
         """
-        from decimal import Decimal
-        
         start_time = timezone.now()
         summary_date = start_time.date()
-        
-        summary, _ = DailyRepaymentSummary.objects.get_or_create(date=summary_date)
+
         config = AutoRepaymentSetting.objects.first()
-        
         if not config or not config.is_enabled:
-            logger.info("Automated repayment batch engine skipped. (Disabled/Unconfigured)")
+            logger.info("Automated repayment batch engine skipped (disabled/unconfigured).")
             return {"status": "skipped"}
 
-        # ---- FIX: Ensure all Decimal fields are Decimal, not float ----
-        summary.total_recovered = Decimal(str(summary.total_recovered or 0))
-        # (total_processed is integer, no issue)
-
-        # Calculate grace period window cut-off
+        # Grace period: only process installments overdue beyond this threshold
         due_threshold = summary_date - timedelta(days=config.grace_period_days)
 
-        # Bulk fetch target processing pipeline elements minimizing database strain
-        installments = Installment.objects.filter(
+        # Find all unpaid installments that are overdue
+        overdue_installments = Installment.objects.filter(
             paid=False,
             due_date__lte=due_threshold,
             loan__is_active=True,
             loan__status__in=['approved', 'arrears']
-        ).select_related('loan', 'loan__member').order_by('due_date')
+        ).select_related('loan', 'loan__member').order_by('loan_id', 'due_date')
 
-        for inst in installments:
-            summary.total_processed += 1
-            result = cls._process_single_installment_recovery(inst)
-            
-            # Ensure recovered is Decimal
-            recovered = result.get('recovered', Decimal('0.00'))
-            if not isinstance(recovered, Decimal):
-                try:
-                    recovered = Decimal(str(recovered))
-                except:
-                    recovered = Decimal('0.00')
-            
-            # Now both are Decimal, safe to add
-            summary.total_recovered += recovered
-            
+        # Get distinct loan IDs
+        loan_ids = overdue_installments.values_list('loan_id', flat=True).distinct()
+
+        processed_loans = 0
+        total_recovered = Decimal('0.00')
+        partial_count = 0
+        failed_count = 0
+        closed_count = 0
+
+        for loan_id in loan_ids:
+            result = cls._process_loan_recovery(loan_id)
+            processed_loans += 1
             if result['status'] == 'success':
-                pass 
+                total_recovered += result['recovered']
             elif result['status'] == 'partial':
-                summary.partial_payments += 1
+                total_recovered += result['recovered']
+                partial_count += 1
             elif result['status'] == 'failed':
-                summary.failed_deductions += 1
-            
+                failed_count += 1
             if result.get('loan_closed', False):
-                summary.closed_loans += 1
+                closed_count += 1
 
-        end_time = timezone.now()
-        summary.execution_duration_seconds = (end_time - start_time).total_seconds()
+        # Update or create daily summary
+        summary, _ = DailyRepaymentSummary.objects.get_or_create(date=summary_date)
+        summary.total_processed = processed_loans
+        summary.total_recovered = total_recovered
+        summary.partial_payments = partial_count
+        summary.failed_deductions = failed_count
+        summary.closed_loans = closed_count
+        summary.execution_duration_seconds = (timezone.now() - start_time).total_seconds()
         summary.save()
-        
-        return {"status": "completed", "processed": summary.total_processed}
+
+        return {
+            "status": "completed",
+            "processed": processed_loans,
+            "recovered": float(total_recovered),
+            "partial": partial_count,
+            "failed": failed_count,
+            "closed": closed_count,
+        }
+
     @classmethod
-    def _process_single_installment_recovery(cls, installment: Installment) -> dict:
+    def _process_loan_recovery(cls, loan_id: int) -> dict:
         """
-        Atomically executes collection operations on an individual loan installment record.
+        Process all overdue installments for a single loan in one atomic transaction.
+        Calculates total overdue, deducts from savings once, and creates a single Repayment
+        which triggers the waterfall allocation.
         """
-        from decimal import Decimal
-        from .models import AccountingEngine  # Import AccountingEngine
-        
-        loan = installment.loan
-        member = loan.member
         result = {'recovered': Decimal('0.00'), 'status': 'failed', 'loan_closed': False}
 
         try:
             with transaction.atomic():
-                # Acquire explicit PostgreSQL row-level locks on relevant balances
-                savings_acc = SavingsAccount.objects.select_for_update().get(member=member)
-                loan_locked = Loan.objects.select_for_update().get(pk=loan.pk)
-                inst_locked = Installment.objects.select_for_update().get(pk=installment.pk)
-
-                bal_before = savings_acc.balance
-                
-                # Calculate amount due
-                amount_due = (
-                    (inst_locked.principal_portion or Decimal('0.00')) + 
-                    (inst_locked.interest_portion or Decimal('0.00')) +
-                    (inst_locked.penalty_amount or Decimal('0.00'))
+                # Lock the loan and savings account
+                loan = Loan.objects.select_for_update().get(
+                    id=loan_id,
+                    is_active=True,
+                    status__in=['approved', 'arrears']
                 )
+                savings = SavingsAccount.objects.select_for_update().get(member=loan.member)
 
-                if bal_before <= 0:
-                    cls._create_log(loan_locked, inst_locked, bal_before, amount_due, Decimal('0.00'), 'failed')
-                    cls._trigger_notification(member, loan_locked, Decimal('0.00'), 'failed')
+                if savings.balance <= 0:
+                    result['status'] = 'failed'
+                    cls._create_log(loan, None, savings.balance, Decimal('0.00'), Decimal('0.00'), 'failed')
                     return result
 
-                # Determine legal recovery boundaries (Partial vs Full)
-                recovered_amount = min(bal_before, amount_due)
-                result['recovered'] = recovered_amount
+                today = timezone.now().date()
 
-                # Track allocations for ledger entries
-                penalty_deduction = Decimal('0.00')
-                interest_deduction = Decimal('0.00')
-                principal_deduction = Decimal('0.00')
+                # Sum total overdue across all unpaid installments
+                overdue_total = loan.installments.filter(
+                    paid=False,
+                    due_date__lte=today
+                ).aggregate(
+                    total=Coalesce(
+                        Sum(
+                            F('principal_portion') - F('principal_paid') +
+                            F('interest_portion') - F('interest_paid') +
+                            F('penalty_amount') - F('penalty_paid')
+                        ),
+                        Value(Decimal('0.00'), output_field=DecimalField())
+                    )
+                )['total']
 
-                # Wallet Balance Deduction
-                savings_acc.balance -= recovered_amount
-                savings_acc.save()
+                if overdue_total <= 0:
+                    result['status'] = 'failed'
+                    cls._create_log(loan, None, savings.balance, Decimal('0.00'), Decimal('0.00'), 'failed')
+                    return result
 
-                # Process Financial Ledger Allocation: Penalty -> Interest -> Principal
-                remaining_allocation = recovered_amount
-                
-                # 1. Deduct Penalty
-                penalty_balance = inst_locked.penalty_amount - inst_locked.penalty_paid
-                if penalty_balance > 0 and remaining_allocation > 0:
-                    penalty_deduction = min(remaining_allocation, penalty_balance)
-                    inst_locked.penalty_paid += penalty_deduction
-                    remaining_allocation -= penalty_deduction
+                # Determine how much we can collect (up to total overdue or balance)
+                collectible = min(savings.balance, overdue_total)
+                if collectible <= 0:
+                    result['status'] = 'failed'
+                    cls._create_log(loan, None, savings.balance, overdue_total, Decimal('0.00'), 'failed')
+                    return result
 
-                # 2. Deduct Interest
-                interest_balance = inst_locked.interest_portion - inst_locked.interest_paid
-                if interest_balance > 0 and remaining_allocation > 0:
-                    interest_deduction = min(remaining_allocation, interest_balance)
-                    loan_locked.interest_balance -= interest_deduction
-                    inst_locked.interest_paid += interest_deduction
-                    remaining_allocation -= interest_deduction
+                # Deduct from savings
+                savings.balance -= collectible
+                savings.save()
 
-                # 3. Deduct Principal
-                principal_balance = inst_locked.principal_portion - inst_locked.principal_paid
-                if principal_balance > 0 and remaining_allocation > 0:
-                    principal_deduction = min(remaining_allocation, principal_balance)
-                    loan_locked.principal_balance -= principal_deduction
-                    inst_locked.principal_paid += principal_deduction
-                    remaining_allocation -= principal_deduction
+                # Create a single Repayment record – its save() will allocate across installments
+                ref = f"AUTO-REPAY-{loan.loan_reference}-{timezone.now().strftime('%Y%m%d%H%M%S')}"
+                repayment = Repayment(
+                    loan=loan,
+                    amount_paid=collectible,
+                    receipt_number=ref,
+                    notes="Auto-repayment – cleared all overdue in one sweep"
+                )
+                repayment.save()  # This runs the waterfall and ledger updates
 
-                # Update operational targets
-                if inst_locked.balance <= 0:
-                    inst_locked.paid = True
-                inst_locked.save()
-
-                # Evaluate closure parameters
-                if loan_locked.principal_balance <= 0 and loan_locked.interest_balance <= 0:
-                    loan_locked.status = 'closed'
-                    loan_locked.is_active = False
+                # After allocation, check if loan is now closed
+                loan.refresh_from_db()
+                if loan.principal_balance <= 0 and loan.interest_balance <= 0:
                     result['loan_closed'] = True
-                elif loan_locked.status == 'arrears' and inst_locked.paid:
-                    loan_locked.status = 'approved'
-                
-                loan_locked.save()
 
-                # Inject System Audit Ledger Transaction entries
-                ref_code = f"AUTO-REPAY-{loan_locked.loan_reference}-{timezone.now().strftime('%Y%m%d%H%M%S')}"
-                
-                # Create the transaction record
-                tx_obj = Transaction.objects.create(
-                    member=member,
-                    loan=loan_locked,
-                    amount=recovered_amount,
-                    type='repayment',
-                    reference=ref_code,
-                    timestamp=timezone.now(),
-                    created_by=None
-                )
+                # Determine status: success if full overdue cleared, else partial
+                status = 'success' if collectible >= overdue_total else 'partial'
+                result['recovered'] = collectible
+                result['status'] = status
 
-                # =====================================================
-                # POST TO GENERAL LEDGER (DOUBLE-ENTRY)
-                # =====================================================
-                
-                # 1. Debit: Savings Account (Liability decreases)
-                AccountingEngine.post_ledger_entry(
-                    account_code="2000",  # Member Savings / Liability
-                    description=f"Auto-repayment deduction for loan {loan_locked.loan_reference}",
-                    reference=ref_code,
-                    debit=recovered_amount,  # Debit liability decreases it
-                    credit=Decimal('0.00'),
-                    transaction_obj=tx_obj,
-                    date_context=timezone.now().date()
-                )
+                cls._create_log(loan, None, savings.balance + collectible, overdue_total, collectible, status)
+                cls._trigger_notification(loan.member, loan, collectible, status)
 
-                # 2. Credit: Loan Receivable (Asset decreases)
-                if principal_deduction > 0:
-                    AccountingEngine.post_ledger_entry(
-                        account_code="1200",  # Loan Receivable / Asset
-                        description=f"Principal recovery on loan {loan_locked.loan_reference}",
-                        reference=ref_code,
-                        debit=Decimal('0.00'),
-                        credit=principal_deduction,  # Credit asset decreases it
-                        transaction_obj=tx_obj,
-                        date_context=timezone.now().date()
-                    )
-
-                # 3. Credit: Interest Income (Income increases)
-                if interest_deduction > 0:
-                    AccountingEngine.post_ledger_entry(
-                        account_code="2100",  # Interest Income / Revenue
-                        description=f"Interest income recognized on loan {loan_locked.loan_reference}",
-                        reference=ref_code,
-                        debit=Decimal('0.00'),
-                        credit=interest_deduction,  # Credit income increases it
-                        transaction_obj=tx_obj,
-                        date_context=timezone.now().date()
-                    )
-
-                # 4. Credit: Penalty Income (Income increases)
-                if penalty_deduction > 0:
-                    AccountingEngine.post_ledger_entry(
-                        account_code="2200",  # Penalty Income / Revenue
-                        description=f"Penalty income recognized on loan {loan_locked.loan_reference}",
-                        reference=ref_code,
-                        debit=Decimal('0.00'),
-                        credit=penalty_deduction,  # Credit income increases it
-                        transaction_obj=tx_obj,
-                        date_context=timezone.now().date()
-                    )
-
-                # Evaluate Execution Status Labels for Notifications
-                final_status = 'success' if inst_locked.paid else 'partial'
-                result['status'] = final_status
-
-                cls._create_log(loan_locked, inst_locked, bal_before, amount_due, recovered_amount, final_status)
-                cls._trigger_notification(member, loan_locked, recovered_amount, final_status)
-
-        except Exception as system_exception:
-            logger.error(f"Auto-Repayment Exception encountered on Installment {installment.id}: {str(system_exception)}")
-            cls._create_log(loan, installment, Decimal('0.00'), Decimal('0.00'), Decimal('0.00'), 'error', str(system_exception))
+        except Loan.DoesNotExist:
+            logger.warning(f"Loan {loan_id} not found or not active.")
+            result['status'] = 'failed'
+        except SavingsAccount.DoesNotExist:
+            logger.warning(f"Savings account missing for loan {loan_id}.")
+            result['status'] = 'failed'
+        except Exception as e:
+            logger.error(f"Auto-repayment failed for loan {loan_id}: {str(e)}")
+            # Try to get loan object for logging (may not exist)
+            try:
+                loan = Loan.objects.get(id=loan_id)
+                cls._create_log(loan, None, Decimal('0.00'), Decimal('0.00'), Decimal('0.00'), 'error', str(e))
+            except Loan.DoesNotExist:
+                pass
+            result['status'] = 'failed'
 
         return result
 
     @classmethod
     def _create_log(cls, loan, inst, bal_before, attempted, recovered, status, err=""):
-        from decimal import Decimal
+        """Create an AutoRepaymentLog entry."""
         AutoRepaymentLog.objects.create(
-            loan=loan, 
-            installment=inst, 
+            loan=loan,
+            installment=inst,  # can be None for loan-level logs
             savings_balance_before=bal_before,
-            amount_attempted=attempted, 
-            amount_recovered=recovered, 
-            status=status, 
-            error_message=err
+            amount_attempted=attempted,
+            amount_recovered=recovered,
+            status=status,
+            error_message=err[:255] if err else ""
         )
 
     @classmethod
     def _trigger_notification(cls, member, loan, amount, outcome):
         """
-        Placeholder dispatch hook interface matching architectural standards.
-        Replace implementation details with your target notification gateway APIs.
+        Send notification (SMS/email) about the auto-repayment.
+        Replace with your actual notification service.
         """
         message = f"Dear {member.first_name}, automated loan repayment "
         if outcome == 'success':
-            message += f"succeeded. Shs {amount:,} deducted for loan {loan.loan_reference}."
+            message += f"succeeded. UGX {amount:,.0f} deducted for loan {loan.loan_reference}."
         elif outcome == 'partial':
-            message += f"partially succeeded. Shs {amount:,} deducted. Please clear outstanding amounts."
+            message += f"partially succeeded. UGX {amount:,.0f} deducted. Please clear remaining arrears."
         else:
-            message += f"failed due to insufficient savings balances on your account."
-        
-        logger.info(f"[SMS Notification Outbox Push] to {member.phone_number}: {message}")
+            message += f"failed due to insufficient savings balance."
 
+        logger.info(f"[AUTO-REPAY NOTIFICATION] to {member.phone_number}: {message}")
+        # To actually send SMS, integrate with your SMS gateway here.
 #############################################################################################################################
 
 

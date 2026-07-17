@@ -1019,7 +1019,7 @@ PAGE PRELOADER
     </div>
 
     <!-- ============================================================
-    FILTER FORM – ENHANCED LAYOUT
+    FILTER FORM – ENHANCED LAYOUT (with blocks for extra filters)
     ============================================================ -->
     <div class="filter-form">
         <form method="post" action="." id="reportForm">
@@ -1064,6 +1064,9 @@ PAGE PRELOADER
                     </div>
                 </div>
 
+                <!-- Hook for extra filters BEFORE Status -->
+                {% block extra_filters_before_status %}{% endblock %}
+
                 <!-- Status -->
                 <div class="filter-group">
                     <label class="form-label"><i class="bi bi-info-circle me-1"></i> Status</label>
@@ -1076,6 +1079,9 @@ PAGE PRELOADER
                         <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
                     </select>
                 </div>
+
+                <!-- Hook for extra filters AFTER Status -->
+                {% block extra_filters_after_status %}{% endblock %}
             </div>
 
             <!-- Filter actions: Run, Reset, Clear, Exports -->

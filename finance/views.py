@@ -550,8 +550,9 @@ def apply_loan(request, member_id=None):
             with transaction.atomic():
                 ref_code = generate_loan_ref()
 
-                # Calculate total interest (simple flat method)
-                total_interest = (principal * (interest_rate / 100) * term_value).quantize(Decimal('0.01'))
+                # --- FIXED: Flat interest calculation (no multiplication by term_value) ---
+                # Interest = Principal × (Rate / 100)
+                total_interest = (principal * (interest_rate / Decimal('100'))).quantize(Decimal('0.01'))
                 total_payable = principal + total_interest
 
                 # --- Create Loan (deprecating old penalty fields) ---
@@ -609,7 +610,6 @@ def apply_loan(request, member_id=None):
                 compound = request.POST.get('compound') == 'true'
 
                 # Map period (default to monthly, but could be derived from frequency)
-                # We'll set period = repayment_frequency if it's monthly/weekly/daily, else monthly.
                 frequency_to_period = {
                     'monthly': 'monthly',
                     'weekly': 'weekly',
@@ -619,11 +619,6 @@ def apply_loan(request, member_id=None):
                 period = frequency_to_period.get(repayment_frequency, 'monthly')
 
                 # Map penalty_type to the rule's choices
-                # The rule uses: 'fixed', 'percentage', 'daily_flat', 'daily_percentage'
-                # We'll map the form values accordingly
-                # Form values: 'daily_flat', 'daily_percentage', 'fixed', 'compound'
-                # For compound, we treat as percentage based on overdue amount (with compound flag True)
-                # So we'll map 'compound' to 'percentage' with compound=True
                 rule_penalty_type = penalty_type
                 if penalty_type == 'compound':
                     rule_penalty_type = 'percentage'  # but set compound True
@@ -637,10 +632,9 @@ def apply_loan(request, member_id=None):
                     grace_period_days=penalty_grace_days,
                     max_penalty_cap=max_penalty_cap,
                     compound=compound,
-                )  
-                
+                )
 
-                # Generate installments
+                # Generate installments (splits total interest equally across term)
                 generate_schedule(loan)
 
                 messages.success(request, f"Loan {ref_code} created successfully!")
@@ -4647,3 +4641,228 @@ def waive_manual_penalty(request, penalty_id):
     # GET: show confirmation page
     context = {'penalty': penalty}
     return render(request, 'finance/waive_penalty.html', context)
+
+
+
+from decimal import Decimal
+from django.db.models import Sum, Q, F, Value, Count, Case, When, IntegerField
+from django.db.models.functions import Coalesce
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from .models import Loan, Installment, Company
+from decimal import Decimal
+from django.db.models import Sum, Q
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from .models import Loan, Company
+
+@login_required
+def loan_portfolio_report(request):
+    """
+    Comprehensive Loan Portfolio Report with classification.
+    Filters: date range, officer, product, status, classification, loan_status.
+    """
+    # Extract filters
+    date_from = request.GET.get('date_from') or request.POST.get('date_from')
+    date_to = request.GET.get('date_to') or request.POST.get('date_to')
+    officer_id = request.GET.get('officer') or request.POST.get('officer')
+    product = request.GET.get('product') or request.POST.get('product')
+    status_filter = request.GET.get('status') or request.POST.get('status')  # 'active', 'pending', etc.
+    classification_filter = request.GET.get('classification') or request.POST.get('classification')
+    loan_status_filter = request.GET.get('loan_status') or request.POST.get('loan_status')  # 'outstanding' / 'closed'
+
+    # Base queryset
+    qs = Loan.objects.select_related('member', 'officer').prefetch_related('installments')
+
+    if date_from:
+        qs = qs.filter(disbursed_date__gte=date_from)
+    if date_to:
+        qs = qs.filter(disbursed_date__lte=date_to)
+    if officer_id:
+        qs = qs.filter(officer_id=officer_id)
+    if product:
+        qs = qs.filter(product_type=product)
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+
+    # Build data
+    data = []
+    total_disbursed = Decimal('0')
+    total_outstanding = Decimal('0')
+    total_closed = Decimal('0')
+
+    today = timezone.now().date()
+
+    for loan in qs:
+        principal_bal = loan.principal_balance or Decimal('0')
+        interest_bal = loan.interest_balance or Decimal('0')
+        total_bal = principal_bal + interest_bal
+
+        is_closed = (total_bal == Decimal('0')) or (loan.status == 'closed')
+
+        # Apply loan_status filter (outstanding/closed)
+        if loan_status_filter and loan_status_filter != 'all':
+            if loan_status_filter == 'outstanding' and is_closed:
+                continue
+            if loan_status_filter == 'closed' and not is_closed:
+                continue
+
+        # Classification
+        overdue_inst = loan.installments.filter(paid=False, due_date__lt=today).order_by('due_date').first()
+        classification = 'Performing'
+        days_overdue = 0
+        if overdue_inst:
+            days_overdue = (today - overdue_inst.due_date).days
+            if days_overdue > 180:
+                classification = 'Loss'
+            elif days_overdue > 90:
+                classification = 'Doubtful'
+            elif days_overdue > 30:
+                classification = 'Substandard'
+            else:
+                classification = 'Watch'
+
+        if classification_filter and classification_filter != 'all':
+            if classification_filter.lower() != classification.lower():
+                continue
+
+        data.append({
+            'loan_ref': loan.loan_reference or f"LN-{loan.id}",
+            'member': f"{loan.member.first_name} {loan.member.last_name}",
+            'member_no': loan.member.member_number,
+            'product': loan.get_product_type_display(),
+            'disbursed_date': loan.disbursed_date or loan.start_date,
+            'principal': loan.principal_amount,
+            'principal_balance': principal_bal,
+            'interest_balance': interest_bal,
+            'total_balance': total_bal,
+            'is_closed': is_closed,
+            'status': 'Closed' if is_closed else loan.status.title(),
+            'classification': classification,
+            'days_overdue': days_overdue,
+            'officer': loan.officer.get_full_name() if loan.officer else 'System',
+        })
+
+        total_disbursed += loan.principal_amount
+        if not is_closed:
+            total_outstanding += total_bal
+        else:
+            total_closed += 1
+
+    # Columns for the table
+    columns = [
+        {'key': 'loan_ref', 'label': 'Loan Ref'},
+        {'key': 'member', 'label': 'Member'},
+        {'key': 'member_no', 'label': 'Member No'},
+        {'key': 'product', 'label': 'Product'},
+        {'key': 'disbursed_date', 'label': 'Disbursed', 'type': 'date'},
+        {'key': 'principal', 'label': 'Principal (UGX)', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'principal_balance', 'label': 'Principal Bal (UGX)', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'interest_balance', 'label': 'Interest Bal (UGX)', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'total_balance', 'label': 'Total Balance (UGX)', 'type': 'currency', 'align': 'right', 'total': True},
+        {'key': 'classification', 'label': 'Classification', 'align': 'center', 'type': 'status'},
+        {'key': 'days_overdue', 'label': 'Days Overdue', 'align': 'center'},
+        {'key': 'status', 'label': 'Status', 'align': 'center', 'type': 'status'},
+        {'key': 'officer', 'label': 'Officer'},
+    ]
+
+    # Totals
+    totals = {
+        'principal': sum(item['principal'] for item in data),
+        'principal_balance': sum(item['principal_balance'] for item in data),
+        'interest_balance': sum(item['interest_balance'] for item in data),
+        'total_balance': sum(item['total_balance'] for item in data),
+    }
+
+    # KPIs
+    kpi_cards = [
+        {'label': 'Total Loans', 'value': len(data), 'icon': 'bi-file-text', 'type': 'info'},
+        {'label': 'Total Disbursed', 'value': f"UGX {total_disbursed:,.0f}", 'icon': 'bi-arrow-up', 'type': 'success'},
+        {'label': 'Outstanding Balance', 'value': f"UGX {total_outstanding:,.0f}", 'icon': 'bi-currency-dollar', 'type': 'warning'},
+        {'label': 'Closed Loans', 'value': total_closed, 'icon': 'bi-check-circle', 'type': 'secondary'},
+    ]
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    officer_list = User.objects.filter(is_active=True).order_by('first_name', 'last_name')
+    product_choices = Loan.PRODUCT_CHOICES
+
+    context = {
+        'columns': columns,
+        'data': data,
+        'totals': totals,
+        'has_data': bool(data),
+        'kpi_cards': kpi_cards,
+        'report_title': 'Loan Portfolio Report',
+        'company': Company.get_company(),
+        'date_from': date_from,
+        'date_to': date_to,
+        'selected_officer': officer_id,
+        'selected_product': product,
+        'selected_status': status_filter,
+        'selected_classification': classification_filter,
+        'selected_loan_status': loan_status_filter,
+        'officer_list': officer_list,
+        'product_choices': product_choices,
+        'classification_choices': [
+            ('all', 'All Classifications'),
+            ('performing', 'Performing'),
+            ('watch', 'Watch'),
+            ('substandard', 'Substandard'),
+            ('doubtful', 'Doubtful'),
+            ('loss', 'Loss'),
+        ],
+        'loan_status_choices': [
+            ('all', 'All Loans'),
+            ('outstanding', 'Outstanding'),
+            ('closed', 'Closed'),
+        ],
+        'generated_date': timezone.now().strftime('%d %b %Y %H:%M'),
+        'generated_by': request.user.get_full_name() if request.user.is_authenticated else 'System',
+    }
+
+    return render(request, 'finance/reports/loan_portfolio_report.html', context)
+
+
+from django.contrib.auth.decorators import permission_required
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
+from django.utils import timezone
+from decimal import Decimal
+from .models import Installment
+
+@permission_required('finance.can_waive_penalty')  # or any suitable permission
+def waive_auto_penalty(request, installment_id):
+    """
+    Waive the auto-calculated penalty for a specific installment.
+    Sets penalty_amount to 0 and records who/why.
+    """
+    installment = get_object_or_404(Installment, id=installment_id)
+
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '').strip()
+        if not reason:
+            messages.error(request, "Please provide a reason for waiving the penalty.")
+            return redirect('loan_detail', pk=installment.loan.id)
+
+        # Perform the waiver
+        installment.penalty_amount = Decimal('0.00')
+        installment.penalty_waived = True
+        installment.penalty_waived_by = request.user
+        installment.penalty_waived_date = timezone.now()
+        installment.penalty_waiver_reason = reason
+        installment.save(update_fields=[
+            'penalty_amount', 'penalty_waived', 'penalty_waived_by',
+            'penalty_waived_date', 'penalty_waiver_reason'
+        ])
+
+        messages.success(request, f"Penalty for installment #{installment.id} has been waived.")
+        return redirect('loan_detail', pk=installment.loan.id)
+
+    # GET: show confirmation form
+    return render(request, 'finance/waive_auto_penalty.html', {
+        'installment': installment,
+        'loan': installment.loan,
+    })
