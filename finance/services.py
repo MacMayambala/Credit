@@ -451,24 +451,6 @@ class FinancialTransactionService:
         AccountingEngine.post_ledger_entry("2000", "Member Deposit", receipt_ref, 0, amount, tx, date)
         return tx
 
-    @staticmethod
-    @transaction.atomic
-    def record_withdrawal(member, amount, receipt_ref, date=None):
-        """Debit Member Savings (Liability), Credit Cash (Asset)."""
-        savings = SavingsAccount.objects.select_for_update().get(member=member)
-        if savings.balance < amount:
-            raise ValueError("Insufficient funds.")
-        
-        savings.balance -= amount
-        savings.save()
-
-        tx = Transaction.objects.create(
-            member=member, amount=amount, type='withdrawal', reference=receipt_ref
-        )
-        
-        AccountingEngine.post_ledger_entry("2000", "Member Withdrawal", receipt_ref, amount, 0, tx, date)
-        AccountingEngine.post_ledger_entry("1000", "Member Withdrawal", receipt_ref, 0, amount, tx, date)
-        return tx
     
     
 from datetime import date
@@ -616,104 +598,42 @@ def process_repayment(loan_id):
 
 
 class FinancialTransactionService:
-    """Service class for handling financial transactions"""
     
-    
+    @staticmethod
+    @transaction.atomic
+    def record_deposit(member, amount, reference, date=None, created_by=None):
+        """Debit Cash (Asset), Credit Member Savings (Liability)."""
+        savings = SavingsAccount.objects.select_for_update().get(member=member)
+        savings.balance += amount
+        savings.save()
+
+        tx = Transaction.objects.create(
+            member=member, amount=amount, type='deposit',
+            reference=reference, timestamp=date or timezone.now(),
+            created_by=created_by
+        )
+        AccountingEngine.post_ledger_entry("1000", "Member Deposit", reference, amount, 0, tx, date)
+        AccountingEngine.post_ledger_entry("2000", "Member Deposit", reference, 0, amount, tx, date)
+        return tx
 
     @staticmethod
-    def record_deposit(member, amount, receipt_ref, date=None, created_by=None):
-        """
-        Record a deposit transaction for a member.
-        """
-        print("\n--- FinancialTransactionService.record_deposit ---")
-        print(f"Member: {member.get_full_name()} (ID: {member.id})")
-        print(f"Amount: {amount}")
-        print(f"Receipt Ref: {receipt_ref}")
-        
-        if date is None:
-            date = timezone.now()
-            print(f"Date set to now: {date}")
-        
-        with db_transaction.atomic():
-            print("Creating transaction record...")
-            # Create transaction record
-            transaction = Transaction.objects.create(
-                member=member,
-                loan=None,
-                amount=amount,
-                type='deposit',
-                timestamp=date,
-                reference=receipt_ref,
-                is_reversed=False,
-                created_by=created_by
-            )
-            print(f"Transaction created with ID: {transaction.id}")
-            
-            # Update savings balance
-            print("Updating savings balance...")
-            savings, created = SavingsAccount.objects.get_or_create(
-                member=member,
-                defaults={'balance': Decimal('0.00')}
-            )
-            print(f"Savings account - Created: {created}, Balance before: {savings.balance}")
-            
-            savings.balance += amount
-            savings.save()
-            print(f"Savings account - Balance after: {savings.balance}")
-            
-            # Update member's last transaction date - REMOVED because field doesn't exist
-            # member.last_transaction_date = date
-            # member.save(update_fields=['last_transaction_date'])
-            
-            print("--- record_deposit completed successfully ---\n")
-            return transaction
-    
-    @staticmethod
+    @transaction.atomic
     def record_withdrawal(member, amount, reference, date=None, created_by=None):
-        """
-        Record a withdrawal transaction for a member.
-        
-        Args:
-            member: Member instance
-            amount: Decimal amount
-            reference: String reference
-            date: Optional datetime (defaults to now)
-            created_by: User who created the transaction
-            
-        Returns:
-            Transaction: The created transaction record
-        """
-        if date is None:
-            date = timezone.now()
-        
-        with db_transaction.atomic():
-            # Check sufficient balance
-            savings = SavingsAccount.objects.filter(member=member).first()
-            if not savings or savings.balance < amount:
-                raise ValueError(f"Insufficient balance. Available: {savings.balance if savings else 0}")
-            
-            # Create transaction record
-            transaction = Transaction.objects.create(
-                member=member,
-                loan=None,
-                amount=amount,
-                type='withdrawal',
-                timestamp=date,
-                reference=reference,
-                is_reversed=False,
-                created_by=created_by
-            )
-            
-            # Update savings balance
-            savings.balance -= amount
-            savings.save()
-            
-            # Update member's last transaction date
-            member.last_transaction_date = date
-            member.save(update_fields=['last_transaction_date'])
-            
-            return transaction
-    
+        """Debit Member Savings (Liability), Credit Cash (Asset)."""
+        savings = SavingsAccount.objects.select_for_update().get(member=member)
+        if savings.balance < amount:
+            raise ValueError("Insufficient funds.")
+        savings.balance -= amount
+        savings.save()
+
+        tx = Transaction.objects.create(
+            member=member, amount=amount, type='withdrawal',
+            reference=reference, timestamp=date or timezone.now(),
+            created_by=created_by
+        )
+        AccountingEngine.post_ledger_entry("2000", "Member Withdrawal", reference, amount, 0, tx, date)
+        AccountingEngine.post_ledger_entry("1000", "Member Withdrawal", reference, 0, amount, tx, date)
+        return tx
     @staticmethod
     def record_loan_disbursement(member, loan, amount, reference, date=None, created_by=None):
         """

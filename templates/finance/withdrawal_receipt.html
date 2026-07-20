@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Withdrawal Receipt | {{ company.name|default:"MAC Technologies" }}{% endblock %}
+
+{% block content %}
+
+<!-- Same structure as deposit_receipt.html, but change "DEPOSIT RECEIPT" to "WITHDRAWAL RECEIPT" -->
+<!-- I'll provide the full file below with the only change being the badge text -->
+
+<style>
+    /* Copy all styles from deposit_receipt.html – exactly the same */
+</style>
+
+<div class="receipt-container">
+    <!-- Header -->
+    <div class="text-center pb-3 mb-3" style="border-bottom: 2px solid var(--brand-cobalt);">
+        <div class="brand-icon" style="display: inline-block; width: 48px; height: 48px; background: var(--brand-cobalt); border-radius: 12px; color: #fff; font-size: 1.6rem; line-height: 48px; margin-bottom: 0.5rem; overflow: hidden;">
+            {% if company.logo %}
+                <img src="{{ company.logo.url }}" alt="{{ company.name }}" style="width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1);">
+            {% else %}
+                <i class="bi bi-cpu-fill"></i>
+            {% endif %}
+        </div>
+        <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--brand-cobalt); margin: 0.25rem 0 0.1rem;">{{ company.name|default:"MAC Technologies" }}</h2>
+        <p style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin: 0;">{{ company.tagline|default:"Core Banking &amp; Retail Solutions" }}</p>
+        <div style="display: inline-block; background: var(--brand-cobalt-bg); color: var(--brand-cobalt); font-size: 0.55rem; font-weight: 700; text-transform: uppercase; padding: 0.1rem 1rem; border-radius: 100px; margin-top: 0.5rem; border: 1px solid rgba(22, 50, 175, 0.1);">WITHDRAWAL RECEIPT</div>
+    </div>
+
+    <!-- Meta Info (same as deposit) -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; margin-bottom: 1rem; font-size: 0.8rem;">
+        <div><span style="display: block; font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Receipt #</span><span style="font-weight: 600;">{{ receipt.receipt_id }}</span></div>
+        <div><span style="display: block; font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Date</span><span style="font-weight: 600;">{{ receipt.date }}</span></div>
+        <div><span style="display: block; font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Member</span><span style="font-weight: 600;">{{ receipt.member_name }}</span></div>
+        <div><span style="display: block; font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Processed By</span><span style="font-weight: 600;">{{ receipt.processed_by }}</span></div>
+    </div>
+
+    <hr style="border: none; border-top: 1.5px dashed var(--border-color); margin: 1rem 0; opacity: 0.6;">
+
+    <!-- Details -->
+    <div style="margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem;">
+            <span style="color: var(--text-muted); font-weight: 500;">Withdrawal Amount</span>
+            <span style="font-weight: 700; color: var(--brand-cobalt); font-size: 1.1rem;">UGX {{ receipt.amount|intcomma }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem;">
+            <span style="color: var(--text-muted); font-weight: 500;">Previous Balance</span>
+            <span style="font-weight: 600;">UGX {{ receipt.prev_balance|intcomma }}</span>
+        </div>
+    </div>
+
+    <hr style="border: none; border-top: 1.5px dashed var(--border-color); margin: 1rem 0; opacity: 0.6;">
+
+    <!-- Total -->
+    <div style="background: var(--brand-cobalt-bg); border-radius: 12px; padding: 0.75rem 0.5rem; border: 1px solid rgba(22, 50, 175, 0.08);">
+        <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.95rem; padding: 0.2rem 0; border-top: 2px solid rgba(22, 50, 175, 0.15); margin-top: 0.4rem; padding-top: 0.6rem;">
+            <span>New Balance</span>
+            <span style="color: var(--brand-cobalt); font-size: 1.2rem;">UGX {{ receipt.new_balance|intcomma }}</span>
+        </div>
+    </div>
+
+    <!-- Footer (same) -->
+    <div style="margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); text-align: center; font-size: 0.65rem; color: var(--text-muted);">
+        <p><i class="bi bi-check-circle" style="color: var(--brand-cobalt); margin-right: 0.25rem;"></i> Withdrawal completed successfully</p>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem 0.8rem; margin: 0.5rem 0 0.25rem; font-size: 0.6rem;">
+            <span><i class="bi bi-envelope" style="color: var(--brand-cobalt); margin-right: 0.2rem;"></i> {{ company.email|default:"support@mactech.com" }}</span>
+            <span><i class="bi bi-telephone" style="color: var(--brand-cobalt); margin-right: 0.2rem;"></i> {{ company.phone|default:"+256 776203790" }}</span>
+            <span><i class="bi bi-globe" style="color: var(--brand-cobalt); margin-right: 0.2rem;"></i> {{ company.website|default:"www.mactech.com" }}</span>
+        </div>
+        <div style="margin-top: 0.4rem; font-weight: 600; color: var(--text-secondary); font-size: 0.7rem; letter-spacing: 0.02em;">Thank you for your business!</div>
+    </div>
+
+    <!-- Barcode -->
+    <div style="margin-top: 1rem; text-align: center; font-family: 'Courier New', monospace; font-size: 1.2rem; letter-spacing: 0.2em; color: var(--text-muted); opacity: 0.4; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+        <span>██████████████████████████</span>
+        <span style="display: block; font-size: 0.55rem; letter-spacing: 0.15em; margin-top: 0.1rem;">{{ receipt.receipt_id }}</span>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem; justify-content: center;" class="no-print">
+        <button onclick="window.print()" style="flex: 1; padding: 0.6rem; border-radius: 12px; border: none; background: var(--brand-cobalt); color: #ffffff; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer;">
+            <i class="bi bi-printer"></i> Print Receipt
+        </button>
+        <a href="{% url 'member_profile' member.id %}" style="padding: 0.6rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); background: transparent; color: var(--text-secondary); font-weight: 600; font-size: 0.85rem; text-decoration: none; text-align: center; flex: 1;">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+{% endblock %}

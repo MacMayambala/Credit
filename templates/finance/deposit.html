@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}Cash Deposit | MAC Technologies{% endblock %}
+{% block title %}Cash Deposit | {{ company.name|default:"MAC Technologies" }}{% endblock %}
 
 {% block content %}
 
@@ -276,7 +276,7 @@
 }
 
 /* ============================================
-   RECEIPT MODAL
+   RECEIPT MODAL – STANDALONE RECEIPT STYLE
    ============================================ */
 .receipt-modal-overlay {
     display: none;
@@ -297,12 +297,14 @@
 .receipt-modal {
     background: var(--card-bg);
     border-radius: 24px;
-    max-width: 480px;
+    max-width: 520px;
     width: 100%;
     max-height: 90vh;
     overflow-y: auto;
     animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+    padding: 2rem 2rem 1.8rem;
+    border: 1px solid var(--border-color);
 }
 
 @keyframes modalSlideIn {
@@ -316,117 +318,235 @@
     }
 }
 
-.receipt-header {
-    background: var(--brand-cobalt);
-    color: #ffffff;
-    padding: 1.5rem 2rem;
+.receipt-modal-header {
     text-align: center;
-    border-radius: 24px 24px 0 0;
+    padding-bottom: 1.25rem;
+    border-bottom: 2px solid var(--brand-cobalt);
+    margin-bottom: 1.25rem;
 }
 
-.receipt-header .receipt-icon {
-    width: 64px;
-    height: 64px;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 0.75rem;
-    font-size: 1.75rem;
+.receipt-modal-header .brand-icon {
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+    background: var(--brand-cobalt);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 48px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
 }
 
-.receipt-header h5 {
-    font-weight: 700;
+.receipt-modal-header .brand-icon img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+}
+
+.receipt-modal-header h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--brand-cobalt);
+    letter-spacing: -0.3px;
+    margin: 0.25rem 0 0.1rem;
+}
+
+.receipt-modal-header .tagline {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
     margin: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.receipt-header .receipt-id {
-    font-size: 0.75rem;
-    opacity: 0.8;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+.receipt-modal-header .receipt-badge {
+    display: inline-block;
+    background: var(--brand-cobalt-bg);
+    color: var(--brand-cobalt);
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.1rem 1rem;
+    border-radius: 100px;
+    margin-top: 0.5rem;
+    border: 1px solid rgba(22, 50, 175, 0.1);
 }
 
-.receipt-body {
-    padding: 1.5rem 2rem 2rem;
+.receipt-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
 }
 
-.receipt-body .receipt-row {
+.receipt-meta .label {
+    display: block;
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.receipt-meta .value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.receipt-divider {
+    border: none;
+    border-top: 1.5px dashed var(--border-color);
+    margin: 1rem 0;
+    opacity: 0.6;
+}
+
+.receipt-details .detail-row {
     display: flex;
     justify-content: space-between;
-    padding: 0.6rem 0;
+    padding: 0.4rem 0;
     border-bottom: 1px solid var(--border-color);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 0.85rem;
 }
 
-.receipt-body .receipt-row:last-child {
+.receipt-details .detail-row:last-child {
     border-bottom: none;
 }
 
-.receipt-body .receipt-row .label {
+.receipt-details .detail-label {
     color: var(--text-muted);
-    font-size: 0.8rem;
     font-weight: 500;
 }
 
-.receipt-body .receipt-row .value {
-    font-weight: 700;
+.receipt-details .detail-value {
+    font-weight: 600;
     color: var(--text-primary);
-    font-size: 0.9rem;
 }
 
-.receipt-body .receipt-row .value.amount {
+.receipt-details .detail-value.amount {
     color: var(--brand-cobalt);
     font-size: 1.1rem;
+    font-weight: 700;
 }
 
-.receipt-body .receipt-divider {
-    border-top: 2px dashed var(--border-color);
-    margin: 1rem 0;
-}
-
-.receipt-body .receipt-total {
+.receipt-totals {
+    margin-top: 0.5rem;
+    padding: 0.75rem 0.5rem;
     background: var(--brand-cobalt-bg);
     border-radius: 12px;
-    padding: 1rem 1.25rem;
+    border: 1px solid rgba(22, 50, 175, 0.08);
+}
+
+.totals-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    padding: 0.2rem 0;
+    color: var(--text-secondary);
 }
 
-.receipt-body .receipt-total .label {
+.totals-row.total {
+    border-top: 2px solid rgba(22, 50, 175, 0.15);
+    margin-top: 0.4rem;
+    padding-top: 0.6rem;
     font-weight: 700;
+    font-size: 0.95rem;
     color: var(--text-primary);
-    font-size: 0.9rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.receipt-body .receipt-total .value {
-    font-weight: 800;
-    font-size: 1.25rem;
+.final-amount {
     color: var(--brand-cobalt);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1.2rem;
 }
 
-.receipt-footer-text {
-    text-align: center;
-    padding: 1rem 2rem;
+.arrears-cleared {
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.arrears-cleared i {
+    color: var(--success);
+    font-size: 1rem;
+}
+
+.receipt-footer {
+    margin-top: 1.25rem;
+    padding-top: 0.75rem;
     border-top: 1px solid var(--border-color);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--text-muted);
 }
 
-.receipt-footer-text small {
-    color: var(--text-muted);
+.receipt-footer p {
+    margin: 0.15rem 0;
+}
+
+.receipt-footer p i {
+    color: var(--brand-cobalt);
+    margin-right: 0.25rem;
+}
+
+.contact {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 0.8rem;
+    margin: 0.5rem 0 0.25rem;
+    font-size: 0.6rem;
+}
+
+.contact span i {
+    color: var(--brand-cobalt);
+    margin-right: 0.2rem;
+}
+
+.thank-you {
+    margin-top: 0.4rem;
+    font-weight: 600;
+    color: var(--text-secondary);
     font-size: 0.7rem;
+    letter-spacing: 0.02em;
+}
+
+.barcode {
+    margin-top: 1rem;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 1.2rem;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    opacity: 0.4;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.75rem;
+}
+
+.barcode span:last-child {
+    display: block;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    margin-top: 0.1rem;
 }
 
 .receipt-actions {
     display: flex;
     gap: 0.75rem;
-    padding: 1rem 2rem 1.5rem;
+    margin-top: 1rem;
     border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
 }
 
 .receipt-actions .btn-print {
@@ -468,6 +588,49 @@
     background: var(--hover-bg);
 }
 
+@media (max-width: 600px) {
+    .receipt-modal {
+        max-width: 100%;
+        margin: 0.5rem;
+        border-radius: 16px;
+        padding: 1.25rem;
+    }
+    .receipt-modal-header h2 {
+        font-size: 1.1rem;
+    }
+    .receipt-meta {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem 0.8rem;
+    }
+    .receipt-details .detail-row {
+        font-size: 0.75rem;
+    }
+    .totals-row {
+        font-size: 0.7rem;
+    }
+    .final-amount {
+        font-size: 1rem;
+    }
+    .contact {
+        font-size: 0.55rem;
+        gap: 0.3rem 0.6rem;
+    }
+    .barcode {
+        font-size: 1rem;
+    }
+    .receipt-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .receipt-actions .btn-print,
+    .receipt-actions .btn-close-modal {
+        width: 100%;
+    }
+}
+
+/* ============================================
+   RESPONSIVE OVERRIDES FOR MAIN CARD
+   ============================================ */
 @media (max-width: 768px) {
     .form-section {
         padding: 1.5rem;
@@ -501,7 +664,7 @@
         margin: 0.5rem;
         border-radius: 16px;
     }
-    .receipt-header {
+    .receipt-modal-header {
         border-radius: 16px 16px 0 0;
         padding: 1.25rem 1.5rem;
     }
@@ -596,7 +759,10 @@
                         <i class="bi bi-shield-check text-white fs-1"></i>
                     </div>
                     <h4 class="fw-bold mb-2">Secure Cash Deposit</h4>
-                    <p class="mb-0">Member ID: <strong>{{ member.member_number|default:member.id }}</strong></p>
+                    <p class="mb-0">
+                        <strong>{{ company.name|default:"MAC Technologies" }}</strong>
+                        &middot; Member ID: <strong>{{ member.member_number|default:member.id }}</strong>
+                    </p>
                 </div>
 
                 <div class="form-section">
@@ -683,7 +849,7 @@
                 <div class="footer-secure">
                     <small>
                         <i class="bi bi-lock-fill me-1"></i>
-                        Secured by MAC Technologies • SSL Encrypted
+                        Secured by {{ company.name|default:"MAC Technologies" }} &bull; SSL Encrypted
                     </small>
                 </div>
             </div>
@@ -708,70 +874,85 @@ RECEIPT MODAL
 <div class="receipt-modal-overlay" id="receiptModal">
     <div class="receipt-modal">
         <!-- Receipt Header -->
-        <div class="receipt-header">
-            <div class="receipt-icon">
-                <i class="bi bi-receipt-cutoff"></i>
+        <div class="receipt-modal-header">
+            <div class="brand-icon">
+                {% if company.logo %}
+                    <img src="{{ company.logo.url }}" alt="{{ company.name }}" style="width: 40px; height: 40px; object-fit: contain; filter: brightness(0) invert(1);">
+                {% else %}
+                    <i class="bi bi-cpu-fill"></i>
+                {% endif %}
             </div>
-            <h5>Transaction Receipt</h5>
-            <div class="receipt-id">Receipt #<span id="receiptId">—</span></div>
+            <h2>{{ company.name|default:"MAC Technologies" }}</h2>
+            <p class="tagline">{{ company.tagline|default:"Core Banking &amp; Retail Solutions" }}</p>
+            <div class="receipt-badge">DEPOSIT RECEIPT</div>
         </div>
 
-        <!-- Receipt Body -->
-        <div class="receipt-body">
-            <div class="receipt-row">
-                <span class="label">Date &amp; Time</span>
+        <!-- Receipt Meta -->
+        <div class="receipt-meta">
+            <div>
+                <span class="label">Receipt #</span>
+                <span class="value" id="receiptId">—</span>
+            </div>
+            <div>
+                <span class="label">Date</span>
                 <span class="value" id="receiptDate">—</span>
             </div>
-            <div class="receipt-row">
-                <span class="label">Transaction Type</span>
-                <span class="value">Cash Deposit</span>
-            </div>
-            <div class="receipt-row">
+            <div>
                 <span class="label">Member</span>
                 <span class="value" id="receiptMember">{{ member.first_name }} {{ member.last_name }}</span>
             </div>
-            <div class="receipt-row">
-                <span class="label">Member ID</span>
-                <span class="value">{{ member.member_number|default:member.id }}</span>
-            </div>
-            <div class="receipt-row">
+            <div>
                 <span class="label">Processed By</span>
                 <span class="value">{{ request.user.get_full_name|default:request.user.username }}</span>
             </div>
-
-            <div class="receipt-divider"></div>
-
-            <div class="receipt-row">
-                <span class="label">Previous Balance</span>
-                <span class="value" id="receiptPrevBalance">—</span>
-            </div>
-            <div class="receipt-row">
-                <span class="label">Deposit Amount</span>
-                <span class="value amount" id="receiptAmount">—</span>
-            </div>
-
-            <div class="receipt-divider"></div>
-
-            <div class="receipt-total">
-                <span class="label">New Balance</span>
-                <span class="value" id="receiptNewBalance">—</span>
-            </div>
-
-            {% if arrears_cleared %}
-            <div class="mt-3 p-2 rounded-3" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.15);">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-check-circle-fill text-success"></i>
-                    <span style="font-size: 0.75rem; color: var(--text-secondary); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
-                        Arrears cleared: <strong id="receiptArrears">—</strong>
-                    </span>
-                </div>
-            </div>
-            {% endif %}
         </div>
 
+        <hr class="receipt-divider">
+
+        <!-- Deposit Details -->
+        <div class="receipt-details">
+            <div class="detail-row">
+                <span class="detail-label">Deposit Amount</span>
+                <span class="detail-value amount" id="receiptAmount">—</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Previous Balance</span>
+                <span class="detail-value" id="receiptPrevBalance">—</span>
+            </div>
+        </div>
+
+        <hr class="receipt-divider">
+
+        <!-- Totals -->
+        <div class="receipt-totals">
+            <div class="totals-row total">
+                <span>New Balance</span>
+                <span class="final-amount" id="receiptNewBalance">—</span>
+            </div>
+        </div>
+
+        {% if arrears_cleared %}
+        <div class="arrears-cleared">
+            <i class="bi bi-check-circle-fill"></i>
+            Arrears cleared: <strong id="receiptArrears">—</strong>
+        </div>
+        {% endif %}
+
         <!-- Receipt Footer -->
-        <div class="receipt-footer-text">
-            <small><i class="bi bi-check2-circle me-1" style="color: var(--brand-cobalt);"></i> Transaction completed successfully</small>
+        <div class="receipt-footer">
+            <p><i class="bi bi-check-circle"></i> Payment completed successfully</p>
+            <div class="contact">
+                <span><i class="bi bi-envelope"></i> {{ company.email|default:"support@mactech.com" }}</span>
+                <span><i class="bi bi-telephone"></i> {{ company.phone|default:"+256 776203790" }}</span>
+                <span><i class="bi bi-globe"></i> {{ company.website|default:"www.mactech.com" }}</span>
+            </div>
+            <div class="thank-you">Thank you for your business!</div>
+        </div>
+
+        <!-- Barcode -->
+        <div class="barcode">
+            <span>██████████████████████████</span>
+            <span id="receiptBarcode">—</span>
         </div>
 
         <!-- Receipt Actions -->
@@ -794,11 +975,10 @@ RECEIPT MODAL
         document.getElementById('receiptAmount').textContent = 'UGX ' + (data.amount ? parseInt(data.amount).toLocaleString() : '—');
         document.getElementById('receiptPrevBalance').textContent = 'UGX ' + (data.prev_balance ? parseInt(data.prev_balance).toLocaleString() : '—');
         document.getElementById('receiptNewBalance').textContent = 'UGX ' + (data.new_balance ? parseInt(data.new_balance).toLocaleString() : '—');
-        
+        document.getElementById('receiptBarcode').textContent = data.receipt_id || '—';
         if (data.arrears_cleared) {
             document.getElementById('receiptArrears').textContent = 'UGX ' + (data.arrears_cleared ? parseInt(data.arrears_cleared).toLocaleString() : '0');
         }
-        
         document.getElementById('receiptModal').classList.add('open');
         document.body.style.overflow = 'hidden';
     }
@@ -816,25 +996,43 @@ RECEIPT MODAL
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>Receipt</title>
+                    <title>Deposit Receipt</title>
                     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
                     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
                     <style>
                         body { padding: 2rem; font-family: 'Inter', sans-serif; }
-                        .receipt-modal { max-width: 480px; margin: 0 auto; }
-                        .receipt-header { background: #1632af; color: white; padding: 1.5rem; text-align: center; border-radius: 12px 12px 0 0; }
-                        .receipt-body { padding: 1.5rem; background: white; }
-                        .receipt-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0; }
-                        .receipt-row .label { color: #64748b; font-size: 0.8rem; }
-                        .receipt-row .value { font-weight: 700; font-size: 0.9rem; }
-                        .receipt-row .value.amount { color: #1632af; font-size: 1.1rem; }
-                        .receipt-divider { border-top: 2px dashed #e2e8f0; margin: 1rem 0; }
-                        .receipt-total { background: rgba(22, 50, 175, 0.08); border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
-                        .receipt-total .value { font-weight: 800; font-size: 1.25rem; color: #1632af; }
-                        .receipt-footer-text { text-align: center; padding: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.7rem; color: #64748b; }
-                        .receipt-icon { width: 64px; height: 64px; background: rgba(255,255,255,0.15); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; font-size: 1.75rem; }
+                        .receipt-modal { max-width: 520px; margin: 0 auto; padding: 2rem; border: 1px solid #e2e8f0; border-radius: 24px; }
+                        .receipt-modal-header { text-align: center; padding-bottom: 1.25rem; border-bottom: 2px solid #1632af; margin-bottom: 1.25rem; }
+                        .receipt-modal-header .brand-icon { display: inline-block; width: 48px; height: 48px; background: #1632af; border-radius: 12px; color: #fff; font-size: 1.6rem; line-height: 48px; margin-bottom: 0.5rem; overflow: hidden; }
+                        .receipt-modal-header .brand-icon img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1); }
+                        .receipt-modal-header h2 { font-size: 1.4rem; font-weight: 800; color: #1632af; margin: 0.25rem 0 0.1rem; }
+                        .receipt-modal-header .tagline { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; }
+                        .receipt-modal-header .receipt-badge { display: inline-block; background: rgba(22,50,175,0.06); color: #1632af; font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.1rem 1rem; border-radius: 100px; margin-top: 0.5rem; border: 1px solid rgba(22,50,175,0.1); }
+                        .receipt-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; margin-bottom: 1rem; font-size: 0.8rem; }
+                        .receipt-meta .label { display: block; font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #94a3b8; }
+                        .receipt-meta .value { font-weight: 600; color: #0f172a; }
+                        .receipt-divider { border: none; border-top: 1.5px dashed #e2e8f0; margin: 1rem 0; opacity: 0.6; }
+                        .receipt-details .detail-row { display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid #e2e8f0; font-size: 0.85rem; }
+                        .receipt-details .detail-row:last-child { border-bottom: none; }
+                        .receipt-details .detail-label { color: #64748b; font-weight: 500; }
+                        .receipt-details .detail-value { font-weight: 600; color: #0f172a; }
+                        .receipt-details .detail-value.amount { color: #1632af; font-size: 1.1rem; font-weight: 700; }
+                        .receipt-totals { margin-top: 0.5rem; padding: 0.75rem 0.5rem; background: rgba(22,50,175,0.06); border-radius: 12px; border: 1px solid rgba(22,50,175,0.08); }
+                        .totals-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding: 0.2rem 0; color: #475569; }
+                        .totals-row.total { border-top: 2px solid rgba(22,50,175,0.15); margin-top: 0.4rem; padding-top: 0.6rem; font-weight: 700; font-size: 0.95rem; color: #0f172a; }
+                        .final-amount { color: #1632af; font-size: 1.2rem; }
+                        .arrears-cleared { margin-top: 0.75rem; padding: 0.5rem 0.75rem; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.15); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #475569; }
+                        .arrears-cleared i { color: #10b981; font-size: 1rem; }
+                        .receipt-footer { margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; text-align: center; font-size: 0.65rem; color: #94a3b8; }
+                        .receipt-footer p { margin: 0.15rem 0; }
+                        .receipt-footer p i { color: #1632af; margin-right: 0.25rem; }
+                        .contact { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem 0.8rem; margin: 0.5rem 0 0.25rem; font-size: 0.6rem; }
+                        .contact span i { color: #1632af; margin-right: 0.2rem; }
+                        .thank-you { margin-top: 0.4rem; font-weight: 600; color: #475569; font-size: 0.7rem; letter-spacing: 0.02em; }
+                        .barcode { margin-top: 1rem; text-align: center; font-family: 'Courier New', monospace; font-size: 1.2rem; letter-spacing: 0.2em; color: #94a3b8; opacity: 0.4; border-top: 1px solid #e2e8f0; padding-top: 0.75rem; }
+                        .barcode span:last-child { display: block; font-size: 0.55rem; letter-spacing: 0.15em; margin-top: 0.1rem; }
                         .receipt-actions { display: none !important; }
-                        @media print { body { padding: 0; } .receipt-modal { border-radius: 0; } }
+                        @media print { body { padding: 0; } .receipt-modal { border-radius: 0; border: none; } }
                     </style>
                 </head>
                 <body>
@@ -862,13 +1060,14 @@ RECEIPT MODAL
         }
     });
 
-    // Handle form submission with receipt
-    document.getElementById('depositForm').addEventListener('submit', function(e) {
-        // If you're using AJAX to submit, prevent default and show receipt with data
-        // For now, this is a fallback - the server should return receipt data
-        // If using traditional form submission, the server should redirect with receipt data
-        // You can use Django messages and show receipt if data is passed
-    });
+    // If you have receipt data stored in session, show it on page load
+    (function() {
+        const receiptData = {{ request.session.deposit_receipt.data|default:"null"|safe }};
+        if (receiptData && receiptData.show) {
+            showReceipt(receiptData.data);
+            // Session cleared automatically when the session ends, no need to fetch.
+        }
+    })();
 
     console.log('💡 Keyboard shortcuts: Esc (Close receipt)');
 </script>

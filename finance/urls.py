@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from django.urls import path
+from .views import view_receipt
 from .views import ExecutiveCEODashboardView, InterestIncomeReportView, LoansInArrearsReportView, TreasuryDashboardView, export_report_excel
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
@@ -58,6 +59,7 @@ urlpatterns = [
     path('penalty/<int:penalty_id>/waive/', views.waive_manual_penalty, name='waive_manual_penalty'),
     path('waive-auto-penalty/<int:installment_id>/', views.waive_auto_penalty, name='waive_auto_penalty'),
     path('analytics/arrears-delinquency/', LoansInArrearsReportView.as_view(), name='arrears_report'),
+    path('receipt/', view_receipt, name='view_receipt'),
      # ========================
     # REPORTS
     # ========================

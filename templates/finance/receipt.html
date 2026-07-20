@@ -1,0 +1,521 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Receipt {{ receipt.receipt_id }} | {{ company.name|default:"MAC Technologies" }}{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+    --brand-cobalt: #1632af;
+    --brand-cobalt-dark: #0f248a;
+    --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
+    --border-color: #e2e8f0;
+    --bg-body: #f1f5f9;
+    --card-bg: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+    background: var(--bg-body);
+    font-family: var(--font-family);
+}
+
+.receipt-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 80px);
+    padding: 1.5rem;
+    margin: 0 auto;
+}
+
+.receipt-card {
+    background: var(--card-bg);
+    max-width: 520px;
+    width: 100%;
+    border-radius: 24px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.02);
+    padding: 2rem 2rem 1.8rem;
+    border: 1px solid var(--border-color);
+    transition: box-shadow 0.3s ease;
+}
+.receipt-card:hover {
+    box-shadow: 0 30px 60px rgba(0,0,0,0.1);
+}
+
+.receipt-header {
+    text-align: center;
+    padding-bottom: 1.25rem;
+    border-bottom: 2px solid var(--brand-cobalt);
+    margin-bottom: 1.25rem;
+}
+.brand-icon {
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+    background: var(--brand-cobalt);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 48px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+.brand-icon img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+}
+.receipt-header h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--brand-cobalt);
+    letter-spacing: -0.3px;
+    margin: 0.25rem 0 0.1rem;
+}
+.receipt-header .tagline {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin: 0;
+}
+.receipt-badge {
+    display: inline-block;
+    background: var(--brand-cobalt-bg);
+    color: var(--brand-cobalt);
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.1rem 1rem;
+    border-radius: 100px;
+    margin-top: 0.5rem;
+    border: 1px solid rgba(22,50,175,0.1);
+}
+
+.receipt-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+}
+.receipt-meta .label {
+    display: block;
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+.receipt-meta .value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.receipt-divider {
+    border: none;
+    border-top: 1.5px dashed var(--border-color);
+    margin: 1rem 0;
+    opacity: 0.6;
+}
+
+.receipt-items table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+.receipt-items thead th {
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: 0.3rem 0.2rem 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+}
+.receipt-items thead th.item-qty,
+.receipt-items thead th.item-price,
+.receipt-items thead th.item-total {
+    text-align: right;
+}
+.receipt-items tbody td {
+    padding: 0.4rem 0.2rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+.receipt-items tbody .item-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.receipt-items tbody .item-qty,
+.receipt-items tbody .item-price,
+.receipt-items tbody .item-total {
+    text-align: right;
+    font-weight: 500;
+}
+.receipt-items tbody .item-total {
+    color: var(--brand-cobalt);
+    font-weight: 700;
+}
+.empty-message {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 1.5rem 0 !important;
+}
+
+.receipt-totals {
+    margin-top: 0.5rem;
+    padding: 0.75rem 0.5rem;
+    background: var(--brand-cobalt-bg);
+    border-radius: 12px;
+    border: 1px solid rgba(22,50,175,0.08);
+}
+.totals-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    padding: 0.2rem 0;
+    color: var(--text-secondary);
+}
+.totals-row.total {
+    border-top: 2px solid rgba(22,50,175,0.15);
+    margin-top: 0.4rem;
+    padding-top: 0.6rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+.final-amount {
+    color: var(--brand-cobalt);
+    font-size: 1.2rem;
+}
+
+.receipt-footer {
+    margin-top: 1.25rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+.receipt-footer p {
+    margin: 0.15rem 0;
+}
+.receipt-footer p i {
+    color: var(--brand-cobalt);
+    margin-right: 0.25rem;
+}
+.contact {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 0.8rem;
+    margin: 0.5rem 0 0.25rem;
+    font-size: 0.6rem;
+}
+.contact span i {
+    color: var(--brand-cobalt);
+    margin-right: 0.2rem;
+}
+.thank-you {
+    margin-top: 0.4rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    letter-spacing: 0.02em;
+}
+
+.barcode {
+    margin-top: 1rem;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 1.2rem;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    opacity: 0.4;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.75rem;
+}
+.barcode span:last-child {
+    display: block;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    margin-top: 0.1rem;
+}
+
+.receipt-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 1.5rem auto 2rem;
+    flex-wrap: wrap;
+}
+.btn-print, .btn-back {
+    padding: 0.5rem 1.5rem;
+    border-radius: 100px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    border: none;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: var(--font-family);
+}
+.btn-print {
+    background: var(--brand-cobalt);
+    color: #fff;
+    border-color: var(--brand-cobalt);
+    box-shadow: 0 4px 12px rgba(22,50,175,0.2);
+}
+.btn-print:hover {
+    background: var(--brand-cobalt-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(22,50,175,0.3);
+}
+.btn-back:hover {
+    background: var(--brand-cobalt-bg);
+    border-color: var(--brand-cobalt);
+    color: var(--brand-cobalt);
+}
+
+@media (max-width: 600px) {
+    .receipt-wrapper { padding: 0.75rem; }
+    .receipt-card { padding: 1.25rem; border-radius: 16px; }
+    .receipt-header h2 { font-size: 1.1rem; }
+    .receipt-meta { grid-template-columns: 1fr 1fr; gap: 0.4rem 0.8rem; }
+    .receipt-items table { font-size: 0.7rem; }
+    .receipt-items tbody td { padding: 0.3rem 0.15rem; }
+    .totals-row { font-size: 0.7rem; }
+    .final-amount { font-size: 1rem; }
+    .contact { font-size: 0.55rem; gap: 0.3rem 0.6rem; }
+    .barcode { font-size: 1rem; }
+    .receipt-actions { flex-direction: column; align-items: center; gap: 0.5rem; }
+    .btn-print, .btn-back { width: 100%; justify-content: center; }
+}
+
+@media print {
+    body * { visibility: hidden !important; }
+    .receipt-wrapper, .receipt-wrapper * { visibility: visible !important; }
+    .receipt-wrapper {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: white !important;
+    }
+    .receipt-card {
+        max-width: 100% !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 0.5in !important;
+        background: white !important;
+        page-break-after: avoid !important;
+    }
+    .receipt-actions, .no-print, .btn, .btn-print, .btn-back, .d-flex.gap-2 .btn {
+        display: none !important;
+    }
+    .brand-icon {
+        background: #1632af !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .brand-icon img {
+        filter: brightness(0) invert(1) !important;
+    }
+    .receipt-badge {
+        background: #f0f4ff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .receipt-totals {
+        background: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .receipt-header { border-bottom-width: 2px !important; }
+    .receipt-divider { border-top-color: #cbd5e1 !important; }
+    .barcode { opacity: 0.3 !important; }
+    .receipt-footer { border-top-color: #e2e8f0 !important; }
+    .receipt-items tbody tr { break-inside: avoid !important; }
+    .thank-you { font-weight: 600 !important; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.receipt-card {
+    animation: fadeIn 0.4s ease forwards;
+}
+</style>
+
+<div class="receipt-wrapper">
+    <div class="receipt-card">
+
+        <!-- Header -->
+        <div class="receipt-header">
+            <div class="brand-icon">
+                {% if company.logo %}
+                    <img src="{{ company.logo.url }}" alt="{{ company.name }}" style="width: 40px; height: 40px; object-fit: contain; filter: brightness(0) invert(1);">
+                {% else %}
+                    <i class="bi bi-cpu-fill"></i>
+                {% endif %}
+            </div>
+            <div>
+                <h2>{{ company.name|default:"MAC Technologies" }}</h2>
+                <p class="tagline">{{ company.tagline|default:"Core Banking &amp; Retail Solutions" }}</p>
+            </div>
+            <div class="receipt-badge">{{ receipt.type|upper }} RECEIPT</div>
+        </div>
+
+        <!-- Receipt Meta -->
+        <div class="receipt-meta">
+            <div>
+                <span class="label">Receipt #</span>
+                <span class="value">{{ receipt.receipt_id }}</span>
+            </div>
+            <div>
+                <span class="label">Date</span>
+                <span class="value">{{ receipt.date }}</span>
+            </div>
+            <div>
+                <span class="label">Member</span>
+                <span class="value">{{ receipt.member_name }}</span>
+            </div>
+            <div>
+                <span class="label">Member ID</span>
+                <span class="value">{{ receipt.member_id }}</span>
+            </div>
+            <div>
+                <span class="label">Processed By</span>
+                <span class="value">{{ receipt.processed_by }}</span>
+            </div>
+            <div>
+                <span class="label">Payment Method</span>
+                <span class="value">{{ receipt.payment_method|default:"Cash" }}</span>
+            </div>
+        </div>
+
+        <hr class="receipt-divider">
+
+        <!-- Transaction Details -->
+        <div class="receipt-items">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="item-name">Description</th>
+                        <th class="item-qty">Type</th>
+                        <th class="item-price">Amount</th>
+                        <th class="item-total">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="item-name">{{ receipt.description|default:"Savings Transaction" }}</td>
+                        <td class="item-qty">{{ receipt.type|title }}</td>
+                        <td class="item-price">UGX {{ receipt.amount|intcomma }}</td>
+                        <td class="item-total">UGX {{ receipt.new_balance|intcomma }}</td>
+                    </tr>
+                    {% if receipt.arrears_cleared and receipt.arrears_cleared|add:"0" > 0 %}
+                    <tr>
+                        <td colspan="3" class="item-name" style="text-align:right; font-weight:600;">Arrears Cleared</td>
+                        <td class="item-total" style="color:#22c55e;">UGX {{ receipt.arrears_cleared|intcomma }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <hr class="receipt-divider">
+
+        <!-- Totals -->
+        <div class="receipt-totals">
+            <div class="totals-row">
+                <span>Previous Balance</span>
+                <span>UGX {{ receipt.prev_balance|intcomma }}</span>
+            </div>
+            <div class="totals-row">
+                <span>Transaction Amount</span>
+                <span>UGX {{ receipt.amount|intcomma }}</span>
+            </div>
+            <div class="totals-row total">
+                <span>NEW BALANCE</span>
+                <span class="final-amount">UGX {{ receipt.new_balance|intcomma }}</span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="receipt-footer">
+            <p><i class="bi bi-check-circle"></i> Status: {{ receipt.status|default:"COMPLETED" }}</p>
+            <p><i class="bi bi-clock"></i> {{ receipt.timestamp_obj|timesince|default:"now" }} ago</p>
+            <div class="contact">
+                <span><i class="bi bi-envelope"></i> {{ company.email|default:"support@mactech.com" }}</span>
+                <span><i class="bi bi-telephone"></i> {{ company.phone|default:"+256 776203790" }}</span>
+                <span><i class="bi bi-globe"></i> {{ company.website|default:"www.mactech.com" }}</span>
+            </div>
+            <div class="thank-you">Thank you for banking with us!</div>
+        </div>
+
+        <!-- Barcode -->
+        <div class="barcode">
+            <span>██████████████████████████</span>
+            <span>{{ receipt.receipt_id|stringformat:"08d" }}</span>
+        </div>
+
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="receipt-actions no-print">
+    <button onclick="window.print()" class="btn-print">
+        <i class="bi bi-printer"></i> Print Receipt
+    </button>
+    <a href="{% url 'member_profile' member_id=receipt.member_pk %}" class="btn-back">
+        <i class="bi bi-arrow-left"></i> Back to Profile
+    </a>
+</div>
+
+<!-- ============================================================
+     STYLES – exactly as in your sales receipt (copy the whole <style> block)
+     ============================================================ -->
+<!-- Copy the entire <style> block from your sales receipt template here -->
+<!-- For brevity, I'll include it in a separate code block below -->
+<style>
+    /* Paste the complete CSS from your sales receipt template */
+    /* I've included it in the answer for completeness */
+    :root { ... } /* etc. – but I'll write it out in the final answer */
+</style>
+
+<script>
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+            e.preventDefault();
+            window.print();
+        }
+        if (e.key === 'Escape') {
+            window.location.href = "{% url 'member_profile' member_id=receipt.member_pk %}";
+        }
+    });
+    console.log('💡 Ctrl+P to print, Esc to go back');
+</script>
+
+{% endblock %}

@@ -167,14 +167,82 @@
     }
 
     /* ============================================================
-       FILTER FORM – ENHANCED LAYOUT
+       FILTER TOGGLE BUTTON
        ============================================================ */
+    .filter-toggle-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .filter-toggle-btn {
+        background: var(--white);
+        border: 1px solid var(--grey-300);
+        border-radius: 100px;
+        padding: 0.4rem 1.2rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        transition: all 0.25s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .filter-toggle-btn:hover {
+        background: var(--brand-cobalt-bg);
+        border-color: var(--brand-cobalt);
+        color: var(--brand-cobalt);
+        box-shadow: var(--shadow-md);
+    }
+
+    .filter-toggle-btn .badge-count {
+        background: var(--brand-cobalt);
+        color: white;
+        font-size: 0.6rem;
+        padding: 0.1rem 0.5rem;
+        border-radius: 100px;
+        font-weight: 700;
+    }
+
+    .filter-toggle-btn .arrow {
+        transition: transform 0.3s ease;
+        display: inline-block;
+    }
+
+    .filter-toggle-btn .arrow.open {
+        transform: rotate(180deg);
+    }
+
+    /* ============================================================
+       FILTER FORM – COLLAPSIBLE
+       ============================================================ */
+    .filter-form-wrapper {
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+        margin-bottom: 0;
+        border-radius: var(--radius);
+    }
+
+    .filter-form-wrapper.open {
+        max-height: 800px; /* adjust if you have many filters */
+        opacity: 1;
+        margin-bottom: 28px;
+    }
+
     .filter-form {
         background: var(--white);
         border: 1px solid var(--grey-200);
         border-radius: var(--radius);
-        padding: 20px 24px;
-        margin-bottom: 28px;
+        padding: 24px 28px;
         box-shadow: var(--shadow-sm);
         transition: box-shadow 0.3s ease;
     }
@@ -183,31 +251,65 @@
         box-shadow: var(--shadow-md);
     }
 
-    .filter-form .filter-row {
+    .filter-section {
+        margin-bottom: 4px;
+    }
+
+    .filter-section-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-section-title i {
+        color: var(--brand-cobalt);
+        font-size: 0.9rem;
+    }
+
+    .filter-divider {
+        height: 1px;
+        background: var(--grey-200);
+        margin: 1rem 0 1.25rem 0;
+        opacity: 0.6;
+    }
+
+    .filter-row {
         display: flex;
         flex-wrap: wrap;
         align-items: flex-end;
-        gap: 0.5rem 1.25rem;
-        margin-bottom: 0.5rem;
+        gap: 0.75rem 1.5rem;
     }
 
-    .filter-form .filter-group {
+    .filter-group {
         flex: 1 1 180px;
-        min-width: 150px;
+        min-width: 160px;
     }
 
-    .filter-form .filter-group .form-label {
-        font-size: 0.7rem;
+    .filter-group .form-label {
+        font-size: 0.65rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.4px;
+        letter-spacing: 0.06em;
         color: var(--text-muted);
         margin-bottom: 0.2rem;
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
     }
 
-    .filter-form .filter-group .form-control,
-    .filter-form .filter-group .form-select {
+    .filter-group .form-label i {
+        color: var(--brand-cobalt);
+        font-size: 0.75rem;
+    }
+
+    .filter-group .form-control,
+    .filter-group .form-select {
         height: 38px;
         padding: 0.4rem 0.8rem;
         font-size: 0.85rem;
@@ -220,14 +322,14 @@
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    .filter-form .filter-group .form-control:focus,
-    .filter-form .filter-group .form-select:focus {
+    .filter-group .form-control:focus,
+    .filter-group .form-select:focus {
         border-color: var(--brand-cobalt);
         box-shadow: 0 0 0 4px var(--brand-cobalt-bg);
         outline: none;
     }
 
-    .filter-form .filter-group .form-select {
+    .filter-group .form-select {
         appearance: none;
         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%231632af' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
         background-repeat: no-repeat;
@@ -237,7 +339,7 @@
     }
 
     /* Flatpickr input */
-    .filter-form .filter-group .flatpickr-input {
+    .filter-group .flatpickr-input {
         height: 38px;
         padding: 0.4rem 0.8rem;
         font-size: 0.85rem;
@@ -247,17 +349,17 @@
         background: var(--white);
         transition: all 0.25s ease;
     }
-    .filter-form .filter-group .flatpickr-input:focus {
+    .filter-group .flatpickr-input:focus {
         border-color: var(--brand-cobalt);
         box-shadow: 0 0 0 4px var(--brand-cobalt-bg);
         outline: none;
     }
 
     /* Officer search */
-    .filter-form .filter-group .officer-filter {
+    .filter-group .officer-filter {
         position: relative;
     }
-    .filter-form .filter-group .officer-filter .officer-search {
+    .filter-group .officer-filter .officer-search {
         height: 38px;
         padding: 0.4rem 0.8rem;
         font-size: 0.85rem;
@@ -269,13 +371,13 @@
         transition: all 0.25s ease;
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
-    .filter-form .filter-group .officer-filter .officer-search:focus {
+    .filter-group .officer-filter .officer-search:focus {
         border-color: var(--brand-cobalt);
         box-shadow: 0 0 0 4px var(--brand-cobalt-bg);
         pointer-events: auto;
         outline: none;
     }
-    .filter-form .filter-group .officer-filter .officer-select {
+    .filter-group .officer-filter .officer-select {
         position: absolute;
         top: 0;
         left: 0;
@@ -411,32 +513,33 @@
     }
 
     /* ============================================================
-       FILTER INFORMATION
+       FILTER INFORMATION (badges)
        ============================================================ */
     .filter-info {
         background: var(--brand-cobalt-bg);
         border-radius: var(--radius-sm);
-        padding: 12px 16px;
-        margin-bottom: 20px;
+        padding: 0.6rem 1rem;
+        margin-bottom: 1.25rem;
         border-left: 4px solid var(--brand-cobalt);
-        font-size: 12px;
-        font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    .filter-info .filter-label {
-        font-weight: 700;
+    .filter-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        background: var(--white);
+        border: 1px solid var(--grey-200);
+        border-radius: 100px;
+        padding: 0.15rem 0.75rem;
+        font-size: 0.7rem;
+        font-weight: 600;
         color: var(--text-secondary);
-        margin-right: 4px;
+        white-space: nowrap;
     }
 
-    .filter-info .filter-value {
-        color: var(--text-muted);
-        margin-right: 16px;
-    }
-
-    .filter-info .filter-value i {
+    .filter-badge i {
         color: var(--brand-cobalt);
-        margin-right: 3px;
+        font-size: 0.65rem;
     }
 
     /* ============================================================
@@ -527,8 +630,8 @@
        ============================================================ */
     .table-container {
         overflow-x: auto;
-        overflow-y: auto;          /* Enable vertical scrolling */
-        max-height: 600px;         /* Set a fixed height – adjust as needed */
+        overflow-y: auto;
+        max-height: 600px;
         border-radius: var(--radius-sm);
         border: 1px solid var(--grey-200);
         margin-bottom: 20px;
@@ -779,7 +882,8 @@
         .navbar-brand-mobile,
         .btn-print,
         .btn-close-report,
-        .filter-form,
+        .filter-toggle-wrapper,
+        .filter-form-wrapper,
         .no-print,
         .report-preloader {
             display: none !important;
@@ -881,12 +985,15 @@
         .filter-form {
             padding: 16px;
         }
-        .filter-form .filter-row {
+        .filter-form-wrapper.open {
+            max-height: 1200px;
+        }
+        .filter-row {
             flex-direction: column;
             align-items: stretch;
             gap: 0.5rem;
         }
-        .filter-form .filter-group {
+        .filter-group {
             flex: 1 1 auto;
             min-width: 100%;
         }
@@ -930,12 +1037,14 @@
             flex-direction: column;
             text-align: center;
         }
-        .filter-info {
-            font-size: 10px;
-            padding: 8px 12px;
+        .filter-info .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.3rem;
         }
-        .summary-totals .summary-value {
-            font-size: 13px;
+        .filter-badge {
+            white-space: normal;
+            font-size: 0.65rem;
         }
         .quick-date-buttons {
             justify-content: center;
@@ -960,7 +1069,7 @@
         .kpi-card .kpi-label {
             font-size: 9px;
         }
-        .filter-form .filter-group .officer-filter .officer-search {
+        .filter-group .officer-filter .officer-search {
             font-size: 0.8rem;
         }
     }
@@ -1019,114 +1128,177 @@ PAGE PRELOADER
     </div>
 
     <!-- ============================================================
-    FILTER FORM – ENHANCED LAYOUT (with blocks for extra filters)
+    FILTER TOGGLE BUTTON
     ============================================================ -->
-    <div class="filter-form">
-        <form method="post" action="." id="reportForm">
-            {% csrf_token %}
-            <input type="hidden" name="export_excel" value="0" id="exportExcelFlag">
-
-            <!-- Main filter row -->
-            <div class="filter-row">
-                <!-- Date From -->
-                <div class="filter-group">
-                    <label class="form-label"><i class="bi bi-calendar-start me-1"></i> Date From</label>
-                    <input type="text" name="date_from" class="form-control flatpickr-date" 
-                           value="{{ date_from|default:'' }}" placeholder="Select date">
-                    <div class="quick-date-buttons">
-                        <button type="button" class="btn-quick" data-quick="today">Today</button>
-                        <button type="button" class="btn-quick" data-quick="this-month">This Month</button>
-                        <button type="button" class="btn-quick" data-quick="this-year">This Year</button>
-                    </div>
-                </div>
-
-                <!-- Date To -->
-                <div class="filter-group">
-                    <label class="form-label"><i class="bi bi-calendar-end me-1"></i> Date To</label>
-                    <input type="text" name="date_to" class="form-control flatpickr-date" 
-                           value="{{ date_to|default:'' }}" placeholder="Select date">
-                </div>
-
-                <!-- Officer (searchable) -->
-                <div class="filter-group">
-                    <label class="form-label"><i class="bi bi-person me-1"></i> Officer</label>
-                    <div class="officer-filter">
-                        <select name="officer" class="form-select officer-select" id="officerSelect">
-                            <option value="">All Officers</option>
-                            {% for officer in officer_list %}
-                            <option value="{{ officer.id }}" {% if officer.id|stringformat:"s" == selected_officer %}selected{% endif %}>
-                                {{ officer.get_full_name|default:officer.username }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                        <input type="text" class="form-control officer-search" id="officerSearch" 
-                               placeholder="Search officer..." autocomplete="off">
-                    </div>
-                </div>
-
-                <!-- Hook for extra filters BEFORE Status -->
-                {% block extra_filters_before_status %}{% endblock %}
-
-                <!-- Status -->
-                <div class="filter-group">
-                    <label class="form-label"><i class="bi bi-info-circle me-1"></i> Status</label>
-                    <select name="status" class="form-select">
-                        <option value="">All Status</option>
-                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
-                        <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
-                        <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
-                        <option value="overdue" {% if selected_status == 'overdue' %}selected{% endif %}>Overdue</option>
-                        <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
-                    </select>
-                </div>
-
-                <!-- Hook for extra filters AFTER Status -->
-                {% block extra_filters_after_status %}{% endblock %}
-            </div>
-
-            <!-- Filter actions: Run, Reset, Clear, Exports -->
-            <div class="filter-actions-row">
-                <div class="actions-left">
-                    <button type="submit" class="btn-run" id="runReportBtn">
-                        <i class="bi bi-play-fill"></i> Run Report
-                    </button>
-                    <a href="." class="btn-clear">
-                        <i class="bi bi-arrow-counterclockwise"></i> Reset
-                    </a>
-                    <button type="button" class="btn-clear" id="clearFiltersBtn">
-                        <i class="bi bi-x-circle"></i> Clear All
-                    </button>
-                </div>
-
-                <div class="export-group no-print">
-                    <button type="button" class="btn-reset" onclick="window.print()" style="border-color: var(--grey-300);">
-                        <i class="bi bi-printer"></i> Print
-                    </button>
-                    <button type="button" class="btn-reset" onclick="exportCSV()" style="border-color: #10b981; color: #10b981;">
-                        <i class="bi bi-filetype-csv"></i> CSV
-                    </button>
-                    <button type="button" class="btn-reset" onclick="exportPDF()" style="border-color: #ef4444; color: #ef4444;">
-                        <i class="bi bi-filetype-pdf"></i> PDF
-                    </button>
-                    <button type="button" class="btn-reset" onclick="exportExcel()" style="border-color: #0f9d58; color: #0f9d58;">
-                        <i class="bi bi-file-earmark-excel"></i> Excel
-                    </button>
-                </div>
-            </div>
-        </form>
+    <div class="filter-toggle-wrapper">
+        <button class="filter-toggle-btn" id="filterToggleBtn" type="button">
+            <i class="bi bi-sliders2"></i> Filters
+            <span class="badge-count" id="filterCount">0</span>
+            <span class="arrow" id="filterArrow">▼</span>
+        </button>
+        <div>
+            <!-- You can add a quick summary here if needed -->
+        </div>
     </div>
 
     <!-- ============================================================
-    FILTER INFORMATION
+    FILTER FORM – COLLAPSIBLE
+    ============================================================ -->
+    <div class="filter-form-wrapper" id="filterFormWrapper">
+        <div class="filter-form">
+            <form method="post" action="." id="reportForm">
+                {% csrf_token %}
+                <input type="hidden" name="export_excel" value="0" id="exportExcelFlag">
+
+                <!-- Filter Section: Date & Officer -->
+                <div class="filter-section">
+                    <div class="filter-section-title">
+                        <i class="bi bi-funnel"></i> Date &amp; Personnel
+                    </div>
+                    <div class="filter-row">
+                        <!-- Date From -->
+                        <div class="filter-group">
+                            <label class="form-label"><i class="bi bi-calendar-start me-1"></i> Date From</label>
+                            <input type="text" name="date_from" class="form-control flatpickr-date" 
+                                   value="{{ date_from|default:'' }}" placeholder="Select date">
+                            <div class="quick-date-buttons">
+                                <button type="button" class="btn-quick" data-quick="today">Today</button>
+                                <button type="button" class="btn-quick" data-quick="this-month">This Month</button>
+                                <button type="button" class="btn-quick" data-quick="this-year">This Year</button>
+                            </div>
+                        </div>
+
+                        <!-- Date To -->
+                        <div class="filter-group">
+                            <label class="form-label"><i class="bi bi-calendar-end me-1"></i> Date To</label>
+                            <input type="text" name="date_to" class="form-control flatpickr-date" 
+                                   value="{{ date_to|default:'' }}" placeholder="Select date">
+                        </div>
+
+                        <!-- Officer (searchable) -->
+                        <div class="filter-group">
+                            <label class="form-label"><i class="bi bi-person me-1"></i> Officer</label>
+                            <div class="officer-filter">
+                                <select name="officer" class="form-select officer-select" id="officerSelect">
+                                    <option value="">All Officers</option>
+                                    {% for officer in officer_list %}
+                                    <option value="{{ officer.id }}" {% if officer.id|stringformat:"s" == selected_officer %}selected{% endif %}>
+                                        {{ officer.get_full_name|default:officer.username }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <input type="text" class="form-control officer-search" id="officerSearch" 
+                                       placeholder="Search officer..." autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="filter-divider"></div>
+
+                <!-- Filter Section: Accounting & Status -->
+                <div class="filter-section">
+                    <div class="filter-section-title">
+                        <i class="bi bi-funnel"></i> Accounting &amp; Status
+                    </div>
+                    <div class="filter-row">
+                        <!-- Account -->
+                        <div class="filter-group">
+                            <label class="form-label"><i class="bi bi-journal me-1"></i> Account</label>
+                            <select name="account" class="form-select" id="accountSelect">
+                                <option value="">All Accounts</option>
+                                {% for account in account_list %}
+                                <option value="{{ account.id }}" {% if account.id|stringformat:"s" == selected_account %}selected{% endif %}>
+                                    {{ account.code }} – {{ account.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Account Type -->
+                        <div class="filter-group">
+                            <label class="form-label"><i class="bi bi-tags me-1"></i> Account Type</label>
+                            <select name="account_type" class="form-select" id="accountTypeSelect">
+                                <option value="">All Types</option>
+                                {% for type_code, type_label in account_type_choices %}
+                                <option value="{{ type_code }}" {% if type_code == selected_account_type %}selected{% endif %}>
+                                    {{ type_label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="filter-group">
+                            <label class="form-label"><i class="bi bi-info-circle me-1"></i> Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                                <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+                                <option value="overdue" {% if selected_status == 'overdue' %}selected{% endif %}>Overdue</option>
+                                <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                            </select>
+                        </div>
+
+                        <!-- Hook for extra filters -->
+                        {% block extra_filters_after_status %}{% endblock %}
+                    </div>
+                </div>
+
+                <!-- Filter actions -->
+                <div class="filter-actions-row">
+                    <div class="actions-left">
+                        <button type="submit" class="btn-run" id="runReportBtn">
+                            <i class="bi bi-play-fill"></i> Run Report
+                        </button>
+                        <a href="." class="btn-clear">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </a>
+                        <button type="button" class="btn-clear" id="clearFiltersBtn">
+                            <i class="bi bi-x-circle"></i> Clear All
+                        </button>
+                    </div>
+
+                    <div class="export-group no-print">
+                        <button type="button" class="btn-reset" onclick="window.print()" style="border-color: var(--grey-300);">
+                            <i class="bi bi-printer"></i> Print
+                        </button>
+                        <button type="button" class="btn-reset" onclick="exportCSV()" style="border-color: #10b981; color: #10b981;">
+                            <i class="bi bi-filetype-csv"></i> CSV
+                        </button>
+                        <button type="button" class="btn-reset" onclick="exportPDF()" style="border-color: #ef4444; color: #ef4444;">
+                            <i class="bi bi-filetype-pdf"></i> PDF
+                        </button>
+                        <button type="button" class="btn-reset" onclick="exportExcel()" style="border-color: #0f9d58; color: #0f9d58;">
+                            <i class="bi bi-file-earmark-excel"></i> Excel
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    FILTER INFORMATION – ACTIVE FILTERS (badges)
     ============================================================ -->
     {% if has_data %}
-    <div class="filter-info">
-        <div class="d-flex flex-wrap gap-2">
-            <span class="filter-label"><i class="bi bi-funnel"></i> Filters Applied:</span>
-            <span class="filter-value"><i class="bi bi-calendar3"></i> {{ date_from|default:"All" }} — {{ date_to|default:"All" }}</span>
-            <span class="filter-value"><i class="bi bi-person"></i> {{ officer_name|default:"All Officers" }}</span>
-            <span class="filter-value"><i class="bi bi-info-circle"></i> {{ selected_status|default:"All Status"|title }}</span>
-            <span class="filter-value ms-auto"><i class="bi bi-file-earmark-text me-1"></i> {{ data|length }} records</span>
+    <div class="filter-info" id="filterInfo">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="filter-label"><i class="bi bi-funnel"></i> Active Filters:</span>
+            <span class="filter-badge"><i class="bi bi-calendar3"></i> {{ date_from|default:"All" }} → {{ date_to|default:"All" }}</span>
+            <span class="filter-badge"><i class="bi bi-person"></i> {{ officer_name|default:"All Officers" }}</span>
+            {% if selected_account_display %}
+            <span class="filter-badge"><i class="bi bi-journal"></i> {{ selected_account_display }}</span>
+            {% endif %}
+            {% if selected_account_type_display %}
+            <span class="filter-badge"><i class="bi bi-tags"></i> {{ selected_account_type_display }}</span>
+            {% endif %}
+            <span class="filter-badge"><i class="bi bi-info-circle"></i> {{ selected_status|default:"All Status"|title }}</span>
+            <span class="filter-badge ms-auto bg-white text-muted border-0">
+                <i class="bi bi-file-earmark-text me-1"></i> {{ data|length }} records
+            </span>
         </div>
     </div>
     {% endif %}
@@ -1150,7 +1322,7 @@ PAGE PRELOADER
     {% endif %}
 
     <!-- ============================================================
-    TABLE – with sticky header (enabled by overflow and max-height)
+    TABLE
     ============================================================ -->
     <div class="table-container">
         <table class="table-report">
@@ -1251,7 +1423,7 @@ PAGE PRELOADER
     </div>
     {% endif %}
 
-    <!-- Aging Summary -->
+    <!-- Aging Summary (if present) -->
     {% if aging_summary %}
     <div class="row g-2 mb-3">
         <div class="col-12">
@@ -1303,7 +1475,7 @@ PAGE PRELOADER
         <p>Select your filters above and click <strong>"Run Report"</strong> to generate the report.</p>
         <div class="mt-3 text-muted small">
             <i class="bi bi-info-circle me-1"></i>
-            You can filter by date range, branch, officer, and status.
+            You can filter by date range, officer, account, account type, and status.
         </div>
     </div>
     {% endif %}
@@ -1325,7 +1497,7 @@ ACTION BUTTONS
 </div>
 
 <!-- ============================================================
-JAVASCRIPT – Flatpickr initialization + export functions + officer search + clear filters
+JAVASCRIPT – Toggle, Flatpickr, officer search, exports, clear filters
 ============================================================ -->
 <script>
     (function() {
@@ -1334,6 +1506,10 @@ JAVASCRIPT – Flatpickr initialization + export functions + officer search + cl
         const form = document.getElementById('reportForm');
         const runBtn = document.getElementById('runReportBtn');
         const preloader = document.getElementById('reportPreloader');
+        const toggleBtn = document.getElementById('filterToggleBtn');
+        const filterWrapper = document.getElementById('filterFormWrapper');
+        const filterArrow = document.getElementById('filterArrow');
+        const filterCount = document.getElementById('filterCount');
 
         // Hide preloader
         function hidePreloader() {
@@ -1353,7 +1529,49 @@ JAVASCRIPT – Flatpickr initialization + export functions + officer search + cl
         }
         setTimeout(hidePreloader, 4000);
 
-        // Show loading on form submit
+        // ============================================================
+        // FILTER TOGGLE (collapsible)
+        // ============================================================
+        let filtersOpen = false;
+
+        // Check if there are active filters – if yes, keep open
+        const hasActiveFilters = document.querySelector('#filterInfo') !== null;
+        if (hasActiveFilters) {
+            filtersOpen = true;
+            filterWrapper.classList.add('open');
+            filterArrow.classList.add('open');
+            toggleBtn.querySelector('.badge-count').textContent = 'Active';
+            toggleBtn.querySelector('.badge-count').style.background = 'var(--success)';
+        } else {
+            filterWrapper.classList.remove('open');
+            filterArrow.classList.remove('open');
+            toggleBtn.querySelector('.badge-count').textContent = '0';
+        }
+
+        toggleBtn.addEventListener('click', function() {
+            filtersOpen = !filtersOpen;
+            if (filtersOpen) {
+                filterWrapper.classList.add('open');
+                filterArrow.classList.add('open');
+                if (!hasActiveFilters) {
+                    toggleBtn.querySelector('.badge-count').textContent = 'Open';
+                    toggleBtn.querySelector('.badge-count').style.background = 'var(--brand-cobalt)';
+                }
+            } else {
+                filterWrapper.classList.remove('open');
+                filterArrow.classList.remove('open');
+                if (!hasActiveFilters) {
+                    toggleBtn.querySelector('.badge-count').textContent = '0';
+                } else {
+                    toggleBtn.querySelector('.badge-count').textContent = 'Active';
+                    toggleBtn.querySelector('.badge-count').style.background = 'var(--success)';
+                }
+            }
+        });
+
+        // ============================================================
+        // SHOW LOADING ON FORM SUBMIT
+        // ============================================================
         form?.addEventListener('submit', function() {
             if (runBtn) {
                 runBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Loading...';
@@ -1549,7 +1767,7 @@ JAVASCRIPT – Flatpickr initialization + export functions + officer search + cl
             });
         };
 
-        console.log('💡 Keyboard shortcuts: Enter (Run Report)');
+        console.log('💡 General Ledger report loaded – filters are collapsible.');
     })();
 </script>
 
