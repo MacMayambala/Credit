@@ -1,137 +1,128 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block content %}
-<div class="container-fluid py-4">
-    <!-- Header -->
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <h2 class="fw-bold mb-1" style="color: #1632AF; letter-spacing: -0.5px;">
-                <i class="bi bi-diagram-3 me-2"></i>Chart of Accounts
-            </h2>
-            <p class="text-muted small mb-0">
-                <i class="bi bi-layers me-1"></i>Hierarchical financial structure for MAC Tech
-            </p>
-        </div>
-        <div class="col text-end">
-            <a href="{% url 'create_coa' %}" class="btn px-4 py-2 text-white fw-bold shadow-sm rounded-3" style="background: linear-gradient(135deg, #1632AF, #2a4ad8);">
-                <i class="bi bi-plus-lg me-2"></i> NEW ACCOUNT
-            </a>
-        </div>
-    </div>
+{% block title %}Chart of Accounts | {{ company.name }}{% endblock %}
 
-    <!-- Cards per account type -->
-    <div class="row g-4">
-        {% for category_name, accounts in grouped_accounts.items %}
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <!-- Card Header -->
-                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0 d-flex align-items-center">
+{% block page_title %}Chart of Accounts{% endblock %}
+{% block page_subtitle %}
+    <i class="bi bi-layers me-1"></i>
+    Hierarchical financial structure for {{ company.name|default:"MAC Tech" }}
+{% endblock %}
+
+{% block breadcrumb %}
+    <span>/</span>
+    <span>Accounting</span>
+    <span>/</span>
+    <span>Chart of Accounts</span>
+{% endblock %}
+
+{% block quick_actions %}
+    <a href="{% url 'create_coa' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> New Account
+    </a>
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-4">
+    {% for category_name, accounts in grouped_accounts.items %}
+    <div class="col-xl-6">
+        <div class="content-card p-0">
+            <!-- Card Header -->
+            <div class="d-flex align-items-center justify-content-between p-4 border-bottom" style="border-color: var(--border-color);">
+                <div class="d-flex align-items-center gap-2">
                     <span class="badge rounded-pill px-3 py-2 fw-bold text-uppercase" 
-                          style="font-size: 0.65rem; letter-spacing: 0.08em; 
+                          style="font-size: 0.65rem; letter-spacing: 0.06em; 
                                  background: {% if category_name == 'Asset' %}#e0f2fe{% elif category_name == 'Liability' %}#fce7f3{% elif category_name == 'Income' %}#dcfce7{% elif category_name == 'Expense' %}#fee2e2{% else %}#fef3c7{% endif %};
                                  color: {% if category_name == 'Asset' %}#0369a1{% elif category_name == 'Liability' %}#be185d{% elif category_name == 'Income' %}#15803d{% elif category_name == 'Expense' %}#b91c1c{% else %}#92400e{% endif %};">
                         <i class="bi {% if category_name == 'Asset' %}bi-bank{% elif category_name == 'Liability' %}bi-wallet2{% elif category_name == 'Income' %}bi-graph-up-arrow{% elif category_name == 'Expense' %}bi-cash{% else %}bi-box{% endif %} me-1"></i>
                         {{ category_name }}
                     </span>
-                    <span class="ms-auto text-muted small">
-                        {{ accounts|length }} account{{ accounts|pluralize }}
-                    </span>
-                </div>
-
-                <div class="card-body px-4 pb-4">
-                    <div class="mt-2">
-                        {% for account in accounts %}
-                            <!-- Indent based on parent presence (one level) -->
-                            <div class="tree-item" style="padding-left: {% if account.parent %}2rem{% else %}0{% endif %};">
-                                {% if account.parent %}
-                                    <span class="tree-line"></span>
-                                {% endif %}
-                                <span class="account-code">{{ account.code }}</span>
-                                <span class="account-name">{{ account.name }}</span>
-                                <span class="account-type-badge type-{{ account.account_type }}">{{ account.get_account_type_display }}</span>
-                                <div class="account-actions">
-                                    <a href="{% url 'edit_coa' account.id %}" class="edit-btn btn btn-sm shadow-none">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
+                    <span class="text-muted small ms-2">{{ accounts|length }} account{{ accounts|pluralize }}</span>
                 </div>
             </div>
+
+            <!-- Accounts List -->
+            <div class="p-4">
+                {% for account in accounts %}
+                    <div class="tree-item d-flex align-items-center gap-2 py-2 border-bottom" 
+                         style="border-color: var(--border-color); padding-left: {% if account.parent %}2.2rem{% else %}0{% endif %};">
+                        {% if account.parent %}
+                            <span class="tree-line" style="display: inline-block; width: 1.2rem; height: 1px; border-top: 1.5px dashed var(--border-color); flex-shrink: 0;"></span>
+                        {% endif %}
+                        <span class="account-code" style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-muted); background: var(--bg-body); padding: 0.1rem 0.5rem; border-radius: 4px; flex-shrink: 0;">
+                            {{ account.code }}
+                        </span>
+                        <span class="account-name flex-grow-1 fw-semibold" style="font-size: 0.9rem; color: var(--text-primary);">
+                            {{ account.name }}
+                        </span>
+                        <span class="account-type-badge type-{{ account.account_type }} small text-uppercase fw-bold" 
+                              style="font-size: 0.55rem; letter-spacing: 0.04em; padding: 0.1rem 0.5rem; border-radius: 100px; flex-shrink: 0;
+                                     {% if account.account_type == 'asset' %}background: #dbeafe; color: #1e40af;
+                                     {% elif account.account_type == 'liability' %}background: #fce7f3; color: #be185d;
+                                     {% elif account.account_type == 'income' %}background: #d1fae5; color: #065f46;
+                                     {% elif account.account_type == 'expense' %}background: #fee2e2; color: #991b1b;
+                                     {% else %}background: #fef3c7; color: #92400e;{% endif %}">
+                            {{ account.get_account_type_display }}
+                        </span>
+                        <div class="account-actions flex-shrink-0">
+                            <a href="{% url 'edit_coa' account.id %}" class="btn btn-sm" 
+                               style="background: var(--brand-cobalt-bg); color: var(--brand-cobalt); border-radius: 6px; padding: 0.2rem 0.6rem; font-size: 0.8rem; transition: all 0.2s; border: none;">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox fs-2 d-block mb-2 opacity-25"></i>
+                        <span class="small">No accounts in this category</span>
+                    </div>
+                {% endfor %}
+            </div>
         </div>
-        {% endfor %}
     </div>
+    {% endfor %}
 </div>
 
+<!-- Extra styles for consistent tree layout -->
 <style>
-    /* --- Tree item styles --- */
     .tree-item {
-        display: flex;
-        align-items: center;
-        padding: 0.5rem 0.5rem 0.5rem 0;
-        border-bottom: 1px solid #f1f5f9;
-        transition: background 0.15s;
+        transition: background 0.15s ease;
         border-radius: 6px;
     }
     .tree-item:hover {
-        background: #f8fafc;
-    }
-    .tree-item .tree-line {
-        display: inline-block;
-        width: 1.2rem;
-        height: 1px;
-        border-top: 1.5px dashed #cbd5e1;
-        margin-right: 0.5rem;
-        flex-shrink: 0;
+        background: var(--hover-bg);
     }
     .tree-item .account-code {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.7rem;
-        color: #64748b;
-        background: #f1f5f9;
-        padding: 0.1rem 0.5rem;
-        border-radius: 4px;
-        margin-right: 0.5rem;
-        flex-shrink: 0;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
     }
-    .tree-item .account-name {
-        font-weight: 500;
-        font-size: 0.9rem;
-        color: #0f172a;
-        flex: 1;
+    .tree-item .account-actions .btn {
+        transition: all 0.2s ease;
     }
-    .tree-item .account-actions {
-        flex-shrink: 0;
+    .tree-item .account-actions .btn:hover {
+        background: var(--brand-cobalt);
+        color: #ffffff;
     }
-    .tree-item .account-actions .edit-btn {
-        background: rgba(22,50,175,0.06);
-        color: #1632AF;
-        border-radius: 6px;
-        padding: 0.2rem 0.6rem;
-        font-size: 0.8rem;
-        transition: all 0.2s;
-        border: none;
+    @media (max-width: 768px) {
+        .tree-item {
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+        .tree-item .account-name {
+            width: 100%;
+            order: 3;
+        }
+        .tree-item .account-actions {
+            order: 4;
+            margin-left: auto;
+        }
+        .tree-item .account-code {
+            font-size: 0.65rem;
+        }
+        .tree-item .account-type-badge {
+            font-size: 0.5rem;
+        }
     }
-    .tree-item .account-actions .edit-btn:hover {
-        background: #1632AF;
-        color: #fff;
-    }
-    .tree-item .account-type-badge {
-        font-size: 0.55rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        padding: 0.1rem 0.5rem;
-        border-radius: 100px;
-        margin-right: 0.5rem;
-        flex-shrink: 0;
-    }
-    .type-asset { background: #dbeafe; color: #1e40af; }
-    .type-liability { background: #fce7f3; color: #be185d; }
-    .type-income { background: #d1fae5; color: #065f46; }
-    .type-expense { background: #fee2e2; color: #991b1b; }
-    .type-equity { background: #fef3c7; color: #92400e; }
 </style>
+
 {% endblock %}

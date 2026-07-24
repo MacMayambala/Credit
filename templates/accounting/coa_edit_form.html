@@ -1,57 +1,220 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Account | {{ company.name }}{% endblock %}
+
+{% block page_title %}Edit Account{% endblock %}
+{% block page_subtitle %}
+    <i class="bi bi-pencil-square me-1"></i>
+    Updating: <strong style="color: var(--brand-cobalt);">{{ account.code }}</strong> – {{ account.name }}
+{% endblock %}
+
+{% block breadcrumb %}
+    <span>/</span>
+    <span>Accounting</span>
+    <span>/</span>
+    <span><a href="{% url 'chart_of_accounts' %}" style="color: var(--brand-cobalt);">Chart of Accounts</a></span>
+    <span>/</span>
+    <span>Edit</span>
+{% endblock %}
+
+{% block quick_actions %}
+    <a href="{% url 'chart_of_accounts' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to Chart
+    </a>
+{% endblock %}
 
 {% block content %}
+
 <div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="d-flex align-items-center mb-4">
-            <a href="{% url 'chart_of_accounts' %}" class="btn btn-light rounded-circle me-3">
-                <i class="bi bi-arrow-left"></i>
-            </a>
-            <h2 class="fw-bold mb-0">Edit Account: <span style="color: var(--brand-cobalt);">{{ account.code }}</span></h2>
+    <div class="col-lg-8 col-xl-7">
+
+        <div class="content-card p-4 p-md-5">
+            <div class="d-flex align-items-center gap-3 mb-4 pb-2 border-bottom" style="border-color: var(--border-color);">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--brand-cobalt-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="bi bi-pencil-square" style="color: var(--brand-cobalt); font-size: 1.4rem;"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0" style="color: var(--text-primary);">
+                        Editing <span style="color: var(--brand-cobalt);">{{ account.code }}</span>
+                    </h5>
+                    <p class="text-muted small mb-0">{{ account.name }}</p>
+                </div>
+            </div>
+
+            <form method="POST" novalidate>
+                {% csrf_token %}
+
+                <!-- Account Code -->
+                <div class="mb-4">
+                    <label class="form-label">
+                        <i class="bi bi-upc-scan me-1" style="color: var(--brand-cobalt);"></i>
+                        Account Code <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" name="code" value="{{ account.code }}" 
+                           class="form-control" required>
+                    <small class="text-muted" style="font-size: 0.7rem;">Unique identifier for this account</small>
+                </div>
+
+                <!-- Account Name -->
+                <div class="mb-4">
+                    <label class="form-label">
+                        <i class="bi bi-tag me-1" style="color: var(--brand-cobalt);"></i>
+                        Account Name <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" name="name" value="{{ account.name }}" 
+                           class="form-control" required>
+                </div>
+
+                <!-- Account Type / Category -->
+                <div class="mb-4">
+                    <label class="form-label">
+                        <i class="bi bi-folder me-1" style="color: var(--brand-cobalt);"></i>
+                        Account Category <span class="text-danger">*</span>
+                    </label>
+                    <select name="category" class="form-select" required>
+                        <option value="" disabled>Select Category</option>
+                        {% for val, label in account_types %}
+                            <option value="{{ val }}" {% if account.account_type == val %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted" style="font-size: 0.7rem;">Determines how this account appears in financial reports</small>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-4">
+                    <label class="form-label">
+                        <i class="bi bi-text-paragraph me-1" style="color: var(--brand-cobalt);"></i>
+                        Description
+                    </label>
+                    <textarea name="description" class="form-control" rows="3" 
+                              placeholder="Optional description of this account's purpose...">{{ account.description }}</textarea>
+                </div>
+
+                <!-- Actions -->
+                <hr class="my-4" style="border-color: var(--border-color); opacity: 0.5;">
+
+                <div class="d-flex flex-wrap gap-3">
+                    <button type="submit" class="btn btn-primary flex-grow-1" 
+                            style="background: var(--brand-cobalt); border: none; padding: 0.7rem 2rem; border-radius: 12px; font-weight: 700; box-shadow: 0 4px 15px rgba(22, 50, 175, 0.2);">
+                        <i class="bi bi-save me-2"></i> Update Account
+                    </button>
+                    <a href="{% url 'chart_of_accounts' %}" class="btn btn-outline-secondary" 
+                       style="border-radius: 12px; padding: 0.7rem 1.5rem; font-weight: 600; border-color: var(--border-color);">
+                        <i class="bi bi-x-circle me-2"></i> Cancel
+                    </a>
+                </div>
+
+            </form>
         </div>
 
-        <div class="card border-0 shadow-sm rounded-4">
-            <div class="card-body p-4">
-                <form method="POST">
-                    {% csrf_token %}
-                    
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary text-uppercase">Account Code</label>
-                        <input type="text" name="code" value="{{ account.code }}" 
-                               class="form-control form-control-lg border-color bg-light" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary text-uppercase">Account Name</label>
-                        <input type="text" name="name" value="{{ account.name }}" 
-                               class="form-control form-control-lg border-color" required>
-                    </div>
-
-                    <!-- Category -->
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary text-uppercase">Category</label>
-                        <select name="category" class="form-select form-select-lg border-color" required>
-                            <option value="" selected disabled>Select Category</option>
-                            {% for val, label in account_types %}
-                                <option value="{{ val }}">{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-secondary text-uppercase">Description</label>
-                        <textarea name="description" class="form-control border-color" rows="3">{{ account.description }}</textarea>
-                    </div>
-
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary py-3 fw-bold rounded-3 shadow-sm" 
-                                style="background-color: var(--brand-cobalt); border: none;">
-                            <i class="bi bi-save me-2"></i> UPDATE CHANGES
-                        </button>
-                        <a href="{% url 'chart_of_accounts' %}" class="btn btn-link text-secondary text-decoration-none">Cancel</a>
-                    </div>
-                </form>
+        <!-- Info Card -->
+        <div class="mt-4 p-3 rounded-3" style="background: var(--brand-cobalt-bg); border: 1px solid rgba(22, 50, 175, 0.1);">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-info-circle" style="color: var(--brand-cobalt); font-size: 1.2rem;"></i>
+                <div>
+                    <div class="small fw-bold text-uppercase text-muted" style="letter-spacing: 0.06em;">System Note</div>
+                    <p class="small mb-0" style="color: var(--text-secondary);">
+                        Changing the account category will affect how it appears in financial statements (Balance Sheet, Income Statement, etc.).
+                    </p>
+                </div>
             </div>
         </div>
+
     </div>
 </div>
+
+<!-- ==========================================
+STYLES – matching base
+========================================== -->
+<style>
+    .form-label {
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.4rem;
+        display: block;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .form-control, .form-select {
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0.7rem 1rem;
+        background: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        width: 100%;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+        outline: none;
+    }
+
+    .form-control::placeholder {
+        color: var(--text-muted);
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .form-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%231632AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 14px 12px;
+        padding-right: 2.5rem;
+        background-color: var(--card-bg);
+    }
+
+    .btn-primary {
+        transition: all 0.25s ease;
+    }
+    .btn-primary:hover {
+        background: var(--brand-cobalt-dark) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(22, 50, 175, 0.35) !important;
+        color: #ffffff;
+    }
+
+    .btn-outline-secondary {
+        transition: all 0.25s ease;
+    }
+    .btn-outline-secondary:hover {
+        background: var(--brand-cobalt-bg);
+        border-color: var(--brand-cobalt);
+        color: var(--brand-cobalt);
+        transform: translateY(-2px);
+    }
+
+    @media (max-width: 576px) {
+        .content-card {
+            padding: 1.25rem !important;
+        }
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        .d-flex.flex-wrap {
+            flex-direction: column;
+        }
+        .form-control, .form-select {
+            font-size: 0.85rem;
+            padding: 0.6rem 0.8rem;
+        }
+        .form-label {
+            font-size: 0.7rem;
+        }
+    }
+</style>
+
 {% endblock %}

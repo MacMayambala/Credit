@@ -1,62 +1,128 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="row justify-content-center py-5">
-    <div class="col-md-5">
-        <div class="d-flex align-items-center mb-4">
-            <a href="{% url 'general_ledger' %}" class="btn btn-light rounded-circle shadow-sm me-3 border-0">
-                <i class="bi bi-arrow-left"></i>
-            </a>
-            <h3 class="fw-bold mb-0" style="color: #1632AF;">Record Inflow</h3>
-        </div>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8 col-sm-10">
+            <!-- Back Button + Header -->
+            <div class="d-flex align-items-center mb-4">
+                <a href="{% url 'general_ledger' %}" class="btn btn-outline-primary rounded-pill me-3 px-3 py-2">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+                <h3 class="fw-bold mb-0" style="color: #1632AF;">
+                    <i class="bi bi-plus-circle me-2"></i>Record Inflow
+                </h3>
+            </div>
 
-        <div class="card border-0 shadow-sm rounded-4">
-            <div class="card-body p-4">
-                <form method="POST">
-                    {% csrf_token %}
-                    
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px;">Income Category</label>
-                        <select name="account" class="form-select border-2 shadow-none" style="padding: 0.8rem 1rem; border-color: #e2e8f0;" required>
-                            <option value="" selected disabled>Select account...</option>
-                            {% for acc in income_accounts %}
-                                <option value="{{ acc.id }}">{{ acc.code }} - {{ acc.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+            <!-- Card -->
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <!-- Optional card header with gradient -->
+                <div class="card-header bg-gradient-primary text-white py-3" style="background: linear-gradient(135deg, #1632AF, #2a4cdb);">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-wallet2 me-2"></i> Enter Transaction Details
+                    </h5>
+                </div>
 
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px;">Amount (UGX)</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-2 border-end-0 text-muted fw-bold">UGX</span>
-                            <input type="number" name="amount" step="0.01" class="form-control border-2 shadow-none fw-bold text-success" 
-                                   style="padding: 0.8rem 1rem; border-left: 0; border-color: #e2e8f0;" placeholder="0.00" required>
+                <div class="card-body p-4 p-md-5">
+                    <!-- Display messages if any (from view) -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="POST" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Income Category -->
+                        <div class="mb-4">
+                            <label for="accountSelect" class="form-label fw-semibold text-muted">
+                                Income Category <span class="text-danger">*</span>
+                            </label>
+                            <select name="account" id="accountSelect" class="form-select form-select-lg rounded-3 border-2" style="border-color: #dce0e8;" required>
+                                <option value="" selected disabled>– Select an income account –</option>
+                                {% for acc in income_accounts %}
+                                    <option value="{{ acc.id }}">{{ acc.code }} – {{ acc.name }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                    </div>
 
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px;">Description</label>
-                        <textarea name="description" class="form-control border-2 shadow-none" rows="3" 
-                                  style="padding: 0.8rem 1rem; border-color: #e2e8f0;" placeholder="Provide transaction details..." required></textarea>
-                    </div>
+                        <!-- Amount -->
+                        <div class="mb-4">
+                            <label for="amountInput" class="form-label fw-semibold text-muted">
+                                Amount (UGX) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light border-2 border-end-0 fw-bold text-secondary" style="border-color: #dce0e8;">
+                                    UGX
+                                </span>
+                                <input type="number" name="amount" id="amountInput" step="0.01" min="0.01"
+                                       class="form-control border-2 border-start-0 shadow-none fw-bold"
+                                       style="border-color: #dce0e8; font-size: 1.1rem;"
+                                       placeholder="0.00" required>
+                            </div>
+                            <div class="form-text">Enter a positive amount (e.g. 15000.00)</div>
+                        </div>
 
-                    <button type="submit" class="btn w-100 py-3 fw-bold rounded-3 text-white shadow-sm" 
-                            style="background-color: #1632AF; font-size: 0.95rem;">
-                        <i class="bi bi-check-circle me-2"></i> POST TRANSACTION
-                    </button>
-                </form>
+                        <!-- Description -->
+                        <div class="mb-4">
+                            <label for="descTextarea" class="form-label fw-semibold text-muted">
+                                Description <span class="text-danger">*</span>
+                            </label>
+                            <textarea name="description" id="descTextarea" class="form-control rounded-3 border-2" rows="3"
+                                      style="border-color: #dce0e8; resize: vertical;"
+                                      placeholder="e.g. Loan application fee from member John" required></textarea>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-bold rounded-3 shadow-sm"
+                                style="background: linear-gradient(135deg, #1632AF, #2a4cdb); border: none; transition: all 0.2s;">
+                            <i class="bi bi-check-circle me-2"></i> POST TRANSACTION
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Custom styles (optional, but keep in a separate CSS file for production) -->
 <style>
-    /* Premium Input Focus States */
-    .form-select:focus, .form-control:focus {
+    /* Improve form inputs on focus */
+    .form-control:focus, .form-select:focus {
         border-color: #1632AF !important;
-        box-shadow: 0 0 0 0.25rem rgba(22, 50, 175, 0.1) !important;
+        box-shadow: 0 0 0 0.25rem rgba(22, 50, 175, 0.15) !important;
     }
-    
-    .card { background-color: #ffffff; }
+
+    /* Card shadow and rounding */
+    .card {
+        background-color: #ffffff;
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    /* Button hover effect */
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #0f267a, #1a3db5) !important;
+        transform: scale(1.01);
+        box-shadow: 0 8px 20px rgba(22, 50, 175, 0.25) !important;
+    }
+
+    /* Remove number input arrows (optional) */
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
 </style>
 {% endblock %}

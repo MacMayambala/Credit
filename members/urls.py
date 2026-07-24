@@ -6,6 +6,7 @@ from .views import TemplateDownloadView, MigrationPreviewView, MigrationImportEx
 
 urlpatterns = [
     path('register/', views.register_member, name='register_member'),
+    path('profile/', views.profile_view, name='profile'),
     path('profile/<int:member_id>/', views.member_profile, name='member_profile'),
     path('customers/', views.customer_list, name='customer_list'),
     path('members/update-kyc/<int:member_id>/', views.update_kyc, name='update_kyc'), # Add this line

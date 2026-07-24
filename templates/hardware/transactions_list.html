@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}All Transactions | Hardware{% endblock %}
+
+{% block page_title %}Transaction History{% endblock %}
+{% block page_subtitle %}
+    <i class="bi bi-clock-history me-1"></i>
+    Complete list of all stock movements
+{% endblock %}
+
+{% block breadcrumb %}
+    <span>/</span>
+    <span>Hardware</span>
+    <span>/</span>
+    <span>Transactions</span>
+{% endblock %}
+
+{% block quick_actions %}
+    <a href="{% url 'hardware:pos' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-cart-plus"></i> New Sale
+    </a>
+    <a href="{% url 'hardware:product_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-box-seam"></i> Products
+    </a>
+{% endblock %}
+
+{% block content %}
+
+<div class="card border-0" style="background: var(--card-bg); border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); border: 1px solid var(--border-color);">
+    
+    <div class="card-header bg-transparent border-bottom p-4" style="border-color: var(--border-color);">
+        <div class="d-flex align-items-center justify-content-between">
+            <h5 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-list-ul" style="color: var(--brand-cobalt);"></i>
+                All Transactions
+                <span class="badge" style="background: var(--brand-cobalt-bg); color: var(--brand-cobalt); font-size: 0.6rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 100px;">
+                    {{ page_obj.paginator.count|default:transactions|length }}
+                </span>
+            </h5>
+            <div class="d-flex gap-2">
+                <a href="{% url 'hardware:export_report' %}?report_type=transactions" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-download"></i> Export
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.875rem;">
+                <thead style="background: var(--bg-body); border-bottom: 1px solid var(--border-color);">
+                    <tr>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.04em;">
+                            <i class="bi bi-box me-1"></i> Product
+                        </th>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.04em;">
+                            <i class="bi bi-hash me-1"></i> Qty
+                        </th>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.04em;">
+                            <i class="bi bi-arrow-left-right me-1"></i> Type
+                        </th>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.04em;">
+                            <i class="bi bi-calendar3 me-1"></i> Date
+                        </th>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.04em;">
+                            <i class="bi bi-person me-1"></i> By
+                        </th>
+                        <th class="py-3 px-4 text-muted small text-uppercase fw-semibold text-end" style="letter-spacing: 0.04em;">
+                            <i class="bi bi-three-dots me-1"></i> Action
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trans in transactions %}
+                    <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s ease;"
+                        onmouseover="this.style.background='var(--hover-bg)'"
+                        onmouseout="this.style.background='transparent'">
+                        <td class="py-3 px-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--brand-cobalt-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <i class="bi bi-box" style="color: var(--brand-cobalt); font-size: 0.8rem;"></i>
+                                </div>
+                                <span class="fw-semibold" style="color: var(--text-primary);">{{ trans.product.name }}</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="fw-bold" style="color: var(--text-primary);">{{ trans.quantity|floatformat:0 }}</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="badge rounded-pill px-3 py-2" 
+                                  style="{% if trans.transaction_type == 'SALE' %}background: rgba(239, 68, 68, 0.1); color: #ef4444;{% elif trans.transaction_type == 'PURCHASE' %}background: rgba(16, 185, 129, 0.1); color: #10b981;{% else %}background: rgba(100, 116, 139, 0.1); color: #64748b;{% endif %} font-weight: 600; font-size: 0.65rem;">
+                                <i class="bi {% if trans.transaction_type == 'SALE' %}bi-arrow-up-right{% elif trans.transaction_type == 'PURCHASE' %}bi-arrow-down-left{% else %}bi-arrows-expand{% endif %} me-1"></i>
+                                {{ trans.get_transaction_type_display }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-muted">
+                            <i class="bi bi-calendar-event me-1"></i>
+                            {{ trans.created_at|date:"d M, Y" }}
+                            <span class="text-muted" style="font-size: 0.75rem;">{{ trans.created_at|time:"H:i" }}</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            {{ trans.created_by.get_full_name|default:trans.created_by.username }}
+                        </td>
+                        <td class="py-3 px-4 text-end">
+                            <a href="{% url 'hardware:transaction_detail' trans.id %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center gap-1" 
+                               style="border-color: var(--border-color); font-size: 0.7rem;">
+                                <i class="bi bi-eye"></i>
+                                <span>View</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-5 text-center text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-3 opacity-25"></i>
+                            <p class="mb-0">No transactions found</p>
+                            <small>Start making sales or purchases to see activity here</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="card-footer bg-transparent border-top p-3" style="border-color: var(--border-color);">
+        <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                Showing {{ page_obj.start_index }} – {{ page_obj.end_index }} of {{ paginator.count }} transactions
+            </small>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" style="border-radius: 8px; color: var(--brand-cobalt); border-color: var(--border-color);">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if num == page_obj.number %}
+                        <li class="page-item active">
+                            <span class="page-link" style="background: var(--brand-cobalt); border-color: var(--brand-cobalt); color: #ffffff; border-radius: 8px;">
+                                {{ num }}
+                            </span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}" style="border-radius: 8px; color: var(--brand-cobalt); border-color: var(--border-color);">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" style="border-radius: 8px; color: var(--brand-cobalt); border-color: var(--border-color);">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .page-item.active .page-link {
+        background: var(--brand-cobalt) !important;
+        border-color: var(--brand-cobalt) !important;
+        color: #ffffff !important;
+    }
+    .page-link {
+        color: var(--brand-cobalt) !important;
+        transition: all 0.2s ease;
+    }
+    .page-link:hover {
+        background: var(--brand-cobalt-bg) !important;
+        border-color: var(--brand-cobalt) !important;
+    }
+</style>
+
+{% endblock %}

@@ -34,6 +34,7 @@ urlpatterns = [
     path('', include('finance.urls')),
     path('', include('members.urls')),
     path("hardware/", include("hardware.urls")),
+    path('notifications/', include('notifications.urls')),
 ]
 
 # Serve Media files during local development

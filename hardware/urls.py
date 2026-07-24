@@ -45,4 +45,6 @@ urlpatterns = [
     path('reports/till-sheet/', views.TillSheetReportView.as_view(), name='till_sheet_report'),
     path('reports/audit-trail/', views.AuditTrailReportView.as_view(), name='audit_trail_report'),
     path('reports/export/', views.export_report_csv, name='export_report'),
+    path('transactions/', views.TransactionListView.as_view(), name='transactions_report'),
+    path('transactions/<int:pk>/', views.TransactionDetailView.as_view(), name='transaction_detail'),
 ]

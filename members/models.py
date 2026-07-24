@@ -103,14 +103,30 @@ from django.dispatch import receiver
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone_number = models.CharField(max_length=15, blank=True, null=True)
-    otp_base32 = models.CharField(max_length=32, blank=True, null=True) # For Google Authenticator
+    otp_base32 = models.CharField(max_length=32, blank=True, null=True)
     is_2fa_enabled = models.BooleanField(default=False)
     allowed_modules = models.ManyToManyField(Module, blank=True)
+    # NEW: Profile photo
+    photo = models.ImageField(upload_to='profile_pics/', blank=True, null=True, default='default.jpg')
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
 
-# These signals ensure a profile is automatically created whenever a User is created
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Resize photo if exists
+        if self.photo and self.photo.path:
+            try:
+                img = Image.open(self.photo.path)
+                if img.height > 300 or img.width > 300:
+                    output_size = (300, 300)
+                    img.thumbnail(output_size)
+                    img.save(self.photo.path)
+            except Exception:
+                pass  # Ignore if image processing fails
+
+
+# Signals to auto-create UserProfile
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -122,6 +138,3 @@ def save_user_profile(sender, instance, **kwargs):
         instance.profile.save()
     else:
         UserProfile.objects.get_or_create(user=instance)
-
-
-

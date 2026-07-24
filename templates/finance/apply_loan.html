@@ -3,9 +3,30 @@
 
 {% block title %}New Loan Application | {{ company.name }}{% endblock %}
 
-{% block content %}
+{% block page_title %}Loan Application{% endblock %}
+{% block page_subtitle %}
+    Applicant: <strong>{{ selected_member.first_name }} {{ selected_member.last_name }}</strong>
+    <span class="text-muted">({{ selected_member.member_number }})</span>
+{% endblock %}
 
+{% block breadcrumb %}
+    <span>/</span>
+    <span>Loans</span>
+    <span>/</span>
+    <span>New Application</span>
+{% endblock %}
+
+{% block quick_actions %}
+    <span class="badge-new">
+        <i class="bi bi-file-earmark-text me-2"></i>New Application
+    </span>
+{% endblock %}
+
+{% block extra_css %}
 <style>
+    /* ============================================================
+       LOAN APPLICATION STYLES (preserved from original)
+       ============================================================ */
     :root {
         --brand-cobalt: #1632af;
         --brand-cobalt-dark: #0f248a;
@@ -163,6 +184,8 @@
         font-size: 0.8rem;
         font-weight: 700;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        display: inline-flex;
+        align-items: center;
     }
 
     .input-group .input-group-text {
@@ -185,37 +208,43 @@
         border-left-color: var(--brand-cobalt);
     }
 
-    /* Breadcrumb */
-    .breadcrumb-custom {
-        font-size: 0.8rem;
-        font-weight: 600;
-        background: transparent;
-        padding: 0;
-        margin-bottom: 0.25rem;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    /* Summary Box */
+    .summary-box {
+        background: var(--brand-cobalt-bg);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-top: 1rem;
+        border-left: 4px solid var(--brand-cobalt);
     }
 
-    .breadcrumb-custom .breadcrumb-item a {
+    .summary-box .summary-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
         color: var(--text-muted);
-        text-decoration: none;
-        transition: color 0.2s ease;
+        font-weight: 700;
     }
 
-    .breadcrumb-custom .breadcrumb-item a:hover {
+    .summary-box .summary-value {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--text-primary);
+    }
+
+    .summary-box .summary-value span {
         color: var(--brand-cobalt);
     }
 
-    .breadcrumb-custom .breadcrumb-item.active {
-        color: var(--brand-cobalt);
+    /* Penalty conditional fields */
+    .penalty-field-group {
+        transition: all 0.3s ease;
     }
 
-    .breadcrumb-custom .breadcrumb-item+.breadcrumb-item::before {
-        content: "›";
-        font-size: 1.2rem;
-        color: var(--text-muted);
+    .penalty-field-group.hidden {
+        display: none;
     }
 
-    /* Sidebar */
+    /* Sidebar Checklist */
     .sidebar-checklist {
         background: var(--bg-card);
         border: 1px solid var(--border-color);
@@ -286,42 +315,7 @@
         font-size: 0.75rem;
     }
 
-    /* Summary Box */
-    .summary-box {
-        background: var(--brand-cobalt-bg);
-        border-radius: 12px;
-        padding: 1rem 1.5rem;
-        margin-top: 1rem;
-        border-left: 4px solid var(--brand-cobalt);
-    }
-
-    .summary-box .summary-label {
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--text-muted);
-        font-weight: 700;
-    }
-
-    .summary-box .summary-value {
-        font-weight: 800;
-        font-size: 1.1rem;
-        color: var(--text-primary);
-    }
-
-    .summary-box .summary-value span {
-        color: var(--brand-cobalt);
-    }
-
-    /* Penalty conditional fields */
-    .penalty-field-group {
-        transition: all 0.3s ease;
-    }
-
-    .penalty-field-group.hidden {
-        display: none;
-    }
-
+    /* Responsive */
     @media (max-width: 768px) {
         .form-card .card-body {
             padding: 1.5rem !important;
@@ -343,25 +337,21 @@
             top: 0;
             margin-top: 1rem;
         }
-        .container-fluid {
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-        }
         .avatar-placeholder {
             width: 44px;
             height: 44px;
             font-size: 0.9rem;
         }
-        h1.fw-bold {
-            font-size: 1.3rem;
+        .badge-new {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.8rem;
         }
         .row.align-items-center .col-md-4.text-md-end {
             text-align: left !important;
             margin-top: 0.5rem;
         }
-        .badge-new {
-            font-size: 0.7rem;
-            padding: 0.3rem 0.8rem;
+        .summary-box .summary-value {
+            font-size: 0.95rem;
         }
     }
 
@@ -382,317 +372,314 @@
         .section-divider {
             margin: 1.5rem 0;
         }
-        .breadcrumb-custom {
-            font-size: 0.7rem;
+        .summary-box {
+            padding: 0.75rem 1rem;
+        }
+        .summary-box .summary-value {
+            font-size: 0.85rem;
+        }
+        .sidebar-checklist {
+            padding: 1rem;
+        }
+        .badge-new {
+            font-size: 0.6rem;
+            padding: 0.2rem 0.6rem;
         }
     }
 </style>
+{% endblock %}
 
-<div class="container-fluid py-4 px-3 px-lg-4">
+{% block content %}
 
-    <!-- Header -->
-    <div class="row align-items-center mb-4">
-        <div class="col-md-8">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb breadcrumb-custom mb-1">
-                    <li class="breadcrumb-item">
-                        <a href="{% url 'dashboard' %}"><i class="bi bi-house me-1"></i> Portfolio</a>
-                    </li>
-                    <li class="breadcrumb-item active">
-                        <i class="bi bi-file-earmark-text me-1"></i> New Loan Application
-                    </li>
-                </ol>
-            </nav>
-            <div class="d-flex align-items-center gap-3 mt-2">
-                <div class="avatar-placeholder">
-                    {{ selected_member.first_name|slice:":1" }}{{ selected_member.last_name|slice:":1" }}
-                </div>
-                <div>
-                    <h1 class="fw-bold mb-0" style="color: var(--text-primary); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">Loan Application</h1>
-                    <p class="text-muted mb-0" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
-                        Applicant: <strong style="color: var(--text-primary);">{{ selected_member.first_name }} {{ selected_member.last_name }}</strong>
-                        <span class="ms-2 text-muted">({{ selected_member.member_number }})</span>
-                    </p>
+<!-- ==========================================
+MESSAGES
+========================================== -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} border-0 shadow-sm rounded-3 mb-4" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
+            <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'error' %}bi-x-circle-fill{% else %}bi-info-circle-fill{% endif %} me-2"></i>
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- ==========================================
+MAIN FORM
+========================================== -->
+<div class="row g-4">
+    <div class="col-xl-8">
+        <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="member" value="{{ selected_member.id }}">
+
+            <div class="card form-card border-0 rounded-4 overflow-hidden">
+
+                <div class="card-body p-4 p-md-5">
+
+                    <!-- ==========================================
+                    SECTION 1: LOAN PARAMETERS
+                    ========================================== -->
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="step-indicator">1</div>
+                        <h5 class="section-title mb-0">Loan Parameters</h5>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-box me-1"></i> Loan Product</label>
+                            <select name="product_type" class="form-select" required>
+                                {% for value, label in product_choices %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-arrow-repeat me-1"></i> Repayment Frequency</label>
+                            <select name="repayment_frequency" class="form-select" required>
+                                <option value="monthly">Monthly</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="daily">Daily</option>
+                                <option value="manual">Manual</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label"><i class="bi bi-currency-dollar me-1"></i> Principal Amount (UGX)</label>
+                            <input type="number" step="0.01" name="principal_amount" class="form-control fw-bold" placeholder="0.00" required id="principalAmount">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label"><i class="bi bi-percent me-1"></i> Interest Rate (%)</label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" name="interest_rate" class="form-control fw-bold" value="3.0" required id="interestRate">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label"><i class="bi bi-hash me-1"></i> Term Value</label>
+                            <input type="number" name="term_value" class="form-control fw-bold" placeholder="12" min="1" required id="termValue">
+                            <small class="help-text">Number of repayment cycles</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-calendar3 me-1"></i> Start Date</label>
+                            <input type="date" name="start_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-chat-text me-1"></i> Purpose of Loan</label>
+                            <input type="text" name="purpose" class="form-control" placeholder="e.g. School fees, Business expansion" required>
+                        </div>
+                    </div>
+
+                    <!-- Quick Summary (calculated on input) -->
+                    <div class="summary-box" id="summaryBox">
+                        <div class="row g-2">
+                            <div class="col-md-4 col-6">
+                                <div class="summary-label">Est. Total Repayment</div>
+                                <div class="summary-value"><span id="totalRepayment">0</span> UGX</div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="summary-label">Est. Payment per Cycle</div>
+                                <div class="summary-value"><span id="monthlyPayment">0</span> UGX</div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="summary-label">Interest Amount</div>
+                                <div class="summary-value"><span id="interestAmount">0</span> UGX</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-divider"></div>
+
+                    <!-- ==========================================
+                    SECTION 2: GUARANTORS
+                    ========================================== -->
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="step-indicator">2</div>
+                        <h5 class="section-title mb-0">Guarantors</h5>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-person me-1"></i> Guarantor 1 Name</label>
+                            <input type="text" name="guarantor_1_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-telephone me-1"></i> Guarantor 1 Phone</label>
+                            <input type="tel" name="guarantor_1_phone" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted"><i class="bi bi-person me-1"></i> Guarantor 2 Name <small class="text-muted">(Optional)</small></label>
+                            <input type="text" name="guarantor_2_name" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted"><i class="bi bi-telephone me-1"></i> Guarantor 2 Phone</label>
+                            <input type="tel" name="guarantor_2_phone" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="section-divider"></div>
+
+                    <!-- ==========================================
+                    SECTION 3: SECURITY & LOCATION
+                    ========================================== -->
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="step-indicator">3</div>
+                        <h5 class="section-title mb-0">Security &amp; Location</h5>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-shield me-1"></i> Collateral Type</label>
+                            <input type="text" name="collateral_type" class="form-control" placeholder="e.g. Land Title, Vehicle, Savings">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-currency-dollar me-1"></i> Estimated Value (UGX)</label>
+                            <input type="number" name="collateral_value" class="form-control" step="0.01">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label"><i class="bi bi-file-text me-1"></i> Collateral Description</label>
+                            <textarea name="collateral_description" class="form-control" rows="3" placeholder="Details about collateral..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label"><i class="bi bi-geo-alt me-1"></i> Physical Residence / Location</label>
+                            <input type="text" name="location" class="form-control" placeholder="Village, Parish, District" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-person me-1"></i> Contact Person</label>
+                            <input type="text" name="contact_person" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-telephone me-1"></i> Contact Phone</label>
+                            <input type="tel" name="contact_phone" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="section-divider"></div>
+
+                    <!-- ==========================================
+                    SECTION 4: PENALTY CONFIGURATION
+                    ========================================== -->
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="step-indicator">4</div>
+                        <h5 class="section-title mb-0">Penalty Configuration</h5>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-exclamation-triangle me-1"></i> Penalty Type</label>
+                            <select name="penalty_type" class="form-select" id="penaltyType">
+                                <option value="daily_flat">Daily Flat Amount</option>
+                                <option value="daily_percentage">Daily Percentage</option>
+                                <option value="fixed">One-time Fixed Penalty</option>
+                                <option value="compound">Compound Penalty</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 penalty-field-group" id="penaltyRateGroup">
+                            <label class="form-label"><i class="bi bi-sliders me-1"></i> Penalty Rate / Value</label>
+                            <input type="number" step="0.01" name="penalty_rate" class="form-control" id="penaltyRate" placeholder="e.g. 2.5 or 1500">
+                        </div>
+
+                        <div class="col-md-6 penalty-field-group" id="penaltyFlatGroup">
+                            <label class="form-label"><i class="bi bi-cash me-1"></i> Default Flat Penalty (UGX)</label>
+                            <input type="number" name="penalty_flat_amount" class="form-control" value="1000" id="penaltyFlatAmount">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-clock me-1"></i> Grace Period (Days)</label>
+                            <input type="number" name="penalty_grace_days" class="form-control" value="3" min="0">
+                            <small class="help-text">Days after due date before penalty starts</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" name="compound" id="compoundCheck" value="true" style="border-radius: 4px;">
+                                <label class="form-check-label" for="compoundCheck" style="font-weight: 600; font-size: 0.9rem;">
+                                    Compound Penalty on overdue amount
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-arrow-up-circle me-1"></i> Max Penalty Cap (UGX) <small class="text-muted">(optional)</small></label>
+                            <input type="number" name="max_penalty_cap" class="form-control" value="0" min="0">
+                            <small class="help-text">0 = unlimited</small>
+                        </div>
+                    </div>
+
+                    <div class="section-divider"></div>
+
+                    <!-- ==========================================
+                    NOTES
+                    ========================================== -->
+                    <div class="row">
+                        <div class="col-12">
+                            <label class="form-label"><i class="bi bi-sticky me-1"></i> Additional Notes / Remarks</label>
+                            <textarea name="notes" class="form-control" rows="4" placeholder="Any special conditions, observations, or instructions..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- ==========================================
+                    SUBMIT
+                    ========================================== -->
+                    <div class="mt-5 pt-4 border-top d-flex flex-wrap gap-3" style="border-color: var(--border-color) !important;">
+                        <button type="submit" class="btn btn-brand flex-grow-1 shadow-sm">
+                            <i class="bi bi-check-circle"></i> Submit Loan Application
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-light">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                    </div>
+
                 </div>
             </div>
-        </div>
-        <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <span class="badge-new">
-                <i class="bi bi-file-earmark-text me-2"></i>New Application
-            </span>
-        </div>
+        </form>
     </div>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} border-0 shadow-sm rounded-3 mb-4" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
-                <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'error' %}bi-x-circle-fill{% else %}bi-info-circle-fill{% endif %} me-2"></i>
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
+    <!-- ==========================================
+    SIDEBAR
+    ========================================== -->
+    <div class="col-xl-4">
+        <div class="sidebar-checklist">
+            <h6><i class="bi bi-check2-square me-2" style="color: var(--brand-cobalt);"></i>Submission Checklist</h6>
+            <ul>
+                <li>
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    <span>Member has active savings account</span>
+                </li>
+                <li>
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    <span>Guarantors are verified members</span>
+                </li>
+                <li>
+                    <i class="bi bi-info-circle-fill" style="color: var(--brand-cobalt);"></i>
+                    <span>Penalty rules are configurable per loan</span>
+                </li>
+                <li>
+                    <i class="bi bi-info-circle-fill" style="color: var(--brand-cobalt);"></i>
+                    <span>Repayment schedule will be auto-generated</span>
+                </li>
+            </ul>
 
-    <div class="row g-4">
-        <div class="col-xl-8">
-            <form method="post" class="needs-validation" novalidate>
-                {% csrf_token %}
-                <input type="hidden" name="member" value="{{ selected_member.id }}">
-
-                <div class="card form-card border-0 rounded-4 overflow-hidden">
-
-                    <div class="card-body p-4 p-md-5">
-
-                        <!-- Section 1: Loan Parameters -->
-                        <div class="d-flex align-items-center gap-3 mb-4">
-                            <div class="step-indicator">1</div>
-                            <h5 class="section-title mb-0">Loan Parameters</h5>
-                        </div>
-
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-box me-1"></i> Loan Product</label>
-                                <select name="product_type" class="form-select" required>
-                                    {% for value, label in product_choices %}
-                                        <option value="{{ value }}">{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-arrow-repeat me-1"></i> Repayment Frequency</label>
-                                <select name="repayment_frequency" class="form-select" required>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="daily">Daily</option>
-                                    <option value="manual">Manual</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label"><i class="bi bi-currency-dollar me-1"></i> Principal Amount (UGX)</label>
-                                <input type="number" step="0.01" name="principal_amount" class="form-control fw-bold" placeholder="0.00" required id="principalAmount">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label"><i class="bi bi-percent me-1"></i> Interest Rate (%)</label>
-                                <div class="input-group">
-                                    <input type="number" step="0.01" name="interest_rate" class="form-control fw-bold" value="3.0" required id="interestRate">
-                                    <span class="input-group-text">%</span>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label"><i class="bi bi-hash me-1"></i> Term Value</label>
-                                <input type="number" name="term_value" class="form-control fw-bold" placeholder="12" min="1" required id="termValue">
-                                <small class="help-text">Number of repayment cycles</small>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-calendar3 me-1"></i> Start Date</label>
-                                <input type="date" name="start_date" class="form-control" value="{% now 'Y-m-d' %}" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-chat-text me-1"></i> Purpose of Loan</label>
-                                <input type="text" name="purpose" class="form-control" placeholder="e.g. School fees, Business expansion" required>
-                            </div>
-                        </div>
-
-                        <!-- Quick Summary (calculated on input) -->
-                        <div class="summary-box" id="summaryBox">
-                            <div class="row g-2">
-                                <div class="col-md-4 col-6">
-                                    <div class="summary-label">Est. Total Repayment</div>
-                                    <div class="summary-value"><span id="totalRepayment">0</span> UGX</div>
-                                </div>
-                                <div class="col-md-4 col-6">
-                                    <div class="summary-label">Est. Monthly Payment</div>
-                                    <div class="summary-value"><span id="monthlyPayment">0</span> UGX</div>
-                                </div>
-                                <div class="col-md-4 col-6">
-                                    <div class="summary-label">Interest Amount</div>
-                                    <div class="summary-value"><span id="interestAmount">0</span> UGX</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="section-divider"></div>
-
-                        <!-- Section 2: Guarantors -->
-                        <div class="d-flex align-items-center gap-3 mb-4">
-                            <div class="step-indicator">2</div>
-                            <h5 class="section-title mb-0">Guarantors</h5>
-                        </div>
-
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-person me-1"></i> Guarantor 1 Name</label>
-                                <input type="text" name="guarantor_1_name" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-telephone me-1"></i> Guarantor 1 Phone</label>
-                                <input type="tel" name="guarantor_1_phone" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-muted"><i class="bi bi-person me-1"></i> Guarantor 2 Name <small class="text-muted">(Optional)</small></label>
-                                <input type="text" name="guarantor_2_name" class="form-control">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-muted"><i class="bi bi-telephone me-1"></i> Guarantor 2 Phone</label>
-                                <input type="tel" name="guarantor_2_phone" class="form-control">
-                            </div>
-                        </div>
-
-                        <div class="section-divider"></div>
-
-                        <!-- Section 3: Security -->
-                        <div class="d-flex align-items-center gap-3 mb-4">
-                            <div class="step-indicator">3</div>
-                            <h5 class="section-title mb-0">Security &amp; Location</h5>
-                        </div>
-
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-shield me-1"></i> Collateral Type</label>
-                                <input type="text" name="collateral_type" class="form-control" placeholder="e.g. Land Title, Vehicle, Savings">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-currency-dollar me-1"></i> Estimated Value (UGX)</label>
-                                <input type="number" name="collateral_value" class="form-control" step="0.01">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label"><i class="bi bi-file-text me-1"></i> Collateral Description</label>
-                                <textarea name="collateral_description" class="form-control" rows="3" placeholder="Details about collateral..."></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label"><i class="bi bi-geo-alt me-1"></i> Physical Residence / Location</label>
-                                <input type="text" name="location" class="form-control" placeholder="Village, Parish, District" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-person me-1"></i> Contact Person</label>
-                                <input type="text" name="contact_person" class="form-control">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-telephone me-1"></i> Contact Phone</label>
-                                <input type="tel" name="contact_phone" class="form-control">
-                            </div>
-                        </div>
-
-                        <div class="section-divider"></div>
-
-                        <!-- Section 4: Penalty Configuration -->
-                        <div class="d-flex align-items-center gap-3 mb-4">
-                            <div class="step-indicator">4</div>
-                            <h5 class="section-title mb-0">Penalty Configuration</h5>
-                        </div>
-
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-exclamation-triangle me-1"></i> Penalty Type</label>
-                                <select name="penalty_type" class="form-select" id="penaltyType">
-                                    <option value="daily_flat">Daily Flat Amount</option>
-                                    <option value="daily_percentage">Daily Percentage</option>
-                                    <option value="fixed">One-time Fixed Penalty</option>
-                                    <option value="compound">Compound Penalty</option>
-                                </select>
-                            </div>
-
-                            <!-- Penalty Rate / Value (dynamic) -->
-                            <div class="col-md-6 penalty-field-group" id="penaltyRateGroup">
-                                <label class="form-label"><i class="bi bi-sliders me-1"></i> Penalty Rate / Value</label>
-                                <input type="number" step="0.01" name="penalty_rate" class="form-control" id="penaltyRate" placeholder="e.g. 2.5 or 1500">
-                            </div>
-
-                            <!-- Flat Amount (always visible, default) -->
-                            <div class="col-md-6 penalty-field-group" id="penaltyFlatGroup">
-                                <label class="form-label"><i class="bi bi-cash me-1"></i> Default Flat Penalty (UGX)</label>
-                                <input type="number" name="penalty_flat_amount" class="form-control" value="1000" id="penaltyFlatAmount">
-                            </div>
-
-                            <!-- Grace Period -->
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-clock me-1"></i> Grace Period (Days)</label>
-                                <input type="number" name="penalty_grace_days" class="form-control" value="3" min="0">
-                                <small class="help-text">Days after due date before penalty starts</small>
-                            </div>
-
-                            <!-- Compound toggle -->
-                            <div class="col-md-6">
-                                <div class="form-check mt-4">
-                                    <input class="form-check-input" type="checkbox" name="compound" id="compoundCheck" value="true" style="border-radius: 4px;">
-                                    <label class="form-check-label" for="compoundCheck" style="font-weight: 600; font-size: 0.9rem;">
-                                        Compound Penalty on overdue amount
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Max Penalty Cap (optional) -->
-                            <div class="col-md-6">
-                                <label class="form-label"><i class="bi bi-arrow-up-circle me-1"></i> Max Penalty Cap (UGX) <small class="text-muted">(optional)</small></label>
-                                <input type="number" name="max_penalty_cap" class="form-control" value="0" min="0">
-                                <small class="help-text">0 = unlimited</small>
-                            </div>
-                        </div>
-
-                        <div class="section-divider"></div>
-
-                        <!-- Notes -->
-                        <div class="row">
-                            <div class="col-12">
-                                <label class="form-label"><i class="bi bi-sticky me-1"></i> Additional Notes / Remarks</label>
-                                <textarea name="notes" class="form-control" rows="4" placeholder="Any special conditions, observations, or instructions..."></textarea>
-                            </div>
-                        </div>
-
-                        <!-- Submit -->
-                        <div class="mt-5 pt-4 border-top d-flex flex-wrap gap-3" style="border-color: var(--border-color) !important;">
-                            <button type="submit" class="btn btn-brand flex-grow-1 shadow-sm">
-                                <i class="bi bi-check-circle"></i> Submit Loan Application
-                            </button>
-                            <a href="{% url 'dashboard' %}" class="btn btn-light">
-                                <i class="bi bi-x-circle"></i> Cancel
-                            </a>
-                        </div>
-
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <!-- Sidebar -->
-        <div class="col-xl-4">
-            <div class="sidebar-checklist">
-                <h6><i class="bi bi-check2-square me-2" style="color: var(--brand-cobalt);"></i>Submission Checklist</h6>
-                <ul>
-                    <li>
-                        <i class="bi bi-check-circle-fill text-success"></i>
-                        <span>Member has active savings account</span>
-                    </li>
-                    <li>
-                        <i class="bi bi-check-circle-fill text-success"></i>
-                        <span>Guarantors are verified members</span>
-                    </li>
-                    <li>
-                        <i class="bi bi-info-circle-fill" style="color: var(--brand-cobalt);"></i>
-                        <span>Penalty rules are configurable per loan</span>
-                    </li>
-                    <li>
-                        <i class="bi bi-info-circle-fill" style="color: var(--brand-cobalt);"></i>
-                        <span>Repayment schedule will be auto-generated</span>
-                    </li>
-                </ul>
-
-                <div class="help-box">
-                    <span class="d-block"><i class="bi bi-headset me-1"></i> Need Help?</span>
-                    <span class="phone-number"><i class="bi bi-telephone-fill me-2"></i>0700 100 200</span>
-                    <small>Credit Officer Support</small>
-                </div>
+            <div class="help-box">
+                <span class="d-block"><i class="bi bi-headset me-1"></i> Need Help?</span>
+                <span class="phone-number"><i class="bi bi-telephone-fill me-2"></i>0776 203 790</span>
+                <small>IT Support</small>
             </div>
         </div>
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
 <script>
     (function () {
         'use strict';
 
-        // ===== BOOTSTRAP VALIDATION =====
+        // ==========================================================
+        // BOOTSTRAP VALIDATION
+        // ==========================================================
         var forms = document.querySelectorAll('.needs-validation');
         Array.prototype.slice.call(forms).forEach(function (form) {
             form.addEventListener('submit', function (event) {
@@ -704,7 +691,9 @@
             }, false);
         });
 
-        // ===== DYNAMIC PENALTY FIELD VISIBILITY =====
+        // ==========================================================
+        // DYNAMIC PENALTY FIELD VISIBILITY
+        // ==========================================================
         const penaltyType = document.getElementById('penaltyType');
         const penaltyRateGroup = document.getElementById('penaltyRateGroup');
         const penaltyFlatGroup = document.getElementById('penaltyFlatGroup');
@@ -713,8 +702,6 @@
 
         function updatePenaltyFields() {
             const type = penaltyType.value;
-            // For 'fixed' and 'daily_flat', we show flat amount, hide rate.
-            // For 'daily_percentage' and 'compound', we show rate, hide flat.
             if (type === 'fixed' || type === 'daily_flat') {
                 penaltyRateGroup.classList.add('hidden');
                 penaltyFlatGroup.classList.remove('hidden');
@@ -728,7 +715,6 @@
                 penaltyRate.setAttribute('required', 'required');
                 penaltyRate.placeholder = 'e.g. 2.5 for 2.5%';
             } else {
-                // fallback
                 penaltyRateGroup.classList.add('hidden');
                 penaltyFlatGroup.classList.add('hidden');
                 penaltyRate.removeAttribute('required');
@@ -736,13 +722,12 @@
             }
         }
 
-        // Initial call
         updatePenaltyFields();
-
-        // Event listener
         penaltyType.addEventListener('change', updatePenaltyFields);
 
-        // ===== LOAN SUMMARY CALCULATOR =====
+        // ==========================================================
+        // LOAN SUMMARY CALCULATOR (FLAT INTEREST – matches backend)
+        // ==========================================================
         const principalInput = document.getElementById('principalAmount');
         const rateInput = document.getElementById('interestRate');
         const termInput = document.getElementById('termValue');
@@ -762,25 +747,23 @@
                 return;
             }
 
-            // Simple interest calculation (flat rate over term)
-            const interest = principal * (rate / 100) * term;
+            const interest = principal * (rate / 100);
             const total = principal + interest;
             const monthly = total / term;
 
-            totalSpan.textContent = total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-            monthlySpan.textContent = monthly.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-            interestSpan.textContent = interest.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            const format = (num) => Math.round(num).toLocaleString();
+
+            totalSpan.textContent = format(total);
+            monthlySpan.textContent = format(monthly);
+            interestSpan.textContent = format(interest);
         }
 
-        // Update on input changes
         principalInput.addEventListener('input', updateSummary);
         rateInput.addEventListener('input', updateSummary);
         termInput.addEventListener('input', updateSummary);
-
-        // Initial update
         updateSummary();
 
+        console.log('✅ Loan Application form ready.');
     })();
 </script>
-
 {% endblock %}

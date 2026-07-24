@@ -175,63 +175,145 @@ def generate_loan_ref(length=10):
 # CORE CORE SACCO VIEWS
 # ========================
 
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Count
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+from decimal import Decimal
+
+from finance.models import SavingsAccount, Loan, Transaction, Member
+from django.db.models.functions import ExtractMonth
+# finance/views.py – dashboard view (fully updated)
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Count
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+from decimal import Decimal
+from django.db.models.functions import ExtractMonth
+
+from finance.models import (
+    SavingsAccount, Loan, Transaction, Member,
+    GeneralLedger, ChartOfAccount
+)
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Count
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+from decimal import Decimal
+from django.db.models.functions import ExtractMonth
+
+from finance.models import (
+    SavingsAccount, Loan, Transaction, Member,
+    GeneralLedger, ChartOfAccount, Installment
+)
+
 @login_required
 def dashboard(request):
     """
     Main SACCO Dashboard with updated split-balance aggregation
+    and a true Interest Yield percentage.
     """
+    today = timezone.now().date()
+    one_year_ago = today - relativedelta(years=1)
+
+    # ============================================================
     # 1. SUMMARY WIDGETS
+    # ============================================================
+
+    # Total Savings
     total_savings = SavingsAccount.objects.aggregate(total=Sum('balance'))['total'] or 0
 
-    # Total Active Loans (Summing principal_balance and interest_balance)
+    # Total Active Loans (principal_balance + interest_balance)
     loan_stats = Loan.objects.filter(is_active=True).aggregate(
         p_bal=Sum('principal_balance'),
         i_bal=Sum('interest_balance')
     )
     total_loans = (loan_stats['p_bal'] or 0) + (loan_stats['i_bal'] or 0)
 
-    # Total Interest Profit (Transactions tagged as 'interest_payment')
-    total_interest = Transaction.objects.filter(type='interest_payment').aggregate(
-        total=Sum('amount'))['total'] or 0
+    # ============================================================
+    # Interest Earned in the last 12 months (from GeneralLedger)
+    # ============================================================
+    try:
+        # Your ChartOfAccount code for Interest Income is '2100' (as seen in Repayment.save())
+        interest_account = ChartOfAccount.objects.get(code='2100')
+        interest_last_year = GeneralLedger.objects.filter(
+            account=interest_account,
+            date__gte=one_year_ago
+        ).aggregate(total=Sum('credit'))['total'] or 0
+    except ChartOfAccount.DoesNotExist:
+        # Fallback: sum interest_paid from Installment model
+        interest_last_year = Installment.objects.filter(
+            loan__is_active=True,
+            due_date__gte=one_year_ago
+        ).aggregate(total=Sum('interest_paid'))['total'] or 0
 
-    # Counts for context
+    # ============================================================
+    # Interest Yield (annualized) = (interest_last_year / total_loans) * 100
+    # ============================================================
+    if total_loans > 0:
+        interest_yield = (interest_last_year / total_loans) * 100
+    else:
+        interest_yield = 0
+
+    # Keep the raw amount for display if needed (e.g., in a tooltip)
+    total_interest = interest_last_year
+
+    # Counts
     total_members = Member.objects.count()
     active_loans_count = Loan.objects.filter(is_active=True).count()
     recent_loans = Loan.objects.select_related('member').order_by('-start_date')[:10]
 
-    # 2. CHART DATA 
-    labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    # ============================================================
+    # 2. CHART DATA (Monthly trends for last 12 months)
+    # ============================================================
+
+    labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
     savings_trend = [0] * 12
     loan_trend = [0] * 12
 
-    savings_data = Transaction.objects.filter(type='deposit')\
-        .annotate(month=ExtractMonth('timestamp'))\
-        .values('month').annotate(total=Sum('amount'))
-    
+    # Savings deposits per month
+    savings_data = Transaction.objects.filter(
+        type='deposit',
+        timestamp__gte=one_year_ago
+    ).annotate(month=ExtractMonth('timestamp')).values('month').annotate(total=Sum('amount'))
+
     for entry in savings_data:
         if entry['month'] and 1 <= entry['month'] <= 12:
             savings_trend[entry['month'] - 1] = float(entry['total'])
 
-    loan_data = Loan.objects.filter(status='approved')\
-        .annotate(month=ExtractMonth('start_date'))\
-        .values('month').annotate(total=Sum('principal_amount'))
+    # Loan disbursements per month
+    loan_data = Loan.objects.filter(
+        start_date__gte=one_year_ago,
+        status='approved'
+    ).annotate(month=ExtractMonth('start_date')).values('month').annotate(total=Sum('principal_amount'))
 
     for entry in loan_data:
         if entry['month'] and 1 <= entry['month'] <= 12:
             loan_trend[entry['month'] - 1] = float(entry['total'])
 
-    # 3. PREPARE CONTEXT
+    # ============================================================
+    # 3. CONTEXT
+    # ============================================================
+
     context = {
         'total_savings': total_savings,
         'total_loans': total_loans,
-        'total_interest': total_interest,
+        'total_interest': total_interest,          # UGX amount earned last year
+        'interest_yield': interest_yield,          # percentage
         'total_members': total_members,
         'active_loans_count': active_loans_count,
         'loans': recent_loans,
         'chart_labels': labels,
         'chart_savings': savings_trend,
         'chart_loans': loan_trend,
+        'today': today,
     }
+
     return render(request, 'finance/dashboard.html', context)
 
 
@@ -393,6 +475,7 @@ from dateutil.relativedelta import relativedelta
 from .models import Loan, ManualPenalty
 from .utils import generate_schedule
 from finance.penalties import calculate_penalty
+from .models import SMSConfig
 
 
 @login_required
@@ -453,9 +536,12 @@ def loan_detail(request, pk):
     # Manual penalties (for the card)
     manual_penalties = loan.manual_penalties.filter(is_waived=False).order_by('-applied_date')
     total_manual_penalty = manual_penalties.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    sms_config = SMSConfig.objects.first()
+    sms_balance = sms_config.balance if sms_config else 0
 
     context = {
         'loan': loan,
+        'sms_balance': sms_balance,
         'principal_balance': loan.principal_balance,
         'interest_due': interest_due,
         'principal_due': principal_due,
@@ -1716,9 +1802,100 @@ from datetime import date
 from .models import Loan, SavingsAccount, Transaction, Installment
 
 
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, F, Value, DecimalField
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from decimal import Decimal
+from datetime import timedelta
+
+from finance.models import (
+    Loan, Installment, SavingsAccount, Company
+)
+
+@login_required
 def reports_dashboard(request):
-    """Central Reports Dashboard"""
-    return render(request, 'finance/reports/reports_dashboard.html')
+    """
+    Central Reports Dashboard – Financial Intelligence.
+    Computes real-time KPIs from the database.
+    """
+    today = timezone.now().date()
+    company = Company.get_company()
+
+    # ============================================================
+    # 1. Gross Loan Portfolio (active loans only)
+    # ============================================================
+    loan_stats = Loan.objects.filter(is_active=True).aggregate(
+        p_bal=Sum('principal_balance'),
+        i_bal=Sum('interest_balance')
+    )
+    total_loan_portfolio = (loan_stats['p_bal'] or 0) + (loan_stats['i_bal'] or 0)
+
+    # ============================================================
+    # 2. Active Loan Accounts
+    # ============================================================
+    active_loans_count = Loan.objects.filter(is_active=True).count()
+
+    # ============================================================
+    # 3. Portfolio at Risk (PAR > 30 days)
+    # ============================================================
+    cutoff_date = today - timedelta(days=30)
+    overdue_installments = Installment.objects.filter(
+        loan__is_active=True,
+        due_date__lt=cutoff_date,
+        paid=False
+    )
+
+    # Sum the outstanding balance across overdue installments
+    # Using the same formula as Installment.balance property
+    par_30_balance = overdue_installments.aggregate(
+        total=Coalesce(
+            Sum(
+                F('principal_portion') - F('principal_paid') +
+                F('interest_portion') - F('interest_paid') +
+                F('penalty_amount') - F('penalty_paid')
+            ),
+            Value(Decimal('0.00'), output_field=DecimalField())
+        )
+    )['total'] or 0
+
+    if total_loan_portfolio > 0:
+        par_30 = (par_30_balance / total_loan_portfolio) * 100
+    else:
+        par_30 = 0
+
+    # ============================================================
+    # 4. PAR Change (month-over-month) – placeholder (0 for now)
+    # ============================================================
+    par_change = 0
+
+    # ============================================================
+    # 5. Liquidity Ratio (proxy: total savings / total loans)
+    # ============================================================
+    total_savings = SavingsAccount.objects.aggregate(
+        total=Sum('balance')
+    )['total'] or 0
+
+    if total_loan_portfolio > 0:
+        liquidity_ratio = (total_savings / total_loan_portfolio) * 100
+    else:
+        liquidity_ratio = 0
+
+    # ============================================================
+    # 6. Context – ready for the template
+    # ============================================================
+    context = {
+        'par_30': par_30,
+        'par_change': par_change,
+        'liquidity_ratio': liquidity_ratio,
+        'active_loans_count': active_loans_count,
+        'total_loan_portfolio': total_loan_portfolio,
+        'company': company,
+        'today': today,
+    }
+
+    return render(request, 'finance/reports/reports_dashboard.html', context)
 
 
 from django.db.models import Sum, F
@@ -2206,10 +2383,13 @@ def loan_details(request, loan_id):
         type='repayment',
         loan=loan
     ).order_by('-timestamp')[:10]
-
+    sms_config = SMSConfig.objects.first()
+    sms_balance = sms_config.balance if sms_config else 0
+    
     # 8. Context
     context = {
         'loan': loan,
+        'sms_balance': sms_balance,
         'principal_balance': loan.principal_balance,
         'interest_due': interest_due,
         'principal_due': principal_due,
@@ -6295,9 +6475,47 @@ def portfolio_status_report(request):
 # ====================================================================
 # 12. ARREARS REPORT (arrears_report)
 # ====================================================================
+from decimal import Decimal
+from django.db.models import Q, Sum, F, Value, DecimalField, Func
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from datetime import date, datetime
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.http import FileResponse
+
+from finance.models import Installment, Loan
+from finance.penalties import calculate_penalty  # ensure this import exists
+
+
+from decimal import Decimal
+from django.db.models import Q, Sum, F, Value, DecimalField
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from datetime import date, datetime
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.http import FileResponse
+
+from finance.models import Installment, Loan
+from finance.penalties import calculate_penalty          # needed for loan_detail logic
+
+
+from decimal import Decimal
+from django.db.models import Q, Sum
+from django.utils import timezone
+from datetime import date, datetime
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.http import FileResponse
+
+from finance.models import Installment, Loan
+from finance.penalties import calculate_penalty          # needed for loan_detail logic
+
+
 @login_required
 def arrears_report(request):
-    """Arrears & Delinquency Report with aging buckets"""
+    """Arrears & Delinquency Report with aging buckets – true penalty calculation"""
     from datetime import datetime
 
     if request.method == "POST":
@@ -6316,6 +6534,7 @@ def arrears_report(request):
     else:
         target_date = today
 
+    # Fetch overdue installments (unpaid and due before target_date)
     overdue_installments = Installment.objects.filter(
         paid=False,
         due_date__lt=target_date,
@@ -6330,37 +6549,9 @@ def arrears_report(request):
             Q(loan__loan_reference__icontains=search_query)
         )
 
-    overdue_installments = overdue_installments.annotate(
-        arrears_amount=(
-            Coalesce(F('principal_portion') - F('principal_paid'), Decimal('0')) +
-            Coalesce(F('interest_portion') - F('interest_paid'), Decimal('0')) +
-            Coalesce(F('penalty_amount') - F('penalty_paid'), Decimal('0'))
-        ),
-        days_overdue=(target_date - F('due_date'))
-    ).order_by('-days_overdue')
-
+    # Build data in Python – using the same penalty calculation as loan_detail
     data = []
     total_arrears = Decimal('0')
-
-    for inst in overdue_installments:
-        days = (target_date - inst.due_date).days
-        data.append({
-            'member_no': inst.loan.member.member_number or str(inst.loan.member.id),
-            'member_name': f"{inst.loan.member.first_name} {inst.loan.member.last_name}",
-            'loan_ref': inst.loan.loan_reference or f"LN-{inst.loan.id}",
-            'phone': inst.loan.member.phone_number,
-            'due_date': inst.due_date,
-            'days_overdue': days,
-            'principal_due': inst.principal_portion - inst.principal_paid,
-            'interest_due': inst.interest_portion - inst.interest_paid,
-            'penalty_due': inst.penalty_amount - inst.penalty_paid,
-            'total_due': (inst.principal_portion - inst.principal_paid) +
-                         (inst.interest_portion - inst.interest_paid) +
-                         (inst.penalty_amount - inst.penalty_paid),
-            'officer': inst.loan.officer.get_full_name() if inst.loan.officer else 'System',
-        })
-        total_arrears += data[-1]['total_due']
-
     aging_buckets = {
         '1-30_days': Decimal('0'),
         '31-60_days': Decimal('0'),
@@ -6369,20 +6560,55 @@ def arrears_report(request):
         '180_plus': Decimal('0'),
     }
 
-    for item in data:
-        days = item['days_overdue']
-        amount = item['total_due']
-        if 1 <= days <= 30:
-            aging_buckets['1-30_days'] += amount
-        elif 31 <= days <= 60:
-            aging_buckets['31-60_days'] += amount
-        elif 61 <= days <= 90:
-            aging_buckets['61-90_days'] += amount
-        elif 91 <= days <= 180:
-            aging_buckets['91-180_days'] += amount
-        else:
-            aging_buckets['180_plus'] += amount
+    for inst in overdue_installments:
+        days = (target_date - inst.due_date).days
 
+        # === Penalty calculation (mirroring loan_detail) ===
+        # Calculated penalty from the rule (fresh, using today's date)
+        calc_penalty = calculate_penalty(inst) or Decimal('0.00')
+        # Manual penalties (not waived) for this installment
+        manual_total = inst.manual_penalties.filter(is_waived=False).aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        total_penalty = calc_penalty + manual_total
+
+        # Due amounts
+        principal_due = inst.principal_balance          # property: principal_portion - principal_paid
+        interest_due = inst.interest_balance            # property: interest_portion - interest_paid
+        penalty_due = total_penalty - inst.penalty_paid  # subtract already paid penalty
+
+        total_due = principal_due + interest_due + penalty_due
+
+        data.append({
+            'member_no': inst.loan.member.member_number or str(inst.loan.member.id),
+            'member_name': f"{inst.loan.member.first_name} {inst.loan.member.last_name}",
+            'loan_ref': inst.loan.loan_reference or f"LN-{inst.loan.id}",
+            'phone': inst.loan.member.phone_number,
+            'due_date': inst.due_date,
+            'days_overdue': days,
+            'principal_due': principal_due,
+            'interest_due': interest_due,
+            'penalty_due': penalty_due,
+            'total_due': total_due,
+            'disbursed_amount': Decimal(str(inst.loan.principal_amount or 0)),
+            'officer': inst.loan.officer.get_full_name() if inst.loan.officer else 'System',
+        })
+
+        total_arrears += total_due
+
+        # Aging bucket
+        if 1 <= days <= 30:
+            aging_buckets['1-30_days'] += total_due
+        elif 31 <= days <= 60:
+            aging_buckets['31-60_days'] += total_due
+        elif 61 <= days <= 90:
+            aging_buckets['61-90_days'] += total_due
+        elif 91 <= days <= 180:
+            aging_buckets['91-180_days'] += total_due
+        else:
+            aging_buckets['180_plus'] += total_due
+
+    # Columns definition
     columns = [
         {'key': 'member_no', 'label': 'Member No', 'align': 'left'},
         {'key': 'member_name', 'label': 'Member', 'align': 'left'},
@@ -6390,13 +6616,16 @@ def arrears_report(request):
         {'key': 'phone', 'label': 'Phone', 'align': 'left'},
         {'key': 'due_date', 'label': 'Due Date', 'align': 'center', 'type': 'date'},
         {'key': 'days_overdue', 'label': 'Days Overdue', 'align': 'center'},
+        {'key': 'disbursed_amount', 'label': 'Amount Disbursed (UGX)', 'type': 'currency', 'align': 'right', 'total': True, 'prefix': 'UGX '},
         {'key': 'principal_due', 'label': 'Principal Due', 'type': 'currency', 'align': 'right', 'total': True, 'prefix': 'UGX '},
         {'key': 'interest_due', 'label': 'Interest Due', 'type': 'currency', 'align': 'right', 'total': True, 'prefix': 'UGX '},
         {'key': 'penalty_due', 'label': 'Penalty Due', 'type': 'currency', 'align': 'right', 'total': True, 'prefix': 'UGX '},
         {'key': 'total_due', 'label': 'Total Due', 'type': 'currency', 'align': 'right', 'total': True, 'prefix': 'UGX '},
         {'key': 'officer', 'label': 'Officer', 'align': 'left'},
     ]
+
     totals = {
+        'disbursed_amount': sum(item['disbursed_amount'] for item in data),
         'principal_due': sum(item['principal_due'] for item in data),
         'interest_due': sum(item['interest_due'] for item in data),
         'penalty_due': sum(item['penalty_due'] for item in data),
@@ -6456,7 +6685,6 @@ def arrears_report(request):
         return FileResponse(excel_file, as_attachment=True, filename=filename)
 
     return render(request, 'finance/reports/base_report.html', context)
-
 
 # ====================================================================
 # 13. GENERAL LEDGER REPORT (general_ledger_report)
@@ -6567,6 +6795,75 @@ def general_ledger_report(request):
     return render(request, 'finance/reports/base_report.html', context)
 
 
+
+# finance/views.py (or inside your existing views)
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.db import transaction as db_transaction
+from django.utils import timezone
+from decimal import Decimal
+from .models import Transaction, GeneralLedger, ChartOfAccount, AccountingEngine
+from .forms import JournalEntryForm
+
+def journal_entry(request):
+    if request.method == 'POST':
+        form = JournalEntryForm(request.POST)
+        if form.is_valid():
+            debit_acc = form.cleaned_data['debit_account']
+            credit_acc = form.cleaned_data['credit_account']
+            amount = form.cleaned_data['amount']
+            description = form.cleaned_data['description']
+            reference = form.cleaned_data['reference'] or f"JRN-{timezone.now().strftime('%Y%m%d%H%M%S')}"
+            entry_date = form.cleaned_data['date'] or timezone.now().date()
+
+            # Prevent self‑debit/credit
+            if debit_acc == credit_acc:
+                messages.error(request, "Debit and Credit accounts cannot be the same.")
+                return render(request, 'finance/journal_entry.html', {'form': form})
+
+            with db_transaction.atomic():
+                # 1. Create a Transaction record (type='journal')
+                tx = Transaction.objects.create(
+                    member=None,          # Not tied to a member – or you could make it optional
+                    loan=None,
+                    amount=amount,
+                    type='journal',
+                    reference=reference,
+                    timestamp=entry_date,
+                    created_by=request.user if request.user.is_authenticated else None,
+                )
+
+                # 2. Post Debit entry (increase asset/expense, or decrease liability/income/equity)
+                AccountingEngine.post_ledger_entry(
+                    account_code=debit_acc.code,
+                    description=f"{description} (Debit)",
+                    reference=reference,
+                    debit=amount,
+                    credit=Decimal('0.00'),
+                    transaction_obj=tx,
+                    date_context=entry_date,
+                )
+
+                # 3. Post Credit entry (increase liability/income/equity, or decrease asset/expense)
+                AccountingEngine.post_ledger_entry(
+                    account_code=credit_acc.code,
+                    description=f"{description} (Credit)",
+                    reference=reference,
+                    debit=Decimal('0.00'),
+                    credit=amount,
+                    transaction_obj=tx,
+                    date_context=entry_date,
+                )
+
+            messages.success(request, f"Journal entry posted successfully! Ref: {reference}")
+            return redirect('journal_entry')  # or to a list view
+
+    else:
+        form = JournalEntryForm()
+
+    return render(request, 'finance/journal_entry.html', {'form': form})
+
+
 # ====================================================================
 # 14. GENERIC REPORT VIEW (report_view) – kept for backward compatibility
 # ====================================================================
@@ -6578,7 +6875,39 @@ def report_view(request):
     return loan_report(request)
 
 
+from django.http import JsonResponse
+from django.http import JsonResponse
+from django.db.models import Sum, Value, DecimalField
+from django.db.models.functions import Coalesce
+from decimal import Decimal
+from .models import ChartOfAccount, GeneralLedger
 
+from django.http import JsonResponse
+from django.db.models import Sum, Value, DecimalField
+from django.db.models.functions import Coalesce
+from decimal import Decimal
+from .models import ChartOfAccount, GeneralLedger
+
+def account_balance_api(request, account_id):
+    try:
+        account = ChartOfAccount.objects.get(id=account_id)
+    except ChartOfAccount.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Account not found'}, status=404)
+
+    ledger_qs = GeneralLedger.objects.filter(account=account)
+    total_debit = ledger_qs.aggregate(total=Coalesce(Sum('debit'), Value(Decimal('0.00'))))['total']
+    total_credit = ledger_qs.aggregate(total=Coalesce(Sum('credit'), Value(Decimal('0.00'))))['total']
+
+    if account.account_type in ['asset', 'expense']:
+        balance = total_debit - total_credit
+    else:  # liability, income, equity
+        balance = total_credit - total_debit
+
+    return JsonResponse({
+        'success': True,
+        'balance': float(balance),
+        'account_type': account.get_account_type_display(),
+    })
 
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
@@ -6624,3 +6953,299 @@ def view_receipt(request):
         'company': Company.get_company(),
     }
     return render(request, 'finance/receipt.html', context)
+
+
+
+
+# finance/views.py
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import permission_required, login_required
+from django.db import transaction as db_transaction
+from django.utils import timezone
+from decimal import Decimal
+import requests
+import logging
+
+from .models import Loan, SMSConfig, SMSTransaction, Company
+from decouple import config
+
+logger = logging.getLogger(__name__)
+
+# SMS cost for a reminder (set to 300 as requested)
+SMS_REMINDER_COST = Decimal('300.00')
+
+# finance/views.py – add at the top if missing
+import requests
+import logging
+from decimal import Decimal
+from django.utils import timezone
+from django.db import transaction as db_transaction
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required, permission_required
+from decouple import config
+
+from .models import Loan, SMSConfig, SMSTransaction, Company
+from .models import Loan  # if not already imported
+
+logger = logging.getLogger(__name__)
+
+# Cost per SMS (as you already defined)
+SMS_REMINDER_COST = Decimal('300.00')
+
+
+@login_required
+@permission_required('finance.can_send_sms', raise_exception=True)
+def send_loan_reminder(request, loan_id):
+    """
+    Sends a payment reminder SMS to the member for a specific loan.
+    Deducts 300 from SMS wallet.
+    Message shows the actual overdue amount (principal + interest + penalty).
+    """
+    loan = get_object_or_404(Loan, id=loan_id)
+
+    # 1. Check if loan is active (not closed)
+    if loan.status in ['closed', 'rejected', 'defaulted']:
+        messages.error(request, "This loan is no longer active.")
+        return redirect('loan_details', loan_id=loan.id)
+
+    # 2. Check SMS credits
+    try:
+        sms_config = SMSConfig.objects.get()  # assume singleton
+    except SMSConfig.DoesNotExist:
+        messages.error(request, "SMS service is not configured.")
+        return redirect('loan_details', loan_id=loan.id)
+
+    if sms_config.balance < SMS_REMINDER_COST:
+        messages.error(
+            request,
+            f"Insufficient SMS credits. Required: UGX {SMS_REMINDER_COST:,.0f}, "
+            f"Available: UGX {sms_config.balance:,.0f}"
+        )
+        return redirect('loan_details', loan_id=loan.id)
+
+    # 3. Calculate the actual amount due (overdue installments)
+    member = loan.member
+    company = Company.get_company()
+    today = timezone.now().date()
+
+    # Get overdue installments (unpaid and due date <= today)
+    overdue_inst = loan.installments.filter(paid=False, due_date__lte=today)
+
+    if overdue_inst.exists():
+        # Sum of balances (principal + interest + penalty) for overdue installments
+        total_due = sum(inst.balance for inst in overdue_inst)
+        # Earliest overdue due date
+        next_due_date = overdue_inst.order_by('due_date').first().due_date
+    else:
+        # No overdue – fallback to next unpaid installment (if any)
+        next_inst = loan.installments.filter(paid=False).order_by('due_date').first()
+        if next_inst:
+            total_due = next_inst.balance
+            next_due_date = next_inst.due_date
+        else:
+            # No remaining installments – use loan balance as fallback
+            total_due = loan.balance
+            next_due_date = loan.start_date  # or today
+
+    disbursed_date = loan.disbursed_date or loan.start_date
+
+    # 4. Build the SMS message
+    message = (
+        f"Dear {member.first_name}, your loan of UGX {loan.principal_amount:,.0f} "
+        f"disbursed on {disbursed_date.strftime('%d/%m/%Y')} has a payment due of "
+        f"UGX {total_due:,.0f} by {next_due_date.strftime('%d/%m/%Y')}. "
+        f"Please pay on time to avoid penalties. Thank you. - {company.name}"
+    )
+
+    # Truncate to 160 characters if needed (SpeedaMobile supports up to 160 per SMS)
+    if len(message) > 160:
+        message = message[:157] + "..."
+
+    # 5. Format phone number
+    raw_phone = str(member.phone_number).strip().replace(" ", "").replace("+", "")
+    if raw_phone.startswith('0'):
+        formatted_phone = '256' + raw_phone[1:]
+    else:
+        formatted_phone = raw_phone
+
+    # 6. Send via SpeedaMobile API
+    api_id = config('SPEEDA_API_ID')
+    api_password = config('SPEEDA_API_PASSWORD')
+    sender_id = config('SPEEDA_SENDER_ID', default='MACFinTech')
+
+    url = "http://apidocs.speedamobile.com/api/SendSMS"
+    payload = {
+        "api_id": api_id,
+        "api_password": api_password,
+        "sms_type": "P",
+        "encoding": "T",
+        "sender_id": sender_id,
+        "phonenumber": formatted_phone,
+        "textmessage": message,
+    }
+
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        response.raise_for_status()
+        result = response.json()
+
+        if result.get("status") == "S":
+            # Deduct credits and log transaction
+            with db_transaction.atomic():
+                config_obj = SMSConfig.objects.select_for_update().get(id=sms_config.id)
+                config_obj.balance -= SMS_REMINDER_COST
+                config_obj.save()
+
+                SMSTransaction.objects.create(
+                    amount=SMS_REMINDER_COST,
+                    transaction_type='REMINDER',
+                    description=f"Reminder sent for loan {loan.loan_reference} to {member.first_name}",
+                    performed_by=request.user
+                )
+
+            messages.success(request, f"SMS reminder sent successfully to {member.first_name}.")
+        else:
+            error_msg = result.get('remarks', 'Unknown API error')
+            messages.error(request, f"Failed to send SMS: {error_msg}")
+
+    except requests.RequestException as e:
+        logger.error(f"SMS API error for {formatted_phone}: {str(e)}")
+        messages.error(request, "Could not connect to SMS gateway. Please try again later.")
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        messages.error(request, "An internal error occurred.")
+
+    return redirect('loan_details', loan_id=loan.id)
+
+
+@login_required
+@permission_required('finance.can_send_sms', raise_exception=True)
+def send_bulk_arrears_reminders(request):
+    """
+    Sends a bulk SMS reminder to all members with loans in arrears.
+    Message shows the actual overdue amount for each member.
+    """
+    company = Company.get_company()
+    today = timezone.now().date()
+
+    # Get all active loans with status 'arrears'
+    arrears_loans = Loan.objects.filter(
+        status='arrears',
+        is_active=True
+    ).select_related('member')
+
+    if not arrears_loans.exists():
+        messages.info(request, "No loans are currently in arrears.")
+        return redirect('loan_list')
+
+    # Check SMS credits (needed for all messages)
+    try:
+        sms_config = SMSConfig.objects.get()
+    except SMSConfig.DoesNotExist:
+        messages.error(request, "SMS service is not configured.")
+        return redirect('loan_list')
+
+    # Count total required credits
+    total_messages = arrears_loans.count()
+    total_cost = total_messages * SMS_REMINDER_COST
+
+    if sms_config.balance < total_cost:
+        messages.error(
+            request,
+            f"Insufficient SMS credits. Need UGX {total_cost:,.0f}, "
+            f"Available: UGX {sms_config.balance:,.0f}"
+        )
+        return redirect('loan_list')
+
+    sent = 0
+    failed = 0
+
+    for loan in arrears_loans:
+        member = loan.member
+        # Calculate overdue amount for this loan
+        overdue_inst = loan.installments.filter(paid=False, due_date__lte=today)
+        if overdue_inst.exists():
+            total_due = sum(inst.balance for inst in overdue_inst)
+            next_due_date = overdue_inst.order_by('due_date').first().due_date
+        else:
+            # Should not happen, but fallback
+            next_inst = loan.installments.filter(paid=False).order_by('due_date').first()
+            if next_inst:
+                total_due = next_inst.balance
+                next_due_date = next_inst.due_date
+            else:
+                # No installments – skip this loan
+                failed += 1
+                continue
+
+        disbursed_date = loan.disbursed_date or loan.start_date
+
+        # Build personalised message
+        message = (
+            f"Dear {member.first_name}, your loan of UGX {loan.principal_amount:,.0f} "
+            f"disbursed on {disbursed_date.strftime('%d/%m/%Y')} has a payment due of "
+            f"UGX {total_due:,.0f} by {next_due_date.strftime('%d/%m/%Y')}. "
+            f"Please pay on time to avoid penalties. Thank you. - {company.name}"
+        )
+        if len(message) > 160:
+            message = message[:157] + "..."
+
+        # Format phone number
+        raw_phone = str(member.phone_number).strip().replace(" ", "").replace("+", "")
+        if raw_phone.startswith('0'):
+            formatted_phone = '256' + raw_phone[1:]
+        else:
+            formatted_phone = raw_phone
+
+        # Call SpeedaMobile API
+        api_id = config('SPEEDA_API_ID')
+        api_password = config('SPEEDA_API_PASSWORD')
+        sender_id = config('SPEEDA_SENDER_ID', default='MACFinTech')
+        url = "http://apidocs.speedamobile.com/api/SendSMS"
+
+        payload = {
+            "api_id": api_id,
+            "api_password": api_password,
+            "sms_type": "P",
+            "encoding": "T",
+            "sender_id": sender_id,
+            "phonenumber": formatted_phone,
+            "textmessage": message,
+        }
+
+        try:
+            response = requests.post(url, json=payload, timeout=10)
+            response.raise_for_status()
+            result = response.json()
+
+            if result.get("status") == "S":
+                # Deduct one SMS cost
+                with db_transaction.atomic():
+                    config_obj = SMSConfig.objects.select_for_update().get(id=sms_config.id)
+                    config_obj.balance -= SMS_REMINDER_COST
+                    config_obj.save()
+
+                    SMSTransaction.objects.create(
+                        amount=SMS_REMINDER_COST,
+                        transaction_type='REMINDER',
+                        description=f"Bulk reminder sent to {member.first_name} for loan {loan.loan_reference}",
+                        performed_by=request.user
+                    )
+                sent += 1
+            else:
+                failed += 1
+                logger.error(f"Bulk SMS failed for {formatted_phone}: {result.get('remarks')}")
+
+        except Exception as e:
+            failed += 1
+            logger.error(f"Bulk SMS error for {formatted_phone}: {str(e)}")
+
+    # Final message
+    if sent > 0:
+        messages.success(request, f"Bulk SMS reminders sent: {sent} successful, {failed} failed.")
+    else:
+        messages.error(request, "Bulk SMS reminders failed. Please try again later.")
+
+    return redirect('loan_list')

@@ -284,6 +284,7 @@ class Loan(models.Model):
             ('can_disburse_loan', 'Can disburse a loan'),
             ('can_apply_manual_penalty', 'Can manually apply penalty'),
             ('can_waive_penalty', 'Can waive penalties'),
+            ('can_send_sms', 'Can send SMS reminders'),
         ]
 
     # ==============================
@@ -430,7 +431,6 @@ from decimal import Decimal
 from members.models import Member  # Import from members app
 
 class Transaction(models.Model):
-    """Individual system action tracking financial entry modifications."""
     T_TYPES = (
         ('deposit', 'Deposit'),
         ('withdrawal', 'Withdrawal'),
@@ -438,26 +438,27 @@ class Transaction(models.Model):
         ('repayment', 'Loan Repayment'),
         ('penalty', 'Penalty'),
         ('reversal', 'Reversal'),
+        ('journal', 'Journal Entry'),
     )
-    
     STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
         ('reversed', 'Reversed'),
     )
-    
+
     member = models.ForeignKey(
-        Member,  # Now Member is imported
+        'members.Member',
         on_delete=models.CASCADE,
-        related_name='transactions'
+        related_name='transactions',
+        null=True,          # Allow journal entries without a member
+        blank=True,
     )
-    
     loan = models.ForeignKey(
-        'Loan', 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
+        'Loan',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='transactions'
     )
     amount = models.DecimalField(max_digits=15, decimal_places=2)
@@ -466,9 +467,9 @@ class Transaction(models.Model):
     reference = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     is_reversed = models.BooleanField(default=False)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
         related_name='transactions_created'
     )
@@ -484,7 +485,7 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.type.upper()} - {self.amount} ({self.reference})"
-    
+
     class Meta:
         ordering = ['-timestamp']
         indexes = [

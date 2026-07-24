@@ -70,6 +70,7 @@ class ProductForm(forms.ModelForm):
             'cost_price',
             'selling_price',
             'reorder_level',
+            'current_stock',          # <-- added
         ]
 
         widgets = {
@@ -98,6 +99,12 @@ class ProductForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Low stock alert level'
             }),
+            'current_stock': forms.NumberInput(attrs={  # <-- new
+                'class': 'form-control',
+                'placeholder': 'Initial stock quantity',
+                'step': '1',
+                'min': '0'
+            }),
         }
 
     def clean(self):
@@ -111,7 +118,6 @@ class ProductForm(forms.ModelForm):
             )
 
         return cleaned_data
-
 
 class PurchaseForm(forms.ModelForm):
     """Form for creating a purchase order with items"""

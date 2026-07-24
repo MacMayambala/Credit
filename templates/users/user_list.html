@@ -208,6 +208,7 @@
 
     .table-custom tbody tr {
         transition: background 0.2s ease;
+        position: relative;
     }
 
     .table-custom tbody tr:hover {
@@ -218,18 +219,50 @@
         border-bottom: none;
     }
 
+    /* 🔥 CURRENT USER ROW */
+    .table-custom tbody tr.row-current-user {
+        background: var(--brand-cobalt-bg);
+        border-left: 4px solid var(--brand-cobalt);
+    }
+
+    .table-custom tbody tr.row-current-user:hover {
+        background: rgba(22, 50, 175, 0.1);
+    }
+
     .table-custom .user-avatar {
         width: 42px;
         height: 42px;
         border-radius: 50%;
+        flex-shrink: 0;
+        overflow: hidden;
+        background: var(--brand-cobalt-bg);
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--brand-cobalt-bg);
-        color: var(--brand-cobalt);
         font-weight: 700;
         font-size: 1rem;
-        flex-shrink: 0;
+        color: var(--brand-cobalt);
+    }
+
+    .table-custom .user-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* You badge */
+    .badge-you {
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        font-size: 0.6rem;
+        font-weight: 700;
+        padding: 0.1rem 0.6rem;
+        border-radius: 100px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-left: 0.5rem;
+        display: inline-block;
+        white-space: nowrap;
     }
 
     .table-custom .user-name {
@@ -350,6 +383,12 @@
         color: var(--success);
     }
 
+    .action-group .btn-icon.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
     /* Pulse animation */
     @keyframes pulse {
         0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
@@ -447,6 +486,10 @@
             border: 1px solid var(--border-color);
             border-radius: var(--radius-sm);
             padding: 0.75rem;
+            position: relative;
+        }
+        .table-custom tbody tr.row-current-user {
+            border-left: 4px solid var(--brand-cobalt);
         }
         .table-custom tbody td {
             display: flex;
@@ -488,6 +531,11 @@
         }
         .page-header h2 {
             font-size: 1.2rem;
+        }
+        .badge-you {
+            font-size: 0.5rem;
+            padding: 0.05rem 0.4rem;
+            margin-left: 0.3rem;
         }
     }
 
@@ -547,14 +595,23 @@
                 </thead>
                 <tbody>
                     {% for user in users %}
-                    <tr>
+                    <tr class="{% if user.id == request.user.id %}row-current-user{% endif %}">
                         <td data-label="Staff Member">
                             <div class="d-flex align-items-center gap-3">
                                 <div class="user-avatar">
-                                    {{ user.username|slice:":1"|upper }}
+                                    {% if user.profile.photo %}
+                                        <img src="{{ user.profile.photo.url }}" alt="{{ user.get_full_name }}">
+                                    {% else %}
+                                        {{ user.username|slice:":1"|upper }}
+                                    {% endif %}
                                 </div>
                                 <div>
-                                    <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+                                    <div class="user-name">
+                                        {{ user.get_full_name|default:user.username }}
+                                        {% if user.id == request.user.id %}
+                                            <span class="role-badge">You</span>
+                                        {% endif %}
+                                    </div>
                                     <div class="user-email">{{ user.email }}</div>
                                 </div>
                             </div>
@@ -596,11 +653,18 @@
                                 <a href="{% url 'user_edit' user.id %}" class="btn-icon" title="Edit Profile">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
-                                <a href="{% url 'toggle_user_status' user.id %}" 
-                                   class="btn-icon {% if user.is_active %}danger{% else %}success{% endif %}" 
-                                   title="{% if user.is_active %}Deactivate Account{% else %}Activate Account{% endif %}">
-                                    <i class="bi {% if user.is_active %}bi-slash-circle{% else %}bi-check-circle{% endif %}"></i>
-                                </a>
+                                {% if user.id == request.user.id %}
+                                    <span class="btn-icon disabled" title="You cannot block your own account">
+                                        <i class="bi bi-slash-circle"></i>
+                                    </span>
+                                {% else %}
+                                    <a href="{% url 'toggle_user_status' user.id %}" 
+                                       class="btn-icon {% if user.is_active %}danger{% else %}success{% endif %}" 
+                                       title="{% if user.is_active %}Deactivate Account{% else %}Activate Account{% endif %}"
+                                       onclick="return confirm('Are you sure you want to {% if user.is_active %}deactivate{% else %}activate{% endif %} this user?')">
+                                        <i class="bi {% if user.is_active %}bi-slash-circle{% else %}bi-check-circle{% endif %}"></i>
+                                    </a>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

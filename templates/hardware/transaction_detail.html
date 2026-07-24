@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Transaction #{{ transaction.id }} | Hardware{% endblock %}
+
+{% block page_title %}Transaction Details{% endblock %}
+{% block page_subtitle %}
+    <i class="bi bi-receipt me-1"></i>
+    Full details for transaction #{{ transaction.id }}
+{% endblock %}
+
+{% block breadcrumb %}
+    <span>/</span>
+    <span>Hardware</span>
+    <span>/</span>
+    <span><a href="{% url 'hardware:transactions_report' %}" style="color: var(--brand-cobalt);">Transactions</a></span>
+    <span>/</span>
+    <span>{{ transaction.id }}</span>
+{% endblock %}
+
+{% block quick_actions %}
+    <a href="{% url 'hardware:transactions_report' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+    <a href="{% url 'hardware:pos' %}" class="btn btn-primary btn-sm" style="background: var(--brand-cobalt); border-color: var(--brand-cobalt);">
+        <i class="bi bi-cart-plus"></i> New Sale
+    </a>
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-4">
+    <!-- Main Details -->
+    <div class="col-lg-8">
+        <div class="content-card p-4">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h5 class="fw-bold mb-1" style="color: var(--brand-cobalt);">Transaction #{{ transaction.id }}</h5>
+                    <span class="badge rounded-pill px-3 py-2" 
+                          style="background: var(--brand-cobalt-bg); color: var(--brand-cobalt); font-weight: 600; font-size: 0.75rem; border: 1px solid rgba(22, 50, 175, 0.1);">
+                        <i class="bi 
+                            {% if transaction.transaction_type == 'SALE' %}bi-arrow-up-right{% elif transaction.transaction_type == 'PURCHASE' %}bi-arrow-down-left{% else %}bi-arrows-expand{% endif %} me-1">
+                        </i>
+                        {{ transaction.get_transaction_type_display }}
+                    </span>
+                </div>
+                <div class="text-muted small">
+                    <i class="bi bi-calendar-event me-1"></i>
+                    {{ transaction.created_at|date:"d M, Y H:i" }}
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="p-3 rounded-3" style="background: var(--bg-body);">
+                        <div class="text-muted small text-uppercase fw-semibold">Product</div>
+                        <div class="fw-bold fs-5" style="color: var(--text-primary);">{{ transaction.product.name }}</div>
+                        <div class="text-muted small">Code: {{ transaction.product.product_code }}</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 rounded-3" style="background: var(--bg-body);">
+                        <div class="text-muted small text-uppercase fw-semibold">Quantity</div>
+                        <div class="fw-bold fs-5" style="color: var(--text-primary);">{{ transaction.quantity|floatformat:0 }}</div>
+                        <div class="text-muted small">Current stock: {{ transaction.product.current_stock|floatformat:0 }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-2">
+                <div class="col-md-6">
+                    <div class="p-3 rounded-3" style="background: var(--bg-body);">
+                        <div class="text-muted small text-uppercase fw-semibold">Reference</div>
+                        <div class="fw-bold">{{ transaction.reference_id|default:"—" }}</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 rounded-3" style="background: var(--bg-body);">
+                        <div class="text-muted small text-uppercase fw-semibold">Created By</div>
+                        <div class="fw-bold">{{ transaction.created_by.get_full_name|default:transaction.created_by.username }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if transaction.remarks %}
+            <div class="mt-4 p-3 rounded-3" style="background: var(--brand-cobalt-bg); border-left: 4px solid var(--brand-cobalt);">
+                <div class="text-muted small text-uppercase fw-semibold"><i class="bi bi-chat-text me-1" style="color: var(--brand-cobalt);"></i> Remarks</div>
+                <p class="mb-0" style="color: var(--text-primary);">{{ transaction.remarks }}</p>
+            </div>
+            {% endif %}
+
+            <div class="mt-4 pt-3 border-top">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="text-muted small text-uppercase fw-semibold">Cost Price</div>
+                        <div class="fw-bold" style="color: var(--brand-cobalt);">UGX {{ transaction.product.cost_price|floatformat:0|intcomma }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted small text-uppercase fw-semibold">Selling Price</div>
+                        <div class="fw-bold" style="color: var(--brand-cobalt);">UGX {{ transaction.product.selling_price|floatformat:0|intcomma }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="content-card p-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-tools me-2" style="color: var(--brand-cobalt);"></i>Actions</h6>
+            <div class="d-grid gap-2">
+                <a href="{% url 'hardware:product_edit' transaction.product.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-box-seam"></i> View Product
+                </a>
+                <a href="{% url 'hardware:transactions_report' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-list-ul"></i> All Transactions
+                </a>
+                <button class="btn" onclick="window.print()" style="background: var(--brand-cobalt); color: #ffffff; border: none;">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+            </div>
+        </div>
+
+        <div class="content-card p-4 mt-3">
+            <h6 class="fw-bold mb-3"><i class="bi bi-shield-check me-2" style="color: var(--brand-cobalt);"></i>Audit Info</h6>
+            <div class="small">
+                <div class="d-flex justify-content-between py-1">
+                    <span class="text-muted">Created</span>
+                    <span>{{ transaction.created_at|date:"d M, Y H:i" }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-top" style="border-color: var(--border-color);">
+                    <span class="text-muted">Last Updated</span>
+                    <span>{{ transaction.updated_at|date:"d M, Y H:i"|default:transaction.created_at|date:"d M, Y H:i" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

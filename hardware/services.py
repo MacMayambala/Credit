@@ -14,37 +14,40 @@ from django.db.models import Sum, F, Case, When, Value, DecimalField, IntegerFie
 from django.db.models.functions import Coalesce
 from .models import Product
 
+from decimal import Decimal
+from django.db.models import Sum, Count, Q, F, Value, Case, When, IntegerField, DecimalField, ExpressionWrapper
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from .models import Product, Sale, StockTransaction
+
+from decimal import Decimal
+from django.db.models import Sum, Count, Q, F, Value, Case, When, IntegerField, DecimalField, ExpressionWrapper
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from .models import Product, Sale, StockTransaction, Purchase
 
 def get_dashboard_stats():
-    # 1. Stock calculation
+    today = timezone.now().date()
+    start_of_month = today.replace(day=1)
+
+    # ---------- Stock Calculation (using ledger) ----------
     products = Product.objects.annotate(
         inflow=Coalesce(
             Sum('ledger__quantity',
-                filter=Case(
-                    When(ledger__transaction_type='PURCHASE', then=Value(1)),
-                    default=Value(0),
-                    output_field=IntegerField()
-                )
+                filter=Q(ledger__transaction_type='PURCHASE')
             ),
-            Value(0),
-            output_field=IntegerField()
+            Value(0, output_field=DecimalField())
         ),
         outflow=Coalesce(
             Sum('ledger__quantity',
-                filter=Case(
-                    When(ledger__transaction_type='SALE', then=Value(1)),
-                    default=Value(0),
-                    output_field=IntegerField()
-                )
+                filter=Q(ledger__transaction_type='SALE')
             ),
-            Value(0),
-            output_field=IntegerField()
-        ),
+            Value(0, output_field=DecimalField())
+        )
     ).annotate(
         calculated_stock=F('inflow') - F('outflow')
     )
 
-    # 2. Proper typed multiplication (IMPORTANT FIX)
     inventory_value_expr = ExpressionWrapper(
         F('calculated_stock') * F('cost_price'),
         output_field=DecimalField(max_digits=14, decimal_places=2)
@@ -57,17 +60,49 @@ def get_dashboard_stats():
                 When(calculated_stock__lte=F('reorder_level'), then=Value(1)),
                 default=Value(0),
                 output_field=IntegerField()
-            ),
-            output_field=IntegerField()
+            )
         )
     )
 
+    # ---------- Today's Sales ----------
+    todays_sales = Sale.objects.filter(
+        date__date=today
+    ).aggregate(
+        total=Coalesce(Sum('total_amount'), Decimal('0.00'))
+    )['total']
+
+    # ---------- Monthly Revenue ----------
+    monthly_revenue = Sale.objects.filter(
+        date__date__gte=start_of_month,
+        date__date__lte=today
+    ).aggregate(
+        total=Coalesce(Sum('total_amount'), Decimal('0.00'))
+    )['total']
+
+    # ---------- Total Sales Count ----------
+    total_sales_count = Sale.objects.count()
+
+    # ---------- Recent Transactions ----------
+    # If you have StockTransaction records, use them. Otherwise, use Sale/Purchase.
+    recent_transactions = StockTransaction.objects.select_related('product').order_by('-created_at')[:10]
+
+    # If StockTransaction is empty, fallback to SaleItems or PurchaseItems
+    if not recent_transactions:
+        # Fallback: Use SaleItem (recent sales)
+        from .models import SaleItem
+        recent_transactions = SaleItem.objects.select_related('product', 'sale').order_by('-sale__date')[:10]
+        # You'll need to adjust the template to handle different objects.
+
     return {
         'total_products': Product.objects.count(),
-        'inventory_value': stats['total_value'] or 0,
-        'low_stock_items': stats['low_stock_count'] or 0,
+        'inventory_value': stats['total_value'] or Decimal('0.00'),
+        'low_stock_count': stats['low_stock_count'] or 0,
+        'todays_sales': todays_sales,
+        'todays_revenue': todays_sales,   # same as todays_sales
+        'monthly_revenue': monthly_revenue,
+        'total_sales_count': total_sales_count,
+        'recent_transactions': recent_transactions,
     }
-
 # hardware/services.py
 from .models import Product, StockTransaction
 

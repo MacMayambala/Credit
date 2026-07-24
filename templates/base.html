@@ -8,45 +8,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ company.name|default:"MAC Technologies" }} - Credit {% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    
+    <title>{% block title %}{{ company.name|default:"MAC Technologies" }} - Core Banking{% endblock %}</title>
+
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="{% static 'images/mac.png' %}">
 
+    <!-- Bootstrap 5.3 & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
-    <!-- Inter Google Font -->
+
+    <!-- Inter Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+
+    <!-- Flatpickr (for date inputs) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    {% block extra_css %}{% endblock %}
+
     <style>
+        /* ==========================================================
+           ROOT VARIABLES & THEME
+           ========================================================== */
         :root {
             --brand-cobalt: #1632af;
             --brand-cobalt-light: #2a4ad8;
             --brand-cobalt-dark: #0f248a;
             --brand-cobalt-bg: rgba(22, 50, 175, 0.08);
             --brand-cobalt-glow: rgba(22, 50, 175, 0.15);
-            
+
             --sidebar-bg: #ffffff;
             --bg: #f8fafc;
             --border-color: #e2e8f0;
             --text-primary: #0f172a;
             --text-secondary: #64748b;
+            --text-muted: #94a3b8;
             --card-bg: #ffffff;
             --hover-bg: #f1f5f9;
+
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-            --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
-            --shadow-lg: 0 10px 40px rgba(0,0,0,0.1);
+            --info: #3b82f6;
+
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.10);
+            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.12);
+
             --radius: 16px;
+            --radius-sm: 10px;
+            --radius-lg: 24px;
+
+            --transition: 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
         [data-theme="dark"] {
@@ -55,12 +75,24 @@
             --border-color: #1e2937;
             --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
+            --text-muted: #64748b;
             --card-bg: #1e2937;
             --hover-bg: #1e2937;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.6);
+            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.7);
+        }
+
+        /* ==========================================================
+           GLOBAL RESET & TYPOGRAPHY
+           ========================================================== */
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text-primary);
             font-weight: 400;
@@ -68,6 +100,7 @@
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            transition: background 0.3s, color 0.3s;
         }
 
         h1, h2, h3, h4, h5, h6,
@@ -75,52 +108,77 @@
             letter-spacing: -0.02em;
         }
 
-        /* ==================== SIDEBAR ==================== */
+        a {
+            text-decoration: none;
+            color: var(--brand-cobalt);
+        }
+        a:hover {
+            color: var(--brand-cobalt-dark);
+        }
+
+        /* Scrollbar (minimal) */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 8px;
+        }
+
+        /* ==========================================================
+           SIDEBAR (compact, no search)
+           ========================================================== */
         #sidebar {
-            width: 280px;
+            width: 260px;
             height: 100vh;
             position: fixed;
+            top: 0;
+            left: 0;
             background: var(--sidebar-bg);
             border-right: 1px solid var(--border-color);
             z-index: 1050;
             display: flex;
             flex-direction: column;
-            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-            box-shadow: 0 0 20px rgba(0,0,0,0.02);
+            transition: transform 0.35s var(--transition);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.02);
+            overflow: hidden;
         }
 
         .sidebar-header {
-            padding: 1.75rem 1.5rem 1.2rem;
+            padding: 1.2rem 1.5rem 0.8rem;
             border-bottom: 1px solid var(--border-color);
             text-align: center;
+            flex-shrink: 0;
             background: var(--sidebar-bg);
-            position: relative;
         }
 
         .logo-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.3rem;
         }
 
         .logo-img {
-            max-height: 56px;
+            max-height: 44px;
             width: auto;
             transition: transform 0.2s ease;
         }
-
         .logo-img:hover {
             transform: scale(1.03);
         }
 
         .logo-icon {
-            font-size: 2.5rem;
+            font-size: 2rem;
             color: var(--brand-cobalt);
         }
 
         .logo-text {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 700;
             color: var(--brand-cobalt);
             letter-spacing: -0.02em;
@@ -129,63 +187,70 @@
 
         .sidebar-badge {
             display: inline-block;
-            margin-top: 0.5rem;
-            font-size: 0.6rem;
+            margin-top: 0.3rem;
+            font-size: 0.55rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            padding: 0.2rem 0.8rem;
+            letter-spacing: 0.06em;
+            padding: 0.15rem 0.6rem;
             border-radius: 100px;
             background: var(--brand-cobalt-bg);
             color: var(--brand-cobalt);
             border: 1px solid rgba(22, 50, 175, 0.1);
         }
 
+        /* Sidebar Navigation (compact) */
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.25rem 0 0.5rem;
+        }
+
         .nav-section {
-            padding: 1.4rem 1.5rem 0.6rem;
-            font-size: 0.68rem;
+            padding: 0.8rem 1.5rem 0.2rem;
+            font-size: 0.6rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            color: var(--text-secondary);
+            color: var(--text-muted);
         }
 
         .nav-link {
-            color: var(--text-secondary);
-            padding: 11px 1.5rem;
-            margin: 3px 12px;
-            border-radius: 12px;
-            font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 14px;
-            transition: all 0.25s ease;
+            gap: 12px;
+            padding: 7px 1.5rem;
+            margin: 2px 10px;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
             text-decoration: none;
-            font-size: 0.93rem;
             position: relative;
+            cursor: pointer;
         }
 
         .nav-link i {
-            font-size: 1.18rem;
-            width: 24px;
+            font-size: 1.1rem;
+            width: 22px;
             transition: transform 0.2s ease;
+            flex-shrink: 0;
         }
 
         .nav-link:hover {
             background: var(--hover-bg);
             color: var(--brand-cobalt);
         }
-
         .nav-link:hover i {
             transform: translateX(3px);
         }
 
         .nav-link.active {
             background: var(--brand-cobalt);
-            color: white !important;
-            box-shadow: 0 6px 16px rgba(22, 50, 175, 0.25);
+            color: #fff !important;
+            box-shadow: 0 4px 12px rgba(22, 50, 175, 0.25);
         }
-
         .nav-link.active i {
             transform: none !important;
         }
@@ -194,105 +259,232 @@
             margin-left: auto;
             transition: transform 0.25s ease;
         }
-
         .nav-link[aria-expanded="true"] .chevron {
             transform: rotate(180deg);
         }
 
         .collapse .nav-link {
-            padding: 8px 1.5rem 8px 3rem;
-            font-size: 0.85rem;
-            margin: 2px 12px;
+            padding: 5px 1.5rem 5px 3rem;
+            font-size: 0.8rem;
+            margin: 2px 10px;
         }
 
-        /* ==================== MAIN LAYOUT ==================== */
+        /* Sidebar Footer (compact) */
+        .sidebar-footer {
+            padding: 0.6rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .sidebar-footer .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .sidebar-footer .user-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border-color);
+        }
+        .sidebar-footer .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+        }
+        .sidebar-footer .user-role {
+            font-size: 0.6rem;
+        }
+        .sidebar-footer .online-status {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+            margin-right: 4px;
+        }
+        .sidebar-footer .version {
+            font-size: 0.6rem;
+        }
+
+        /* ==========================================================
+           MAIN LAYOUT
+           ========================================================== */
         #main {
-            margin-left: 280px;
+            margin-left: 260px;
             min-height: 100vh;
-            transition: margin-left 0.35s ease;
+            transition: margin-left 0.35s var(--transition);
         }
 
+        /* ==========================================================
+           TOP NAVBAR (compact)
+           ========================================================== */
         .top-navbar {
             background: var(--sidebar-bg);
             border-bottom: 1px solid var(--border-color);
-            padding: 0.7rem 2rem;
+            padding: 0.4rem 2rem;
             position: sticky;
             top: 0;
-            z-index: 1000;
+            z-index: 1040;
             backdrop-filter: blur(8px);
-            background: rgba(255,255,255,0.9);
+            background: rgba(255, 255, 255, 0.85);
+            transition: background 0.3s;
         }
-
         [data-theme="dark"] .top-navbar {
             background: rgba(15, 23, 42, 0.9);
+        }
+
+        .top-navbar .navbar-brand {
+            font-weight: 700;
+            color: var(--brand-cobalt);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .top-navbar .navbar-brand img {
+            height: 28px;
         }
 
         .top-navbar .btn-toggle {
             background: transparent;
             border: none;
             color: var(--text-secondary);
-            font-size: 1.5rem;
-            padding: 0.25rem 0.5rem;
+            font-size: 1.3rem;
+            padding: 0.2rem 0.4rem;
         }
-
         .top-navbar .btn-toggle:hover {
             color: var(--brand-cobalt);
         }
 
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+        .top-navbar .branch-selector {
+            max-width: 130px;
+        }
+        .top-navbar .branch-selector .form-select {
+            background: var(--bg);
+            border: 1px solid var(--border-color);
+            border-radius: 100px;
+            font-size: 0.7rem;
+            padding: 0.15rem 1.5rem 0.15rem 0.8rem;
+            height: 28px;
         }
 
-        .user-profile .user-avatar {
-            width: 42px;
-            height: 42px;
+        .top-navbar .global-search {
+            position: relative;
+        }
+        .top-navbar .global-search input {
+            background: var(--bg);
+            border: 1px solid var(--border-color);
+            border-radius: 100px;
+            padding: 0.2rem 1rem 0.2rem 2rem;
+            font-size: 0.8rem;
+            min-width: 180px;
+            height: 30px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .top-navbar .global-search input:focus {
+            border-color: var(--brand-cobalt);
+            box-shadow: 0 0 0 3px var(--brand-cobalt-bg);
+            outline: none;
+        }
+        .top-navbar .global-search .search-icon {
+            position: absolute;
+            left: 0.7rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .top-navbar .notification-bell {
+            position: relative;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+        .top-navbar .notification-bell:hover {
+            color: var(--brand-cobalt);
+        }
+        .top-navbar .notification-bell .badge-dot {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 16px;
+            height: 16px;
+            background: var(--danger);
+            color: #fff;
+            border-radius: 50%;
+            font-size: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            border: 2px solid var(--sidebar-bg);
+        }
+
+        .top-navbar .datetime {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .top-navbar .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .top-navbar .user-profile .user-avatar {
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--border-color);
-            transition: border-color 0.2s ease;
+            transition: border-color 0.2s;
+            cursor: pointer;
         }
-
-        .user-profile .user-avatar:hover {
+        .top-navbar .user-profile .user-avatar:hover {
             border-color: var(--brand-cobalt);
         }
-
-        .user-profile .user-name {
+        .top-navbar .user-profile .user-name {
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             line-height: 1.2;
         }
-
-        .user-profile .user-role {
-            font-size: 0.7rem;
+        .top-navbar .user-profile .user-role {
+            font-size: 0.6rem;
             color: var(--text-muted);
         }
 
-        /* Stats Bar */
+        /* ==========================================================
+           STATISTICS BAR (sticky, fixed position)
+           ========================================================== */
         .stat-command-bar {
             position: sticky;
-            top: 73px;
-            z-index: 999;
+            top: 60px; /* adjust based on navbar height */
+            z-index: 1030;
+            padding: 0.4rem 2rem 0.2rem;
+            background: var(--bg);
+            backdrop-filter: blur(4px);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: center;
-            padding: 0.6rem 0;
-            pointer-events: none;
         }
 
         .glass-stats {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 9999px;
-            padding: 10px 32px;
+            padding: 0.3rem 1.8rem;
             display: flex;
-            gap: 40px;
-            box-shadow: var(--shadow-md);
-            pointer-events: auto;
+            gap: 2rem;
+            box-shadow: var(--shadow-sm);
+            flex-wrap: wrap;
+            justify-content: center;
             backdrop-filter: blur(8px);
-            background: rgba(255,255,255,0.85);
+            background: rgba(255, 255, 255, 0.85);
         }
-
         [data-theme="dark"] .glass-stats {
             background: rgba(30, 41, 59, 0.85);
         }
@@ -300,325 +492,175 @@
         .stat-item {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 0.5rem;
         }
-
-        .stat-label {
-            font-size: 0.6rem;
+        .stat-item .stat-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--brand-cobalt-bg);
+            color: var(--brand-cobalt);
+            font-size: 0.8rem;
+        }
+        .stat-item .stat-content {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        .stat-item .stat-label {
+            font-size: 0.5rem;
             font-weight: 700;
-            color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 0.6px;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
         }
-
-        .stat-val {
-            font-size: 1.15rem;
+        .stat-item .stat-value {
+            font-size: 0.95rem;
             font-weight: 700;
         }
+        .stat-item .stat-trend {
+            font-size: 0.6rem;
+            font-weight: 600;
+            margin-left: 0.3rem;
+        }
+        .stat-item .stat-trend.up {
+            color: var(--success);
+        }
+        .stat-item .stat-trend.down {
+            color: var(--danger);
+        }
 
+        /* ==========================================================
+           CONTENT CARD
+           ========================================================== */
         .content-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: var(--radius);
-            padding: 2rem;
-            margin: 0 2rem 2rem 2rem;
+            padding: 1.5rem 2rem;
+            margin: 1rem 2rem 2rem;
             box-shadow: var(--shadow-sm);
-            transition: box-shadow 0.3s ease;
+            transition: box-shadow 0.3s ease, background 0.3s;
         }
-
         .content-card:hover {
             box-shadow: var(--shadow-md);
         }
 
-        /* Toasts */
+        .card-header-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card-header-actions .card-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+        .card-header-actions .card-actions {
+            display: flex;
+            gap: 0.3rem;
+        }
+        .card-header-actions .card-actions .btn-icon {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .card-header-actions .card-actions .btn-icon:hover {
+            background: var(--brand-cobalt-bg);
+            color: var(--brand-cobalt);
+        }
+
+        /* ==========================================================
+           DASHBOARD HEADER
+           ========================================================== */
+        .page-header {
+            padding: 0.8rem 2rem 0.3rem;
+        }
+        .page-header .breadcrumb-custom {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+        .page-header .breadcrumb-custom a {
+            color: var(--brand-cobalt);
+        }
+        .page-header .breadcrumb-custom a:hover {
+            text-decoration: underline;
+        }
+        .page-header h1 {
+            font-weight: 800;
+            font-size: 1.6rem;
+            margin: 0.2rem 0 0.1rem;
+        }
+        .page-header .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+        .page-header .quick-actions {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        /* ==========================================================
+           TOAST NOTIFICATIONS
+           ========================================================== */
+        .toast-container {
+            z-index: 11000;
+        }
         .custom-toast {
-            border-radius: 14px;
-            padding: 16px 20px;
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
             box-shadow: var(--shadow-lg);
             border-left: 6px solid var(--brand-cobalt);
             animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
+            margin-bottom: 0.5rem;
+            min-width: 280px;
+            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.9);
         }
-
-        /* ============================================
-        MEMBER ROW
-        ============================================ */
-        .member-row {
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-            padding: 0.9rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            transition: all 0.25s ease;
-            cursor: pointer;
-            position: relative;
+        [data-theme="dark"] .custom-toast {
+            background: rgba(30, 41, 59, 0.95);
         }
-
-        .member-row:hover {
-            background: var(--hover-bg);
-        }
-
-        .member-row:hover .member-name {
-            color: var(--brand-cobalt);
-        }
-
-        .member-row:last-child {
-            border-bottom: none;
-        }
-
-        .member-row .avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: var(--brand-cobalt-bg);
-            color: var(--brand-cobalt);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.1rem;
-            flex-shrink: 0;
-            box-shadow: 0 2px 10px rgba(22, 50, 175, 0.1);
-            overflow: hidden;
-        }
-
-        .member-row .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .member-row .member-main {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .member-row .member-name {
-            font-weight: 700;
-            font-size: 0.95rem;
-            color: var(--text-primary);
-            text-decoration: none;
-            display: block;
-            transition: color 0.2s ease;
-        }
-
-        .member-row .member-name:hover {
-            color: var(--brand-cobalt);
-        }
-
-        .member-row .member-subtitle {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 2px;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .member-row .member-id {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.1rem 0.6rem;
-            background: var(--brand-cobalt-bg);
-            color: var(--brand-cobalt);
-            font-size: 0.65rem;
-            font-weight: 700;
-            border-radius: 100px;
-            letter-spacing: 0.02em;
-        }
-
-        .member-row .member-details {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            color: var(--text-secondary);
-            flex-shrink: 0;
-            flex-wrap: wrap;
-        }
-
-        .member-row .detail-item {
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-            font-size: 0.8rem;
-            white-space: nowrap;
-            color: var(--text-secondary);
-        }
-
-        .member-row .detail-item i {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-
-        .member-row .detail-item .detail-label {
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        /* ============================================
-        STATUS BADGES
-        ============================================ */
-        .status-badge {
-            padding: 0.15rem 0.6rem;
-            border-radius: 100px;
-            font-size: 0.6rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-
-        .status-active {
-            background: rgba(16, 185, 129, 0.12);
-            color: #10b981;
-        }
-
-        .status-inactive {
-            background: rgba(239, 68, 68, 0.12);
-            color: #ef4444;
-        }
-
-        .status-pending {
-            background: rgba(245, 158, 11, 0.12);
-            color: #f59e0b;
-        }
-
-        /* ============================================
-        EMPTY STATE
-        ============================================ */
-        .empty-state {
-            padding: 2rem 1.5rem;
-            text-align: center;
-        }
-
-        .empty-state h5 {
-            font-weight: 700;
-            color: var(--text-secondary);
-            margin-bottom: 0.25rem;
-        }
-
-        .empty-state .btn-primary {
+        .custom-toast .toast-progress {
+            height: 2px;
             background: var(--brand-cobalt);
-            color: #ffffff;
-            border: none;
-            padding: 0.4rem 1.25rem;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            transition: all 0.25s ease;
+            width: 100%;
+            animation: progress 5s linear forwards;
+            border-radius: 2px;
         }
-
-        .empty-state .btn-primary:hover {
-            background: var(--brand-cobalt-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
-        }
-
-        /* ============================================
-        RESPONSIVE
-        ============================================ */
-        @media (max-width: 1100px) {
-            .member-row .member-details {
-                gap: 1rem;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .member-row {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 0.75rem 1rem;
-            }
-            
-            .member-row .member-details {
-                width: 100%;
-                margin-top: 0.5rem;
-                gap: 0.75rem;
-                justify-content: flex-start;
-            }
-            
-            .member-row .member-details .detail-item {
-                font-size: 0.7rem;
-            }
-            
-            .member-row .member-details .detail-item i {
-                font-size: 0.75rem;
-            }
-            
-            .member-row .member-subtitle {
-                font-size: 0.65rem;
-            }
-            
-            .member-row .member-id {
-                font-size: 0.6rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .member-row .member-details {
-                flex-wrap: wrap;
-                gap: 0.5rem;
-            }
-            
-            .member-row .member-details .detail-item {
-                font-size: 0.65rem;
-            }
-            
-            .member-row .avatar {
-                width: 36px;
-                height: 36px;
-                font-size: 0.8rem;
-            }
-            
-            .member-row .member-name {
-                font-size: 0.85rem;
-            }
-            
-            .status-badge {
-                font-size: 0.5rem;
-                padding: 0.1rem 0.4rem;
-            }
-        }
-
-        /* ============================================
-        ANIMATION
-        ============================================ */
-        @keyframes slideInRow {
-            from {
-                opacity: 0;
-                transform: translateX(-8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .member-row {
-            animation: slideInRow 0.3s ease forwards;
-        }
-
-        .member-row:nth-child(1) { animation-delay: 0.02s; }
-        .member-row:nth-child(2) { animation-delay: 0.04s; }
-        .member-row:nth-child(3) { animation-delay: 0.06s; }
-        .member-row:nth-child(4) { animation-delay: 0.08s; }
-        .member-row:nth-child(5) { animation-delay: 0.10s; }
-        .member-row:nth-child(6) { animation-delay: 0.12s; }
-        .member-row:nth-child(7) { animation-delay: 0.14s; }
-        .member-row:nth-child(8) { animation-delay: 0.16s; }
-        .member-row:nth-child(9) { animation-delay: 0.18s; }
-        .member-row:nth-child(10) { animation-delay: 0.20s; }
 
         @keyframes slideIn {
             from { transform: translateX(120%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+        @keyframes progress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
 
+        /* ==========================================================
+           RESPONSIVE
+           ========================================================== */
         @media (max-width: 992px) {
             #sidebar {
                 transform: translateX(-100%);
-                box-shadow: 2px 0 30px rgba(0,0,0,0.1);
+                box-shadow: 2px 0 30px rgba(0, 0, 0, 0.1);
+                width: 280px;
             }
             #sidebar.mobile-open {
                 transform: translateX(0);
@@ -626,272 +668,483 @@
             #main {
                 margin-left: 0 !important;
             }
-            .content-card {
-                margin: 1rem;
-                padding: 1.5rem;
+            .top-navbar {
+                padding: 0.4rem 1rem;
+            }
+            .top-navbar .global-search input {
+                min-width: 120px;
             }
             .glass-stats {
-                gap: 25px;
-                padding: 10px 20px;
-                flex-wrap: wrap;
+                gap: 1rem;
+                padding: 0.3rem 1rem;
                 border-radius: 20px;
                 justify-content: center;
             }
-            .stat-item {
-                margin: 0 5px;
+            .stat-item .stat-value {
+                font-size: 0.8rem;
+            }
+            .content-card {
+                margin: 0.75rem;
+                padding: 1rem;
+            }
+            .page-header {
+                padding: 0.5rem 1rem 0;
+            }
+            .page-header h1 {
+                font-size: 1.3rem;
+            }
+            .stat-command-bar {
+                padding: 0.2rem 1rem;
+                top: 56px;
             }
         }
 
-        .theme-toggle {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 1.2rem;
-            padding: 0.25rem 0.5rem;
-            transition: color 0.2s ease;
+        @media (max-width: 576px) {
+            .glass-stats {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.4rem;
+                padding: 0.4rem 0.8rem;
+                border-radius: var(--radius-sm);
+            }
+            .stat-item {
+                justify-content: center;
+            }
+            .top-navbar .user-profile .user-name {
+                display: none;
+            }
+            .top-navbar .datetime {
+                display: none;
+            }
+            .top-navbar .branch-selector {
+                max-width: 100px;
+            }
         }
+
+        /* ==========================================================
+           UTILITY CLASSES
+           ========================================================== */
+        .text-brand { color: var(--brand-cobalt); }
+        .bg-brand-soft { background: var(--brand-cobalt-bg); }
+        .border-brand { border-color: var(--brand-cobalt); }
+        .shadow-hover { transition: box-shadow 0.3s ease; }
+        .shadow-hover:hover { box-shadow: var(--shadow-md); }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 1rem; }
+        .gap-4 { gap: 1.5rem; }
+
+        /* ==========================================================
+           THEME TOGGLE – GLASS PILL (added)
+           ========================================================== */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+            width: 52px;
+            height: 30px;
+            padding: 0.2rem 0.6rem;
+            border: 1.5px solid var(--border-color);
+            border-radius: 9999px;
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(4px);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+        }
+
+        .theme-toggle i {
+            font-size: 0.95rem;
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+
         .theme-toggle:hover {
-            color: var(--brand-cobalt);
+            transform: scale(1.05);
+            box-shadow: var(--shadow-md);
+            border-color: var(--brand-cobalt);
+        }
+
+        [data-theme="dark"] .theme-toggle {
+            background: var(--brand-cobalt);
+            border-color: var(--brand-cobalt);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(22, 50, 175, 0.25);
+        }
+
+        [data-theme="dark"] .theme-toggle i {
+            transform: rotate(20deg);
+        }
+
+        /* Print styles */
+        @media print {
+            .no-print { display: none !important; }
+            #sidebar { display: none !important; }
+            #main { margin-left: 0 !important; }
+            .content-card { border: none; box-shadow: none; }
+            .stat-command-bar { display: none !important; }
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Messages / Toasts -->
+    <!-- ==========================================================
+    TOAST CONTAINER
+    ========================================================== -->
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 11000;">
         {% if messages %}
             {% for message in messages %}
                 <div class="custom-toast alert d-flex align-items-center shadow" 
-                     style="border-left-color: {% if message.tags == 'success' %}#10b981{% elif message.tags == 'error' or message.tags == 'danger' %}#ef4444{% else %}#1632af{% endif %};">
-                    <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill text-success{% elif 'error' in message.tags or 'danger' in message.tags %}bi-x-circle-fill text-danger{% else %}bi-info-circle{% endif %} fs-4 me-3"></i>
-                    
-                    <div>{{ message }}</div>
-                    <button type="button" class="btn-close ms-auto" onclick="this.parentElement.remove()"></button>
+                     style="border-left-color: {% if message.tags == 'success' %}#10b981{% elif message.tags == 'error' or message.tags == 'danger' %}#ef4444{% elif message.tags == 'warning' %}#f59e0b{% else %}#1632af{% endif %};">
+                    <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill text-success{% elif 'error' in message.tags or 'danger' in message.tags %}bi-x-circle-fill text-danger{% elif message.tags == 'warning' %}bi-exclamation-triangle-fill text-warning{% else %}bi-info-circle text-brand{% endif %} fs-4 me-3"></i>
+                    <div class="flex-grow-1">{{ message }}</div>
+                    <button type="button" class="btn-close" onclick="this.closest('.custom-toast').remove()"></button>
+                    <div class="toast-progress"></div>
                 </div>
             {% endfor %}
         {% endif %}
     </div>
 
-    {# In your view or context processor, you should pass 'is_2fa_required' #}
-    {% if user.is_authenticated %}
-        {% if not global_2fa_enabled or request.session.2fa_verified %}
-        <!-- Sidebar -->
-        <aside id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo-wrapper">
-                    {% if company.logo %}
-                        <img src="{{ company.logo.url }}" alt="{{ company.name|default:'Company Logo' }}" class="logo-img">
-                    {% else %}
-                        <div class="logo-icon"><i class="bi bi-cpu-fill"></i></div>
-                    {% endif %}
-                    <div class="logo-text">{{ company.name|default:"MAC Tech" }}</div>
-                </div>
-                <div class="sidebar-badge">CORE BANKING SOLUTION</div>
+    <!-- ==========================================================
+    SIDEBAR
+    ========================================================== -->
+    {% if user.is_authenticated and request.session.2fa_verified %}
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-wrapper">
+                {% if company.logo %}
+                    <img src="{{ company.logo.url }}" alt="{{ company.name|default:'Company Logo' }}" class="logo-img">
+                {% else %}
+                    <div class="logo-icon"><i class="bi bi-cpu-fill"></i></div>
+                {% endif %}
+                <div class="logo-text">{{ company.name|default:"MAC Tech" }}</div>
             </div>
+            <div class="sidebar-badge">CORE BANKING</div>
+        </div>
 
-            <div class="flex-grow-1 overflow-auto py-3">
-                <div class="nav-section">Main</div>
-                <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
-                </a>
-                
-                {# MODULAR: Customers #}
-                {% if 'Customers' in allowed_modules %}
-                <a href="{% url 'customer_list' %}" class="nav-link {% if 'customer' in request.path %}active{% endif %}">
-                    <i class="bi bi-people-fill"></i> Customers
-                </a>
-                {% endif %}
+        <nav class="sidebar-nav" id="sidebarNav">
+            <div class="nav-section">Main</div>
+            <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="bi bi-grid-1x2-fill"></i> Dashboard
+            </a>
 
-                <div class="nav-section">Finance</div>
-                
-                {# MODULAR: Accounts Hub #}
-                {% if 'Accounts' in allowed_modules %}
-                <a href="{% url 'accounts_hub' %}" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
-                    <i class="bi bi-speedometer2"></i> Accounts Hub
-                </a>
-                {% endif %}
+            {% if 'Customers' in allowed_modules %}
+            <a href="{% url 'customer_list' %}" class="nav-link {% if 'customer' in request.path %}active{% endif %}">
+                <i class="bi bi-people-fill"></i> Customers
+            </a>
+            {% endif %}
 
-                {# MODULAR: Accounting #}
-                {% if 'Accounting' in allowed_modules %}
-                <a class="nav-link justify-content-between" data-bs-toggle="collapse" href="#ledgerMenu" role="button" aria-expanded="false">
-                    <span class="d-flex align-items-center gap-3">
-                        <i class="bi bi-journal-text"></i> Accounting
-                    </span>
-                    <i class="bi bi-chevron-down chevron"></i>
-                </a>
-                <div class="collapse ms-4 border-start ps-3" id="ledgerMenu">
-                    <a href="{% url 'general_ledger' %}" class="nav-link py-2 small">General Ledger</a>
-                    <a href="{% url 'chart_of_accounts' %}" class="nav-link py-2 small">Chart of Accounts</a>
-                </div>
-                {% endif %}
+            <div class="nav-section">Finance</div>
 
-                {# MODULAR: Loans #}
-                {% if 'Loans' in allowed_modules %}
-                <a href="{% url 'loan_list' %}" class="nav-link {% if 'loan' in request.path %}active{% endif %}">
-                    <i class="bi bi-bank2"></i> Loans
-                </a>
-                {% endif %}
+            {% if 'Accounts' in allowed_modules %}
+            <a href="{% url 'accounts_hub' %}" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
+                <i class="bi bi-speedometer2"></i> Accounts Hub
+            </a>
+            {% endif %}
 
-                {# MODULAR: Hardware & Retail #}
-                {% if 'Hardware' in allowed_modules %}
-                <div class="nav-section">Hardware & Retail</div>
-
-                <a class="nav-link justify-content-between" data-bs-toggle="collapse" href="#hardwareMenu" role="button" aria-expanded="false">
-                    <span class="d-flex align-items-center gap-3">
-                        <i class="bi bi-shop"></i> Hardware
-                    </span>
-                    <i class="bi bi-chevron-down chevron"></i>
-                </a>
-
-                <div class="collapse ms-4 border-start ps-3 {% if 'hardware' in request.path %}show{% endif %}" id="hardwareMenu">
-                    <a href="{% url 'hardware:dashboard' %}" class="nav-link py-2 small {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                        Retail Dashboard
-                    </a>
-                    <a href="{% url 'hardware:pos' %}" class="nav-link py-2 small {% if request.resolver_match.url_name == 'pos' %}active{% endif %}">
-                        Point of Sale
-                    </a>
-                    <a href="{% url 'hardware:sales_list' %}" class="nav-link py-2 small {% if request.resolver_match.url_name == 'sales_list' %}active{% endif %}">
-                        Sales History
-                    </a>
-                    <a href="{% url 'hardware:product_list' %}" class="nav-link py-2 small {% if 'product' in request.path %}active{% endif %}">
-                        Product Catalog
-                    </a>
-                    <a href="{% url 'hardware:category_list' %}" class="nav-link py-2 small {% if 'category' in request.path %}active{% endif %}">
-                        Categories
-                    </a>
-                    <a href="{% url 'hardware:supplier_list' %}" class="nav-link py-2 small {% if 'supplier' in request.path %}active{% endif %}">
-                        Suppliers
-                    </a>
-                    <a href="{% url 'hardware:purchase_list' %}" class="nav-link py-2 small {% if 'purchase' in request.path %}active{% endif %}">
-                        Purchase Orders
-                    </a>
-                    <a href="{% url 'hardware:reports' %}" class="nav-link py-2 small {% if 'reports' in request.path %}active{% endif %}">
-                        <i class="bi bi-graph-up"></i> Reports
-                    </a>
-                </div>
-                {% endif %}
-
-                <div class="nav-section">Management</div>
-                {# MODULAR: Staff #}
-                {% if 'Staff' in allowed_modules %}
-                <a href="{% url 'user_list' %}" class="nav-link {% if 'staff' in request.path %}active{% endif %}">
-                    <i class="bi bi-shield-lock"></i> Staff
-                </a>
-                {% endif %}
-
-                {# MODULAR: Reports #}
-                {% if 'Reports' in allowed_modules and user.is_superuser %}
-                <a href="{% url 'reports_dashboard' %}" class="nav-link">
-                    <i class="bi bi-graph-up"></i> Reports
-                </a>
-                {% endif %}
+            {% if 'Accounting' in allowed_modules %}
+            <a class="nav-link justify-content-between" data-bs-toggle="collapse" href="#ledgerMenu" role="button" aria-expanded="false">
+                <span class="d-flex align-items-center gap-3">
+                    <i class="bi bi-journal-text"></i> Accounting
+                </span>
+                <i class="bi bi-chevron-down chevron"></i>
+            </a>
+            <div class="collapse ms-4 border-start ps-3" id="ledgerMenu">
+                <a href="{% url 'general_ledger' %}" class="nav-link py-2 small">General Ledger</a>
+                <a href="{% url 'chart_of_accounts' %}" class="nav-link py-2 small">Chart of Accounts</a>
             </div>
+            {% endif %}
 
-            <div class="p-3 border-top">
-                <a href="{% url 'logout' %}" class="nav-link text-danger">
-                    <i class="bi bi-box-arrow-right"></i> Sign Out
+            {% if 'Loans' in allowed_modules %}
+            <a href="{% url 'loan_list' %}" class="nav-link {% if 'loan' in request.path %}active{% endif %}">
+                <i class="bi bi-bank2"></i> Loans
+            </a>
+            {% endif %}
+
+            <div class="nav-section">Hardware & Retail</div>
+
+            {% if 'Hardware' in allowed_modules %}
+            <a class="nav-link justify-content-between" data-bs-toggle="collapse" href="#hardwareMenu" role="button" aria-expanded="false">
+                <span class="d-flex align-items-center gap-3">
+                    <i class="bi bi-shop"></i> Hardware
+                </span>
+                <i class="bi bi-chevron-down chevron"></i>
+            </a>
+            <div class="collapse ms-4 border-start ps-3 {% if 'hardware' in request.path %}show{% endif %}" id="hardwareMenu">
+                <a href="{% url 'hardware:dashboard' %}" class="nav-link py-2 small">
+                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                </a>
+                <a href="{% url 'hardware:pos' %}" class="nav-link py-2 small">
+                    <i class="bi bi-cart-plus me-2"></i> Point of Sale
+                </a>
+                <a href="{% url 'hardware:sales_list' %}" class="nav-link py-2 small">
+                    <i class="bi bi-clock-history me-2"></i> Sales History
+                </a>
+                <a href="{% url 'hardware:product_list' %}" class="nav-link py-2 small">
+                    <i class="bi bi-box-seam me-2"></i> Products
+                </a>
+                <a href="{% url 'hardware:category_list' %}" class="nav-link py-2 small">
+                    <i class="bi bi-folder me-2"></i> Categories
+                </a>
+                <a href="{% url 'hardware:supplier_list' %}" class="nav-link py-2 small">
+                    <i class="bi bi-truck me-2"></i> Suppliers
                 </a>
             </div>
-        </aside>
-        {% endif %}
+            {% endif %}
+
+            <div class="nav-section">Management</div>
+
+            {% if 'Staff' in allowed_modules %}
+            <a href="{% url 'user_list' %}" class="nav-link {% if 'staff' in request.path %}active{% endif %}">
+                <i class="bi bi-shield-lock"></i> Staff
+            </a>
+            {% endif %}
+
+            {% if 'Reports' in allowed_modules and user.is_superuser %}
+            <a href="{% url 'reports_dashboard' %}" class="nav-link">
+                <i class="bi bi-graph-up"></i> Reports
+            </a>
+            {% endif %}
+
+            <div class="nav-section">System</div>
+            <a href="#" class="nav-link">
+                <i class="bi bi-gear"></i> Settings
+            </a>
+            {% if 'Administration' in allowed_modules and user.is_superuser %}
+            <a href="{% url 'admin:index' %}" class="nav-link">
+                <i class="bi bi-tools"></i> Administration
+            </a>
+            {% endif %}
+        </nav>
+
+        <!-- Sidebar Footer (compact) -->
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <img src="https://ui-avatars.com/api/?name={{ request.user.username }}&background=1632af&color=fff" 
+                     class="user-avatar" alt="{{ request.user.get_full_name }}">
+                <div>
+                    <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+                    <div class="user-role">
+                        <span class="online-status"></span>
+                        {% if user.is_superuser %}Administrator{% else %}{{ user.groups.all.0.name|default:"Staff" }}{% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-1 small">
+                <span class="version">v{{ VERSION|default:"1.0" }}</span>
+                <span>&copy; {{ current_year|default:"2025" }}</span>
+                <a href="{% url 'logout' %}" class="text-danger"><i class="bi bi-box-arrow-right"></i></a>
+            </div>
+        </div>
+    </aside>
     {% endif %}
 
+    <!-- ==========================================================
+    MAIN CONTENT
+    ========================================================== -->
     <div id="main" {% if not user.is_authenticated or not request.session.2fa_verified %}style="margin-left:0"{% endif %}>
-        
-        {# HIDE TOP NAVBAR IF NOT AUTHENTICATED OR 2FA NOT VERIFIED #}
-        {% if user.is_authenticated and request.session.2fa_verified %}
-        <!-- Top Navbar -->
-        <nav class="top-navbar d-flex justify-content-between align-items-center">
-            <button id="sidebarToggle" class="btn-toggle d-lg-none">
-                <i class="bi bi-list"></i>
-            </button>
 
-            <div class="ms-auto d-flex align-items-center gap-3">
-                <!-- Optional Theme Toggle -->
+        <!-- ==========================================================
+        TOP NAVBAR
+        ========================================================== -->
+        {% if user.is_authenticated and request.session.2fa_verified %}
+        <nav class="top-navbar d-flex justify-content-between align-items-center no-print">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn-toggle d-lg-none" aria-label="Toggle sidebar">
+                    <i class="bi bi-list"></i>
+                </button>
+                <a href="/" class="navbar-brand d-lg-none">
+                    <img src="{% static 'images/mac.png' %}" alt="Logo" height="28">
+                    {{ company.short_name|default:"MAC" }}
+                </a>
+            </div>
+
+            <div class="d-flex align-items-center gap-3 flex-grow-1 justify-content-end">
+                <!-- Branch Selector -->
+                <div class="branch-selector d-none d-sm-block">
+                    <select class="form-select" id="branchSelect" aria-label="Branch">
+                        <option value="1">Head Office</option>
+                        <option value="2">Kampala</option>
+                        <option value="3">Jinja</option>
+                    </select>
+                </div>
+
+                <!-- Global Search -->
+                <div class="global-search d-none d-md-block">
+                    <input type="text" class="form-control" placeholder="Search..." id="globalSearch" aria-label="Global search">
+                    <i class="bi bi-search search-icon"></i>
+                </div>
+
+                <!-- Date/Time -->
+                <div class="datetime d-none d-lg-block" id="liveDatetime"></div>
+
+                <!-- Theme Toggle (now styled as a glass pill) -->
                 <button class="theme-toggle" id="themeToggle" title="Toggle theme">
                     <i class="bi bi-moon-fill" id="themeIcon"></i>
                 </button>
 
-                <div class="user-profile">
-                    <div class="text-end d-none d-md-block">
-                        <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
-                        <div class="user-role">
-                            {% if user.is_superuser %}Administrator{% else %}{{ user.groups.all.0.name|default:"Staff" }}{% endif %}
-                        </div>
-                    </div>
+                <!-- ==========================================================
+                REAL NOTIFICATION BELL
+                ========================================================== -->
+                <div class="notification-bell" role="button" id="notificationBell" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-bell"></i>
+                    {% if unread_count > 0 %}
+                        <span class="badge-dot" id="notificationBadge">{{ unread_count }}</span>
+                    {% endif %}
+                </div>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-0 mt-2" style="min-width: 320px; max-height: 400px; overflow-y: auto;" aria-labelledby="notificationBell">
+                    <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">Notifications</span>
+                        {% if unread_count > 0 %}
+                            <button class="btn btn-sm btn-link text-decoration-none" id="markAllReadBtn" style="color: var(--brand-cobalt);">Mark all as read</button>
+                        {% endif %}
+                    </li>
+                    {% for notif in notifications %}
+                        <li>
+                            <a class="dropdown-item py-2 d-flex align-items-start gap-3 {% if not notif.is_read %}bg-light{% endif %}" 
+                               href="{{ notif.link|default:'#' }}" 
+                               data-notification-id="{{ notif.id }}"
+                               onclick="markAsRead(this, event)">
+                                <i class="bi {{ notif.icon }} fs-5 {% if notif.icon == 'bi-check-circle' %}text-success{% elif notif.icon == 'bi-exclamation-triangle' %}text-warning{% elif notif.icon == 'bi-person-plus' %}text-brand{% else %}text-muted{% endif %}"></i>
+                                <div>
+                                    <small>{{ notif.message }}</small><br>
+                                    <span class="text-muted" style="font-size: 0.65rem;">{{ notif.created_at|timesince }} ago</span>
+                                </div>
+                                {% if not notif.is_read %}
+                                    <span class="badge bg-primary rounded-pill ms-auto" style="width: 8px; height: 8px; padding: 0; flex-shrink: 0;"></span>
+                                {% endif %}
+                            </a>
+                        </li>
+                    {% empty %}
+                        <li class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2 opacity-25"></i>
+                            <small>No notifications</small>
+                        </li>
+                    {% endfor %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-center" href="#">View all</a></li>
+                </ul>
 
-                    <div class="dropdown">
-                        <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle" 
-                           id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="https://ui-avatars.com/api/?name={{ request.user.username }}&background=1632af&color=fff" 
-                                 class="user-avatar" alt="Profile">
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="profileDropdown">
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'setup_authenticator' %}">
-                                    <i class="bi bi-shield-lock" style="color: var(--brand-cobalt);"></i>
-                                    <span>2FA Settings</span>
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" href="{% url 'logout' %}">
-                                    <i class="bi bi-box-arrow-right"></i>
-                                    <span>Logout</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                <!-- User Profile -->
+                <div class="user-profile dropdown">
+                    <a href="#" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="{% if request.user.profile.photo %}{{ request.user.profile.photo.url }}{% else %}https://ui-avatars.com/api/?name={{ request.user.username }}&background=1632af&color=fff{% endif %}" 
+                            class="user-avatar" alt="Profile">
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'profile' %}">
+                            <i class="bi bi-person"></i> My Profile
+                        </a></li>
+                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'setup_authenticator' %}">
+                            <i class="bi bi-shield-lock"></i> 2FA Settings
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" href="{% url 'logout' %}">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </a></li>
+                    </ul>
                 </div>
             </div>
         </nav>
         {% endif %}
 
-        {# STAT BAR - BANKING DASHBOARD #}
+        <!-- ==========================================================
+        STATISTICS BAR (sticky)
+        ========================================================== -->
         {% if show_stat_bar %}
-        <div class="stat-command-bar">
+        <div class="stat-command-bar no-print">
             <div class="glass-stats">
                 <div class="stat-item">
-                    <div class="stat-label">Outstanding Loans</div>
-                    <div class="stat-val text-danger">
-                        UGX {{ total_outstanding_loans|intcomma }}
+                    <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">Cash Position</span>
+                        <span class="stat-value">UGX {{ cash_on_hand|default:"0"|floatformat:0|intcomma }}</span>
                     </div>
                 </div>
-
-                <div class="stat-item border-start ps-5">
-                    <div class="stat-label">Expected Interest</div>
-                    <div class="stat-val text-success">
-                        UGX {{ expected_interest_income|intcomma }}
+                <div class="stat-item">
+                    <div class="stat-icon"><i class="bi bi-piggy-bank"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">Total Savings</span>
+                        <span class="stat-value">UGX {{ total_savings|default:"0"|floatformat:0|intcomma }}</span>
                     </div>
                 </div>
-
-                <div class="stat-item border-start ps-5">
-                    <div class="stat-label">Cash Position</div>
-                    <div class="stat-val" style="color: var(--brand-cobalt);">
-                        UGX {{ cash_on_hand|intcomma }}
+                <div class="stat-item">
+                    <div class="stat-icon"><i class="bi bi-bank2"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">Outstanding Loans</span>
+                        <span class="stat-value text-danger">UGX {{ total_outstanding_loans|default:"0"|floatformat:0|intcomma }}</span>
                     </div>
                 </div>
-
-                <div class="stat-item border-start ps-5">
-                    <div class="stat-label">SMS Credits</div>
-                    <div class="stat-val text-info">
-                        {{ sms_credits|intcomma }}
+                <div class="stat-item">
+                    <div class="stat-icon"><i class="bi bi-percent"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">Expected Interest</span>
+                        <span class="stat-value text-success">UGX {{ expected_interest_income|default:"0"|floatformat:0|intcomma }}</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon"><i class="bi bi-envelope-paper"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">SMS Credits</span>
+                        <span class="stat-value">{{ sms_credits|default:"0"|intcomma }}</span>
                     </div>
                 </div>
             </div>
         </div>
         {% endif %}
-        
-        <!-- Main Content -->
-        <main class="py-4">
+
+        <!-- ==========================================================
+        MAIN CONTENT
+        ========================================================== -->
+        <main class="py-3">
             <div class="{% if user.is_authenticated and request.session.2fa_verified %}content-card{% else %}container{% endif %}">
-                {% block content %}{% endblock %}
+                {% block content %}
+                <!-- Default content -->
+                <div class="text-center py-5">
+                    <h2>Welcome to the Core Banking System</h2>
+                    <p class="text-muted">Select a module from the sidebar to get started.</p>
+                </div>
+                {% endblock %}
             </div>
         </main>
-    </div>
 
+        <!-- Floating Action Button -->
+        <button class="fab no-print" id="fab" title="Quick Action">
+            <i class="bi bi-plus-lg"></i>
+        </button>
+
+        <!-- Help Modal -->
+        <div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-question-circle text-brand"></i> Help & Support</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Need assistance? Contact our support team:</p>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-envelope"></i> support@mac-tech.com</li>
+                            <li><i class="bi bi-telephone"></i> +256 700 123 456</li>
+                            <li><i class="bi bi-chat-dots"></i> Live chat (9am-5pm)</li>
+                        </ul>
+                        <hr>
+                        <p class="small text-muted">Documentation and guides available in the <a href="#">Knowledge Base</a>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- /#main -->
+
+    <!-- ==========================================================
+    SCRIPTS
+    ========================================================== -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
         (function() {
             'use strict';
@@ -899,107 +1152,215 @@
             // Sidebar Toggle (mobile)
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.getElementById('sidebarToggle');
-
             if (toggleBtn && sidebar) {
                 toggleBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     sidebar.classList.toggle('mobile-open');
                 });
-
                 document.addEventListener('click', (e) => {
-                    if (sidebar.classList.contains('mobile-open') && 
+                    if (sidebar.classList.contains('mobile-open') &&
                         !sidebar.contains(e.target) && e.target !== toggleBtn) {
                         sidebar.classList.remove('mobile-open');
                     }
                 });
             }
 
-            // Auto dismiss toasts
-            document.querySelectorAll('.custom-toast').forEach(toast => {
-                setTimeout(() => toast.remove(), 6500);
-            });
-
-            // Theme Toggle
+            // Theme Persistence
             const themeToggle = document.getElementById('themeToggle');
             const themeIcon = document.getElementById('themeIcon');
             const html = document.documentElement;
-
-            if (themeToggle) {
-                // Check stored preference or system preference
-                const stored = localStorage.getItem('theme');
-                if (stored) {
-                    html.setAttribute('data-theme', stored);
-                    updateIcon(stored);
-                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    html.setAttribute('data-theme', 'dark');
-                    updateIcon('dark');
+            function setTheme(theme) {
+                html.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+                if (themeIcon) {
+                    themeIcon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
                 }
-
+            }
+            function getPreferredTheme() {
+                const stored = localStorage.getItem('theme');
+                if (stored) return stored;
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+                return 'light';
+            }
+            setTheme(getPreferredTheme());
+            if (themeToggle) {
                 themeToggle.addEventListener('click', function() {
                     const current = html.getAttribute('data-theme') || 'light';
-                    const next = current === 'light' ? 'dark' : 'light';
-                    html.setAttribute('data-theme', next);
-                    localStorage.setItem('theme', next);
-                    updateIcon(next);
+                    setTheme(current === 'light' ? 'dark' : 'light');
                 });
             }
 
-            function updateIcon(theme) {
-                if (!themeIcon) return;
-                if (theme === 'dark') {
-                    themeIcon.className = 'bi bi-sun-fill';
-                } else {
-                    themeIcon.className = 'bi bi-moon-fill';
+            // Live Clock
+            const datetimeEl = document.getElementById('liveDatetime');
+            if (datetimeEl) {
+                function updateClock() {
+                    const now = new Date();
+                    const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                    datetimeEl.textContent = now.toLocaleString('en-US', options);
                 }
+                updateClock();
+                setInterval(updateClock, 1000);
             }
 
-            // Toast notification system (for JavaScript use)
-            window.showToast = function(type, message) {
-                const toastContainer = document.querySelector('.toast-container');
-                if (!toastContainer) {
-                    Swal.fire({
-                        icon: type || 'info',
-                        title: message,
-                        timer: 3000,
-                        timerProgressBar: true,
-                        showConfirmButton: false,
-                        toast: true,
-                        position: 'top-end'
-                    });
+            // Global Search (Enter)
+            const globalSearch = document.getElementById('globalSearch');
+            if (globalSearch) {
+                globalSearch.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const q = this.value.trim();
+                        if (q) window.location.href = '/search/?q=' + encodeURIComponent(q);
+                    }
+                });
+            }
+
+            // Toast API
+            window.showToast = function(type, message, duration = 5000) {
+                const container = document.querySelector('.toast-container');
+                if (!container) {
+                    Swal.fire({ icon: type || 'info', title: message, timer: duration,
+                        timerProgressBar: true, showConfirmButton: false, toast: true,
+                        position: 'top-end' });
                     return;
                 }
-
-                const icons = {
-                    success: 'bi-check-circle-fill text-success',
-                    error: 'bi-x-circle-fill text-danger',
-                    warning: 'bi-exclamation-triangle-fill text-warning',
-                    info: 'bi-info-circle'
+                const typeMap = {
+                    success: { icon: 'bi-check-circle-fill', color: '#10b981', text: 'text-success' },
+                    error: { icon: 'bi-x-circle-fill', color: '#ef4444', text: 'text-danger' },
+                    danger: { icon: 'bi-x-circle-fill', color: '#ef4444', text: 'text-danger' },
+                    warning: { icon: 'bi-exclamation-triangle-fill', color: '#f59e0b', text: 'text-warning' },
+                    info: { icon: 'bi-info-circle', color: '#1632af', text: 'text-brand' }
                 };
-
-                const colors = {
-                    success: '#10b981',
-                    error: '#ef4444',
-                    warning: '#f59e0b',
-                    info: '#1632af'
-                };
-
+                const t = typeMap[type] || typeMap.info;
                 const toast = document.createElement('div');
                 toast.className = 'custom-toast alert d-flex align-items-center shadow';
-                toast.style.borderLeftColor = colors[type] || colors.info;
-                toast.style.animation = 'slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
-
+                toast.style.borderLeftColor = t.color;
                 toast.innerHTML = `
-                    <i class="bi ${icons[type] || icons.info} fs-4 me-3"></i>
-                    <div>${message}</div>
-                    <button type="button" class="btn-close ms-auto" onclick="this.parentElement.remove()"></button>
-                `;
-
-                toastContainer.prepend(toast);
-                setTimeout(() => toast.remove(), 5000);
+                            <i class="bi ${t.icon} ${t.text} fs-4 me-3"></i>
+                            <div class="flex-grow-1">${message}</div>
+                            <button type="button" class="btn-close" onclick="this.closest('.custom-toast').remove()"></button>
+                            <div class="toast-progress" style="animation-duration: ${duration}ms;"></div>
+                        `;
+                container.prepend(toast);
+                setTimeout(() => { if (toast.parentNode) toast.remove(); }, duration);
             };
 
-            console.log('💡 MAC Technologies Core Banking System loaded.');
+            // ==========================================================
+            // REAL NOTIFICATIONS – Mark as Read
+            // ==========================================================
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            window.markAsRead = function(element, event) {
+                const id = element.dataset.notificationId;
+                if (id) {
+                    event.preventDefault();
+                    fetch(`/notifications/mark-read/${id}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remove the unread badge and update count
+                            const badge = element.querySelector('.badge');
+                            if (badge) badge.remove();
+                            element.classList.remove('bg-light');
+                            // Decrease badge count
+                            const bellBadge = document.getElementById('notificationBadge');
+                            if (bellBadge) {
+                                let count = parseInt(bellBadge.textContent) - 1;
+                                if (count > 0) bellBadge.textContent = count;
+                                else bellBadge.remove();
+                            }
+                            // Navigate to the link
+                            window.location.href = element.href;
+                        }
+                    });
+                }
+            };
+
+            // Mark all as read
+            document.getElementById('markAllReadBtn')?.addEventListener('click', function() {
+                fetch('/notifications/mark-all-read/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove all unread badges
+                        document.querySelectorAll('.dropdown-item .badge').forEach(el => el.remove());
+                        document.querySelectorAll('.dropdown-item.bg-light').forEach(el => el.classList.remove('bg-light'));
+                        const bellBadge = document.getElementById('notificationBadge');
+                        if (bellBadge) bellBadge.remove();
+                        this.remove();
+                    }
+                });
+            });
+
+            // Refresh Button
+            document.getElementById('refreshBtn')?.addEventListener('click', () => location.reload());
+
+            // Export Button (stub)
+            document.getElementById('exportBtn')?.addEventListener('click', function() {
+                showToast('info', 'Export functionality will be implemented in child templates.');
+            });
+
+            // Floating Action Button
+            document.getElementById('fab')?.addEventListener('click', function() {
+                showToast('info', 'Quick action – add new record');
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+                    e.preventDefault();
+                    if (themeToggle) themeToggle.click();
+                }
+                if (e.ctrlKey && e.key === '/') {
+                    e.preventDefault();
+                    if (globalSearch) { globalSearch.focus(); globalSearch.select(); }
+                }
+                if (e.key === 'Escape') {
+                    const openModal = document.querySelector('.modal.show');
+                    if (openModal) {
+                        const modal = bootstrap.Modal.getInstance(openModal);
+                        if (modal) modal.hide();
+                    }
+                    if (sidebar && sidebar.classList.contains('mobile-open')) {
+                        sidebar.classList.remove('mobile-open');
+                    }
+                }
+            });
+
+            // Auto-dismiss Django messages
+            document.querySelectorAll('.custom-toast').forEach(toast => {
+                setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
+            });
+
+            console.log('✅ Core Banking System initialized.');
         })();
     </script>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

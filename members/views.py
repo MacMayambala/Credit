@@ -1030,3 +1030,39 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 class MigrationDashboardView(LoginRequiredMixin, TemplateView):
     """Renders the HTML workspace interface for data migration operations."""
     template_name = "members/migration_dashboard.html"
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+
+@login_required
+def profile_view(request):
+    user = request.user
+    profile = user.profile  # assumes OneToOne relation
+
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email
+        user.save()
+
+        # Handle photo upload
+        if 'photo' in request.FILES:
+            profile.photo = request.FILES['photo']
+            profile.save()
+            messages.success(request, 'Profile updated with new photo!')
+            return redirect('profile')
+
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('profile')
+
+    return render(request, 'profile.html', {'user': user, 'profile': profile})

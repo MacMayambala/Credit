@@ -3,854 +3,752 @@
 
 {% block title %}Client Registry | {{ company.name }}{% endblock %}
 
-{% block content %}
+{% block page_title %}Client Registry{% endblock %}
+{% block page_subtitle %}All Customers &nbsp;·&nbsp; {{ total_count }} Total Record{{ total_count|pluralize }}{% endblock %}
 
+{% block breadcrumb %}
+    <span>/</span>
+    <span>Customers</span>
+    <span>/</span>
+    <span>Registry</span>
+{% endblock %}
+
+{% block quick_actions %}
+    {# Optional: these also appear in the top-right if you keep the block #}
+    <a href="{% url 'import_dashboard' %}" class="btn btn-outline-cobalt btn-sm">
+        <i class="bi bi-cloud-arrow-up"></i> Bulk Upload
+    </a>
+    <a href="{% url 'register_member' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-person-plus"></i> New Customer
+    </a>
+{% endblock %}
+
+{% block extra_css %}
 <style>
-:root {
-    --brand-cobalt: #1632af;
-    --brand-cobalt-dark: #0f248a;
-    --brand-cobalt-light: #2a4ad8;
-    --brand-cobalt-bg: rgba(22, 50, 175, 0.06);
-    --brand-cobalt-glow: rgba(22, 50, 175, 0.12);
-    --border-color: #e2e8f0;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
-    --bg-body: #f1f5f9;
-    --bg-card: #ffffff;
-    --bg-hover: #f8fafc;
-    --radius: 16px;
-    --radius-sm: 12px;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-    --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
-    --shadow-lg: 0 20px 50px rgba(0,0,0,0.08);
-    --success: #10b981;
-    --danger: #ef4444;
-    --warning: #f59e0b;
-}
-
-body {
-    background: var(--bg-body);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: var(--text-primary);
-    -webkit-font-smoothing: antialiased;
-}
-
-/* ============================================
-   PAGE HEADER
-   ============================================ */
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.page-header h1 {
-    font-size: 1.75rem;
-    font-weight: 800;
-    margin: 0;
-    letter-spacing: -0.03em;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.page-header h1 i {
-    color: var(--brand-cobalt);
-    font-size: 1.75rem;
-}
-
-.page-subtitle {
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-    margin-top: 0.25rem;
-}
-
-.page-header .btn-group {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-/* ============================================
-   BUTTONS
-   ============================================ */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 1.25rem;
-    font-weight: 600;
-    font-size: 0.85rem;
-    border-radius: var(--radius-sm);
-    text-decoration: none;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    border: none;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.btn-primary {
-    background: var(--brand-cobalt);
-    color: #ffffff;
-    box-shadow: 0 4px 15px rgba(22, 50, 175, 0.2);
-}
-
-.btn-primary:hover {
-    background: var(--brand-cobalt-dark);
-    color: #ffffff;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
-}
-
-.btn-outline {
-    background: var(--bg-card);
-    color: var(--text-secondary);
-    border: 1.5px solid var(--border-color);
-}
-
-.btn-outline:hover {
-    background: var(--brand-cobalt-bg);
-    border-color: var(--brand-cobalt);
-    color: var(--brand-cobalt);
-    transform: translateY(-2px);
-}
-
-.btn-sm {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.75rem;
-}
-
-/* ============================================
-   STATS GRID
-   ============================================ */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: var(--bg-card);
-    border-radius: var(--radius);
-    padding: 1.25rem 1.5rem;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.stat-card::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background: linear-gradient(90deg, var(--brand-cobalt), var(--brand-cobalt-light));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
-}
-
-.stat-card:hover::after {
-    opacity: 1;
-}
-
-.stat-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    background: var(--brand-cobalt-bg);
-    color: var(--brand-cobalt);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-    flex-shrink: 0;
-    transition: transform 0.3s ease;
-}
-
-.stat-card:hover .stat-icon {
-    transform: scale(1.05);
-}
-
-.stat-value {
-    font-size: 1.6rem;
-    font-weight: 800;
-    line-height: 1.1;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
-}
-
-.stat-label {
-    color: var(--text-muted);
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-/* ============================================
-   MAIN CARD
-   ============================================ */
-.registry-card {
-    background: var(--bg-card);
-    border-radius: var(--radius);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-    transition: box-shadow 0.3s ease;
-}
-
-.registry-card:hover {
-    box-shadow: var(--shadow-lg);
-}
-
-/* ============================================
-   CARD TOOLBAR
-   ============================================ */
-.card-toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: var(--bg-card);
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.search-wrap {
-    flex: 1;
-    max-width: 480px;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: var(--bg-body);
-    border: 1.5px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    padding: 0.55rem 1rem;
-    transition: all 0.25s ease;
-}
-
-.search-wrap:focus-within {
-    background: var(--bg-card);
-    border-color: var(--brand-cobalt);
-    box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
-}
-
-.search-wrap input {
-    border: none;
-    background: none;
-    outline: none;
-    width: 100%;
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.search-wrap input::placeholder {
-    color: var(--text-muted);
-    font-weight: 400;
-}
-
-.search-wrap i {
-    color: var(--text-muted);
-    font-size: 1rem;
-    transition: color 0.2s ease;
-}
-
-.search-wrap:focus-within i {
-    color: var(--brand-cobalt);
-}
-
-.search-wrap .spinner-border {
-    width: 18px;
-    height: 18px;
-    border-width: 2px;
-}
-
-.search-wrap .btn-clear {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 1.2rem;
-    padding: 0 0.2rem;
-    cursor: pointer;
-    transition: color 0.2s ease;
-    display: none;
-    line-height: 1;
-}
-
-.search-wrap .btn-clear:hover {
-    color: var(--danger);
-}
-
-/* ============================================
-   MEMBER LIST (custom)
-   ============================================ */
-.member-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.member-list .empty-state {
-    padding: 3rem 1.5rem;
-    text-align: center;
-}
-
-.member-list .empty-state .empty-icon {
-    font-size: 3.5rem;
-    opacity: 0.15;
-    color: var(--text-muted);
-    display: block;
-    margin-bottom: 0.5rem;
-}
-
-.member-list .empty-state h5 {
-    font-weight: 700;
-    color: var(--text-secondary);
-    margin-bottom: 0.25rem;
-    font-size: 1.1rem;
-}
-
-.member-list .empty-state p {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-}
-
-.member-list .empty-state .btn-clear {
-    background: var(--brand-cobalt);
-    color: #ffffff;
-    border: none;
-    padding: 0.4rem 1.25rem;
-    border-radius: var(--radius-sm);
-    font-weight: 600;
-    font-size: 0.85rem;
-    transition: all 0.25s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    cursor: pointer;
-}
-
-.member-list .empty-state .btn-clear:hover {
-    background: var(--brand-cobalt-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
-}
-
-/* ============================================
-   MEMBER ROW
-   ============================================ */
-.member-row {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    padding: 0.9rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.member-row:hover {
-    background: var(--bg-hover);
-}
-
-.member-row:last-child {
-    border-bottom: none;
-}
-
-.member-row .avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: var(--brand-cobalt-bg);
-    color: var(--brand-cobalt);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-    box-shadow: 0 2px 10px rgba(22, 50, 175, 0.08);
-    overflow: hidden;
-    transition: box-shadow 0.3s ease, transform 0.2s ease;
-}
-
-.member-row:hover .avatar {
-    box-shadow: 0 4px 16px rgba(22, 50, 175, 0.15);
-    transform: scale(1.02);
-}
-
-.member-row .avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.member-row .member-main {
-    flex: 1;
-    min-width: 0;
-}
-
-.member-row .member-name {
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--text-primary);
-    text-decoration: none;
-    display: block;
-    transition: color 0.2s ease;
-    letter-spacing: -0.01em;
-}
-
-.member-row .member-name:hover {
-    color: var(--brand-cobalt);
-}
-
-.member-row .member-subtitle {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin-top: 2px;
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    flex-wrap: wrap;
-}
-
-.member-row .member-subtitle .dot {
-    color: var(--border-color);
-}
-
-.member-row .member-id {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.1rem 0.6rem;
-    background: var(--brand-cobalt-bg);
-    color: var(--brand-cobalt);
-    font-size: 0.65rem;
-    font-weight: 700;
-    border-radius: 100px;
-}
-
-.member-row .member-details {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    color: var(--text-secondary);
-    flex-shrink: 0;
-    flex-wrap: wrap;
-}
-
-.member-row .detail-item {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.82rem;
-    white-space: nowrap;
-    font-weight: 500;
-    transition: color 0.2s ease;
-}
-
-.member-row .detail-item i {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    transition: color 0.2s ease;
-}
-
-.member-row .detail-item:hover i {
-    color: var(--brand-cobalt);
-}
-
-.member-row .detail-item .label {
-    color: var(--text-muted);
-    font-weight: 500;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-/* Status Badge */
-.member-status {
-    padding: 0.15rem 0.7rem;
-    border-radius: 100px;
-    font-size: 0.6rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-}
-
-.member-status:hover {
-    transform: scale(1.04);
-}
-
-.member-status.active {
-    background: rgba(16, 185, 129, 0.12);
-    color: var(--success);
-    border-color: rgba(16, 185, 129, 0.2);
-}
-
-.member-status.inactive {
-    background: rgba(239, 68, 68, 0.12);
-    color: var(--danger);
-    border-color: rgba(239, 68, 68, 0.2);
-}
-
-.member-status.pending {
-    background: rgba(245, 158, 11, 0.12);
-    color: var(--warning);
-    border-color: rgba(245, 158, 11, 0.2);
-}
-
-/* ============================================
-   CARD FOOTER
-   ============================================ */
-.card-footer-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.8rem 1.5rem;
-    border-top: 1px solid var(--border-color);
-    background: var(--bg-body);
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.entry-count {
-    font-weight: 600;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-}
-
-.entry-count strong {
-    color: var(--text-primary);
-}
-
-/* ============================================
-   PAGINATION
-   ============================================ */
-.pagination {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.page-link {
-    min-width: 38px;
-    height: 38px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--border-color);
-    background: var(--bg-card);
-    color: var(--text-secondary);
-    font-weight: 600;
-    font-size: 0.85rem;
-    border-radius: 10px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    text-decoration: none;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.page-link:hover {
-    background: var(--brand-cobalt-bg);
-    color: var(--brand-cobalt);
-    border-color: var(--brand-cobalt);
-    transform: translateY(-1px);
-}
-
-.page-link.active {
-    background: var(--brand-cobalt);
-    color: #ffffff;
-    border-color: var(--brand-cobalt);
-    box-shadow: 0 4px 12px rgba(22, 50, 175, 0.25);
-}
-
-.page-link.disabled {
-    opacity: 0.4;
-    pointer-events: none;
-}
-
-.page-link.nav {
-    min-width: 38px;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-@media (max-width: 1100px) {
-    .member-details {
-        gap: 1rem;
+    /* ============================================
+       BUTTON OVERRIDES – brand blue
+       ============================================ */
+    .btn-outline-cobalt {
+        color: var(--brand-cobalt);
+        border: 1.5px solid var(--brand-cobalt);
+        background: transparent;
+        transition: all 0.25s ease;
     }
-    .detail-item .label {
-        display: none;
+    .btn-outline-cobalt:hover {
+        background: var(--brand-cobalt);
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(22, 50, 175, 0.25);
     }
-}
 
-@media (max-width: 768px) {
-    .page-header {
-        flex-direction: column;
-        align-items: flex-start;
+    /* Ensure primary button also uses brand (already in base) */
+    .btn-primary {
+        background: var(--brand-cobalt);
+        border: none;
     }
-    .page-header h1 {
-        font-size: 1.4rem;
+    .btn-primary:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(22, 50, 175, 0.25);
     }
-    .page-header .btn-group {
-        width: 100%;
-    }
-    .page-header .btn-group .btn {
-        flex: 1;
-        justify-content: center;
-    }
+
+    /* ============================================
+       STATS GRID
+       ============================================ */
     .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
     }
+
     .stat-card {
-        padding: 1rem;
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        padding: 1.25rem 1.5rem;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
-    .stat-value {
-        font-size: 1.2rem;
-    }
-    .stat-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
-    }
-    .member-row {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 0.75rem 1rem;
-        gap: 0.5rem;
-    }
-    .member-details {
+
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
         width: 100%;
-        margin-top: 0.25rem;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-        border-top: 1px solid var(--border-color);
-        padding-top: 0.5rem;
+        height: 3px;
+        background: linear-gradient(90deg, var(--brand-cobalt), var(--brand-cobalt-light));
+        opacity: 0;
+        transition: opacity 0.3s ease;
     }
-    .detail-item .label {
-        display: inline;
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
     }
+
+    .stat-card:hover::after {
+        opacity: 1;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover .stat-icon {
+        transform: scale(1.05);
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: var(--text-primary);
+        letter-spacing: -0.02em;
+    }
+
+    .stat-label {
+        color: var(--text-muted);
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    /* ============================================
+       REGISTRY CARD (with hover shadow)
+       ============================================ */
+    .registry-card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .registry-card:hover {
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* ============================================
+       CARD TOOLBAR
+       ============================================ */
     .card-toolbar {
-        padding: 0.75rem 1rem;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--card-bg);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
     }
+
     .search-wrap {
-        max-width: 100%;
+        flex: 1;
+        max-width: 480px;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: var(--bg);
+        border: 1.5px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 0.45rem 1rem;
+        transition: all 0.25s ease;
     }
-    .card-footer-bar {
-        flex-direction: column;
-        align-items: stretch;
+
+    .search-wrap:focus-within {
+        background: var(--card-bg);
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+    }
+
+    .search-wrap input {
+        border: none;
+        background: none;
+        outline: none;
+        width: 100%;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        font-family: var(--font);
+    }
+
+    .search-wrap input::placeholder {
+        color: var(--text-muted);
+        font-weight: 400;
+    }
+
+    .search-wrap i {
+        color: var(--text-muted);
+        font-size: 1rem;
+        transition: color 0.2s ease;
+    }
+
+    .search-wrap:focus-within i {
+        color: var(--brand-cobalt);
+    }
+
+    .search-wrap .spinner-border {
+        width: 18px;
+        height: 18px;
+        border-width: 2px;
+    }
+
+    .search-wrap .btn-clear {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.2rem;
+        padding: 0 0.2rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        display: none;
+        line-height: 1;
+    }
+
+    .search-wrap .btn-clear:hover {
+        color: var(--danger);
+    }
+
+    /* Toolbar actions */
+    .toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-left: auto;
+        flex-wrap: wrap;
+    }
+
+    /* ============================================
+       MEMBER LIST
+       ============================================ */
+    .member-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .member-list .empty-state {
+        padding: 3rem 1.5rem;
         text-align: center;
     }
-    .pagination {
-        justify-content: center;
-    }
-    .btn {
-        font-size: 0.8rem;
-        padding: 0.5rem 1rem;
-    }
-}
 
-@media (max-width: 576px) {
-    .stats-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
+    .member-list .empty-state .empty-icon {
+        font-size: 3.5rem;
+        opacity: 0.15;
+        color: var(--text-muted);
+        display: block;
+        margin-bottom: 0.5rem;
     }
-    .stat-card {
-        padding: 0.75rem;
+
+    .member-list .empty-state h5 {
+        font-weight: 700;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+        font-size: 1.1rem;
     }
-    .stat-value {
-        font-size: 1rem;
+
+    .member-list .empty-state p {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
     }
-    .stat-label {
-        font-size: 0.6rem;
+
+    .member-list .empty-state .btn-clear {
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        border: none;
+        padding: 0.4rem 1.25rem;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.25s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
     }
-    .stat-icon {
-        width: 32px;
-        height: 32px;
-        font-size: 0.8rem;
+
+    .member-list .empty-state .btn-clear:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
     }
+
+    /* ============================================
+       MEMBER ROW
+       ============================================ */
     .member-row {
-        padding: 0.6rem 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 0.9rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        transition: all 0.2s ease;
+        cursor: pointer;
     }
+
+    .member-row:hover {
+        background: var(--hover-bg);
+    }
+
+    .member-row:last-child {
+        border-bottom: none;
+    }
+
     .member-row .avatar {
-        width: 36px;
-        height: 36px;
-        font-size: 0.8rem;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+        box-shadow: 0 2px 10px rgba(22, 50, 175, 0.08);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease, transform 0.2s ease;
     }
+
+    .member-row:hover .avatar {
+        box-shadow: 0 4px 16px rgba(22, 50, 175, 0.15);
+        transform: scale(1.02);
+    }
+
+    .member-row .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .member-row .member-main {
+        flex: 1;
+        min-width: 0;
+    }
+
     .member-row .member-name {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        text-decoration: none;
+        display: block;
+        transition: color 0.2s ease;
+        letter-spacing: -0.01em;
+    }
+
+    .member-row .member-name:hover {
+        color: var(--brand-cobalt);
+    }
+
+    .member-row .member-subtitle {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+    }
+
+    .member-row .member-subtitle .dot {
+        color: var(--border-color);
+    }
+
+    .member-row .member-id {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.1rem 0.6rem;
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+        font-size: 0.65rem;
+        font-weight: 700;
+        border-radius: 100px;
+    }
+
+    .member-row .member-details {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+        flex-wrap: wrap;
+    }
+
+    .member-row .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.82rem;
+        white-space: nowrap;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+
+    .member-row .detail-item i {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        transition: color 0.2s ease;
+    }
+
+    .member-row .detail-item:hover i {
+        color: var(--brand-cobalt);
+    }
+
+    .member-row .detail-item .label {
+        color: var(--text-muted);
+        font-weight: 500;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    /* Status Badge */
+    .member-status {
+        padding: 0.15rem 0.7rem;
+        border-radius: 100px;
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .member-status:hover {
+        transform: scale(1.04);
+    }
+
+    .member-status.active {
+        background: rgba(16, 185, 129, 0.12);
+        color: var(--success);
+        border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .member-status.inactive {
+        background: rgba(239, 68, 68, 0.12);
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .member-status.pending {
+        background: rgba(245, 158, 11, 0.12);
+        color: var(--warning);
+        border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    /* ============================================
+       CARD FOOTER
+       ============================================ */
+    .card-footer-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.8rem 1.5rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--bg);
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .entry-count {
+        font-weight: 600;
+        color: var(--text-secondary);
         font-size: 0.85rem;
     }
-    .member-row .detail-item {
-        font-size: 0.7rem;
+
+    .entry-count strong {
+        color: var(--text-primary);
     }
-    .member-status {
-        font-size: 0.5rem;
-        padding: 0.1rem 0.5rem;
+
+    /* ============================================
+       PAGINATION
+       ============================================ */
+    .pagination {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
     }
+
     .page-link {
-        min-width: 32px;
-        height: 32px;
-        font-size: 0.75rem;
+        min-width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.85rem;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+        font-family: var(--font);
     }
+
+    .page-link:hover {
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+        border-color: var(--brand-cobalt);
+        transform: translateY(-1px);
+    }
+
+    .page-link.active {
+        background: var(--brand-cobalt);
+        color: #ffffff;
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 4px 12px rgba(22, 50, 175, 0.25);
+    }
+
+    .page-link.disabled {
+        opacity: 0.4;
+        pointer-events: none;
+    }
+
     .page-link.nav {
-        min-width: 32px;
-        font-size: 0.8rem;
+        min-width: 38px;
+        font-size: 0.9rem;
+        font-weight: 500;
     }
-}
 
-/* ============================================
-   UTILITY
-   ============================================ */
-.opacity-50 {
-    opacity: 0.5;
-    transition: opacity 0.2s ease;
-}
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+        .stat-card {
+            padding: 1rem;
+        }
+        .stat-value {
+            font-size: 1.2rem;
+        }
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+        .member-row {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 0.75rem 1rem;
+            gap: 0.5rem;
+        }
+        .member-details {
+            width: 100%;
+            margin-top: 0.25rem;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.5rem;
+        }
+        .detail-item .label {
+            display: inline;
+        }
+        .card-toolbar {
+            padding: 0.75rem 1rem;
+        }
+        .search-wrap {
+            max-width: 100%;
+        }
+        .toolbar-actions {
+            margin-left: 0;
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .card-footer-bar {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+        .pagination {
+            justify-content: center;
+        }
+    }
 
-/* ============================================
-   ANIMATIONS
-   ============================================ */
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+    @media (max-width: 576px) {
+        .stats-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .stat-card {
+            padding: 0.75rem;
+        }
+        .stat-value {
+            font-size: 1rem;
+        }
+        .stat-label {
+            font-size: 0.6rem;
+        }
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 0.8rem;
+        }
+        .member-row {
+            padding: 0.6rem 0.75rem;
+        }
+        .member-row .avatar {
+            width: 36px;
+            height: 36px;
+            font-size: 0.8rem;
+        }
+        .member-row .member-name {
+            font-size: 0.85rem;
+        }
+        .member-row .detail-item {
+            font-size: 0.7rem;
+        }
+        .member-status {
+            font-size: 0.5rem;
+            padding: 0.1rem 0.5rem;
+        }
+        .page-link {
+            min-width: 32px;
+            height: 32px;
+            font-size: 0.75rem;
+        }
+        .page-link.nav {
+            min-width: 32px;
+            font-size: 0.8rem;
+        }
+    }
 
-.member-row {
-    animation: fadeInUp 0.3s ease forwards;
-}
+    /* ============================================
+       UTILITY
+       ============================================ */
+    .opacity-50 {
+        opacity: 0.5;
+        transition: opacity 0.2s ease;
+    }
 
-.member-row:nth-child(1) { animation-delay: 0.02s; }
-.member-row:nth-child(2) { animation-delay: 0.04s; }
-.member-row:nth-child(3) { animation-delay: 0.06s; }
-.member-row:nth-child(4) { animation-delay: 0.08s; }
-.member-row:nth-child(5) { animation-delay: 0.10s; }
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .member-row {
+        animation: fadeInUp 0.3s ease forwards;
+    }
+    .member-row:nth-child(1) { animation-delay: 0.02s; }
+    .member-row:nth-child(2) { animation-delay: 0.04s; }
+    .member-row:nth-child(3) { animation-delay: 0.06s; }
+    .member-row:nth-child(4) { animation-delay: 0.08s; }
+    .member-row:nth-child(5) { animation-delay: 0.10s; }
 </style>
+{% endblock %}
 
-<div class="container-fluid py-4 py-lg-5 px-3 px-lg-5">
+{% block content %}
 
-    <!-- ==========================================
-    PAGE HEADER
-    ========================================== -->
-    <div class="page-header">
+<!-- ==========================================
+STATS GRID
+========================================== -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
         <div>
-            <h1>
-                <i class="bi bi-people-fill"></i>
-                Client Registry
-            </h1>
-            <div class="page-subtitle" id="headerCount">
-                All Customers &nbsp;·&nbsp; <span id="totalCountDisplay">{{ total_count }}</span> Total Record{{ total_count|pluralize }}
-            </div>
-        </div>
-        <div class="btn-group">
-            <a href="{% url 'import_dashboard' %}" class="btn btn-outline">
-                <i class="bi bi-cloud-arrow-up"></i> Bulk Upload
-            </a>
-            <a href="{% url 'register_member' %}" class="btn btn-primary">
-                <i class="bi bi-person-plus"></i> New Customer
-            </a>
+            <div class="stat-value">{{ total_count|intcomma }}</div>
+            <div class="stat-label">Total Customers</div>
         </div>
     </div>
-
-    <!-- ==========================================
-    STATS
-    ========================================== -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
-            <div>
-                <div class="stat-value">{{ total_count|intcomma }}</div>
-                <div class="stat-label">Total Customers</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="bi bi-person-check-fill"></i></div>
-            <div>
-                <div class="stat-value">{{ active_count|intcomma|default:total_count }}</div>
-                <div class="stat-label">Active Customers</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="bi bi-person-plus-fill"></i></div>
-            <div>
-                <div class="stat-value">{{ new_this_month|default:0 }}</div>
-                <div class="stat-label">New This Month</div>
-            </div>
+    <div class="stat-card">
+        <div class="stat-icon"><i class="bi bi-person-check-fill"></i></div>
+        <div>
+            <div class="stat-value">{{ active_count|default:total_count|intcomma }}</div>
+            <div class="stat-label">Active Customers</div>
         </div>
     </div>
-
-    <!-- ==========================================
-    REGISTRY CARD
-    ========================================== -->
-    <div class="registry-card" id="registryCard">
-
-        <!-- Toolbar -->
-        <div class="card-toolbar">
-            <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
-            <div class="search-wrap">
-                <i class="bi bi-search"></i>
-                <input type="text" id="searchInput" placeholder="Search by name, phone, ID..." autocomplete="off">
-                <div id="searchSpinner" class="spinner-border spinner-border-sm text-primary" style="display:none;"></div>
-                <button id="searchClear" class="btn-clear" title="Clear search">&times;</button>
-            </div>
-            <button class="btn btn-outline btn-sm" onclick="window.location.reload()" title="Refresh">
-                <i class="bi bi-arrow-clockwise"></i>
-            </button>
+    <div class="stat-card">
+        <div class="stat-icon"><i class="bi bi-person-plus-fill"></i></div>
+        <div>
+            <div class="stat-value">{{ new_this_month|default:0 }}</div>
+            <div class="stat-label">New This Month</div>
         </div>
-
-        <!-- Member List -->
-        <ul class="member-list" id="memberList">
-            {% include 'members/partials/member_rows.html' %}
-        </ul>
-
-        <!-- Footer -->
-        <div class="card-footer-bar">
-            <div class="entry-count" id="entryCount">
-                {% include 'members/partials/entry_count.html' %}
-            </div>
-            <ul class="pagination" id="paginationList">
-                {% include 'members/partials/pagination.html' %}
-            </ul>
-        </div>
-
     </div>
 </div>
 
+<!-- ==========================================
+REGISTRY CARD
+========================================== -->
+<div class="registry-card" id="registryCard">
+
+    <!-- Toolbar with blue buttons -->
+    <div class="card-toolbar">
+        <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+        <div class="search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" id="searchInput" placeholder="Search by name, phone, ID..." autocomplete="off">
+            <div id="searchSpinner" class="spinner-border spinner-border-sm text-primary" style="display:none;"></div>
+            <button id="searchClear" class="btn-clear" title="Clear search">&times;</button>
+        </div>
+        <div class="toolbar-actions">
+            <a href="{% url 'import_dashboard' %}" class="btn btn-outline-cobalt btn-sm">
+                <i class="bi bi-cloud-arrow-up"></i> Bulk Upload
+            </a>
+            <a href="{% url 'register_member' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-person-plus"></i> New Customer
+            </a>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.location.reload()" title="Refresh">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Member List -->
+    <ul class="member-list" id="memberList">
+        {% include 'members/partials/member_rows.html' %}
+    </ul>
+
+    <!-- Footer -->
+    <div class="card-footer-bar">
+        <div class="entry-count" id="entryCount">
+            {% include 'members/partials/entry_count.html' %}
+        </div>
+        <ul class="pagination" id="paginationList">
+            {% include 'members/partials/pagination.html' %}
+        </ul>
+    </div>
+
+</div>
+
+<!-- ==========================================
+LIVE SEARCH SCRIPT
+========================================== -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
@@ -859,8 +757,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const memberList = document.getElementById('memberList');
     const entryCount = document.getElementById('entryCount');
     const pagination = document.getElementById('paginationList');
-    const headerCount = document.getElementById('headerCount');
-    const totalCountDisplay = document.getElementById('totalCountDisplay');
 
     let debounceTimer;
     let currentPage = 1;
@@ -911,13 +807,15 @@ document.addEventListener('DOMContentLoaded', function() {
             entryCount.innerHTML = data.entry_count_html || '';
             pagination.innerHTML = data.pagination_html || '';
 
-            const total = data.total_count || 0;
-            totalCountDisplay.textContent = total;
-
-            if (query) {
-                headerCount.innerHTML = `${total} result${total !== 1 ? 's' : ''} for "<strong>${query}</strong>"`;
-            } else {
-                headerCount.innerHTML = `All Customers &nbsp;·&nbsp; ${total} Total Record${total !== 1 ? 's' : ''}`;
+            // Update subtitle
+            const subtitleEl = document.querySelector('.page-header .subtitle');
+            if (subtitleEl) {
+                const total = data.total_count || 0;
+                if (query) {
+                    subtitleEl.innerHTML = `${total} result${total !== 1 ? 's' : ''} for "<strong>${query}</strong>"`;
+                } else {
+                    subtitleEl.innerHTML = `All Customers &nbsp;·&nbsp; ${total} Total Record${total !== 1 ? 's' : ''}`;
+                }
             }
 
             currentPage = page;
@@ -930,7 +828,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Pagination click handler (event delegation)
+    // Pagination click
     pagination.addEventListener('click', function(e) {
         const btn = e.target.closest('[data-page]');
         if (btn) {

@@ -3,43 +3,31 @@
 
 {% block title %}Hardware Dashboard | MAC Technologies{% endblock %}
 
-{% block content %}
+{% block page_title %}Hardware Management{% endblock %}
+{% block page_subtitle %}
+    <i class="bi bi-graph-up-arrow me-1"></i>
+    Overview of retail operations and stock performance
+{% endblock %}
 
-<!-- Page Header -->
-<div class="d-flex flex-wrap flex-sm-nowrap align-items-center justify-content-between gap-3 mb-4">
-    <div>
-        <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
-            <i class="bi bi-shop" style="color: var(--brand-cobalt); font-size: 1.5rem;"></i>
-            Hardware Management
-        </h4>
-        <p class="text-muted small mb-0 mt-1">
-            <i class="bi bi-graph-up-arrow me-1"></i>
-            Overview of retail operations and stock performance
-        </p>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="{% url 'hardware:pos' %}" class="btn d-flex align-items-center gap-2 rounded-pill px-4" 
-           style="background: var(--brand-cobalt); color: #ffffff; border: none; box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);">
-            <i class="bi bi-cart-plus"></i>
-            <span>New Sale / POS</span>
-        </a>
-        <a href="{% url 'hardware:product_list' %}" class="btn btn-outline-secondary rounded-pill px-3 d-flex align-items-center gap-2">
-            <i class="bi bi-box-seam"></i>
-            <span>Products</span>
-        </a>
-    </div>
-</div>
+{% block quick_actions %}
+    <a href="{% url 'hardware:pos' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-cart-plus"></i> New Sale / POS
+    </a>
+    <a href="{% url 'hardware:product_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-box-seam"></i> Products
+    </a>
+{% endblock %}
+
+{% block content %}
 
 <!-- Stats Cards -->
 <div class="row g-4 mb-4">
     <div class="col-6 col-md-3">
-        <div class="stat-card" 
-             style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.25rem; transition: all 0.25s ease;"
+        <div class="stat-card" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.25rem; transition: all 0.25s ease;"
              onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.08)';"
              onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
             <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon" 
-                     style="width: 48px; height: 48px; border-radius: 12px; background: var(--brand-cobalt-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <div class="stat-icon" style="width: 48px; height: 48px; border-radius: 12px; background: var(--brand-cobalt-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                     <i class="bi bi-box-seam fs-4" style="color: var(--brand-cobalt);"></i>
                 </div>
                 <div>
@@ -47,7 +35,7 @@
                         Total Inventory Value
                     </div>
                     <div class="stat-value" style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">
-                        UGX {{ inventory_value|intcomma|default:"0" }}
+                        UGX {{ inventory_value|default:"0"|floatformat:0|intcomma }}
                     </div>
                 </div>
             </div>
@@ -55,13 +43,11 @@
     </div>
 
     <div class="col-6 col-md-3">
-        <div class="stat-card" 
-             style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.25rem; transition: all 0.25s ease;"
+        <div class="stat-card" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.25rem; transition: all 0.25s ease;"
              onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.08)';"
              onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
             <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon" 
-                     style="width: 48px; height: 48px; border-radius: 12px; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <div class="stat-icon" style="width: 48px; height: 48px; border-radius: 12px; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                     <i class="bi bi-exclamation-triangle fs-4" style="color: #f59e0b;"></i>
                 </div>
                 <div>
@@ -77,13 +63,11 @@
     </div>
 
     <div class="col-6 col-md-3">
-        <div class="stat-card" 
-             style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.25rem; transition: all 0.25s ease;"
+        <div class="stat-card" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.25rem; transition: all 0.25s ease;"
              onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.08)';"
              onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
             <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon" 
-                     style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <div class="stat-icon" style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                     <i class="bi bi-cart-check fs-4" style="color: #10b981;"></i>
                 </div>
                 <div>
@@ -91,7 +75,7 @@
                         Today's Sales
                     </div>
                     <div class="stat-value" style="font-size: 1.1rem; font-weight: 700; color: #10b981;">
-                        UGX {{ todays_sales|intcomma|default:"0" }}
+                        UGX {{ todays_sales|default:"0"|floatformat:0|intcomma }}
                     </div>
                 </div>
             </div>
@@ -99,13 +83,11 @@
     </div>
 
     <div class="col-6 col-md-3">
-        <div class="stat-card" 
-             style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.25rem; transition: all 0.25s ease;"
+        <div class="stat-card" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.25rem; transition: all 0.25s ease;"
              onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 30px rgba(0,0,0,0.08)';"
              onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
             <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon" 
-                     style="width: 48px; height: 48px; border-radius: 12px; background: rgba(139, 92, 246, 0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <div class="stat-icon" style="width: 48px; height: 48px; border-radius: 12px; background: rgba(139, 92, 246, 0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                     <i class="bi bi-boxes fs-4" style="color: #8b5cf6;"></i>
                 </div>
                 <div>
@@ -121,29 +103,8 @@
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="row g-3 mb-4">
-    <div class="col-md-12">
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{% url 'hardware:pos' %}" class="btn d-flex align-items-center gap-2" 
-               style="background: var(--brand-cobalt); color: #ffffff; border: none; padding: 0.5rem 1.25rem; border-radius: 12px;">
-                <i class="bi bi-cart-plus"></i> New Sale
-            </a>
-            <a href="{% url 'hardware:purchase_list' %}" class="btn btn-outline-secondary d-flex align-items-center gap-2" 
-               style="border-radius: 12px; padding: 0.5rem 1.25rem;">
-                <i class="bi bi-truck"></i> Purchase Orders
-            </a>
-            <a href="#" class="btn btn-outline-secondary d-flex align-items-center gap-2" 
-               style="border-radius: 12px; padding: 0.5rem 1.25rem;">
-                <i class="bi bi-file-earmark-spreadsheet"></i> Reports
-            </a>
-        </div>
-    </div>
-</div>
-
 <!-- Recent Transactions Table -->
-<div class="card border-0" 
-     style="background: var(--card-bg); border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); border: 1px solid var(--border-color);">
+<div class="card border-0" style="background: var(--card-bg); border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); border: 1px solid var(--border-color);">
     
     <div class="card-header bg-transparent border-bottom p-4" style="border-color: var(--border-color);">
         <div class="d-flex align-items-center justify-content-between">
@@ -151,10 +112,10 @@
                 <i class="bi bi-clock-history" style="color: var(--brand-cobalt);"></i>
                 Recent Transactions
                 <span class="badge" style="background: var(--brand-cobalt-bg); color: var(--brand-cobalt); font-size: 0.6rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 100px;">
-                    {{ recent_transactions|length }}
+                    {{ recent_transactions|default:""|length }}
                 </span>
             </h5>
-            <a href="#" class="btn btn-sm btn-link text-decoration-none" style="color: var(--brand-cobalt);">
+            <a href="{% url 'hardware:transactions_report' %}" class="btn btn-sm btn-link text-decoration-none" style="color: var(--brand-cobalt);">
                 View All <i class="bi bi-chevron-right"></i>
             </a>
         </div>
@@ -183,7 +144,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for trans in recent_transactions %}
+                    {% for trans in recent_transactions|default:"" %}
                     <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s ease;"
                         onmouseover="this.style.background='var(--hover-bg)'"
                         onmouseout="this.style.background='transparent'">
@@ -196,7 +157,7 @@
                             </div>
                         </td>
                         <td class="py-3 px-4">
-                            <span class="fw-bold" style="color: var(--text-primary);">{{ trans.quantity }}</span>
+                            <span class="fw-bold" style="color: var(--text-primary);">{{ trans.quantity|floatformat:0 }}</span>
                         </td>
                         <td class="py-3 px-4">
                             <span class="badge rounded-pill px-3 py-2" 
@@ -232,53 +193,21 @@
             </table>
         </div>
     </div>
-
-    <!-- Table Footer (optional pagination) -->
-    {% if recent_transactions.has_other_pages %}
-    <div class="card-footer bg-transparent border-top p-3" style="border-color: var(--border-color);">
-        <div class="d-flex justify-content-between align-items-center">
-            <small class="text-muted">Showing {{ recent_transactions|length }} transactions</small>
-            <nav>
-                <ul class="pagination pagination-sm mb-0">
-                    {% if recent_transactions.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ recent_transactions.previous_page_number }}" style="border-radius: 8px; color: var(--brand-cobalt); border-color: var(--border-color);">
-                            <i class="bi bi-chevron-left"></i>
-                        </a>
-                    </li>
-                    {% endif %}
-                    <li class="page-item active">
-                        <span class="page-link" style="background: var(--brand-cobalt); border-color: var(--brand-cobalt); color: #ffffff; border-radius: 8px;">
-                            {{ recent_transactions.number }}
-                        </span>
-                    </li>
-                    {% if recent_transactions.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ recent_transactions.next_page_number }}" style="border-radius: 8px; color: var(--brand-cobalt); border-color: var(--border-color);">
-                            <i class="bi bi-chevron-right"></i>
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-    </div>
-    {% endif %}
 </div>
 
-<!-- Quick Stats Bar (hidden on small screens) -->
+<!-- Quick Stats Bar -->
 <div class="row g-3 mt-3 d-none d-md-flex">
     <div class="col-12">
         <div class="p-3 rounded-3" style="background: var(--brand-cobalt-bg); border: 1px solid rgba(22, 50, 175, 0.15);">
             <div class="d-flex flex-wrap justify-content-around align-items-center gap-2">
                 <div class="text-center">
                     <div class="text-muted small text-uppercase fw-semibold">Today's Revenue</div>
-                    <div class="fw-bold" style="color: var(--brand-cobalt);">UGX {{ todays_revenue|intcomma|default:"0" }}</div>
+                    <div class="fw-bold" style="color: var(--brand-cobalt);">UGX {{ todays_revenue|default:"0"|floatformat:0|intcomma }}</div>
                 </div>
                 <div class="vr" style="height: 30px; opacity: 0.2;"></div>
                 <div class="text-center">
                     <div class="text-muted small text-uppercase fw-semibold">This Month</div>
-                    <div class="fw-bold" style="color: #10b981;">UGX {{ monthly_revenue|intcomma|default:"0" }}</div>
+                    <div class="fw-bold" style="color: #10b981;">UGX {{ monthly_revenue|default:"0"|floatformat:0|intcomma }}</div>
                 </div>
                 <div class="vr" style="height: 30px; opacity: 0.2;"></div>
                 <div class="text-center">
@@ -291,90 +220,38 @@
 </div>
 
 <style>
-    /* Additional table hover styles */
-    .table-hover tbody tr:hover {
-        background: var(--hover-bg) !important;
-    }
-
-    /* Card hover enhancements */
     .stat-card {
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: default;
     }
-
-    /* Pagination active state */
     .page-item.active .page-link {
         background: var(--brand-cobalt) !important;
         border-color: var(--brand-cobalt) !important;
         color: #ffffff !important;
     }
-
     .page-link {
         color: var(--brand-cobalt) !important;
         transition: all 0.2s ease;
     }
-
     .page-link:hover {
         background: var(--brand-cobalt-bg) !important;
         border-color: var(--brand-cobalt) !important;
     }
-
-    /* Responsive improvements */
     @media (max-width: 576px) {
-        .stat-card {
-            padding: 1rem !important;
-        }
-        .stat-icon {
-            width: 38px !important;
-            height: 38px !important;
-        }
-        .stat-icon i {
-            font-size: 1rem !important;
-        }
-        .stat-value {
-            font-size: 0.95rem !important;
-        }
-        .btn {
-            font-size: 0.8rem !important;
-        }
-        .table td, .table th {
-            padding: 0.6rem 0.75rem !important;
-            font-size: 0.75rem !important;
-        }
-        .d-flex.flex-wrap.gap-2 .btn {
-            flex: 1;
-            justify-content: center;
-        }
+        .stat-card { padding: 1rem !important; }
+        .stat-icon { width: 38px !important; height: 38px !important; }
+        .stat-icon i { font-size: 1rem !important; }
+        .stat-value { font-size: 0.95rem !important; }
+        .table td, .table th { padding: 0.6rem 0.75rem !important; font-size: 0.75rem !important; }
     }
-
-    /* Smooth animation for stats */
     @keyframes countUp {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
-
-    .stat-value {
-        animation: countUp 0.6s ease forwards;
-    }
-
-    /* Badge hover effect */
-    .badge {
-        transition: all 0.2s ease;
-    }
-
-    .badge:hover {
-        transform: scale(1.05);
-    }
+    .stat-value { animation: countUp 0.6s ease forwards; }
 </style>
 
 <script>
-    // View transaction detail
     function viewTransaction(transactionId) {
         Swal.fire({
             title: 'Transaction Details',
@@ -386,14 +263,11 @@
         });
     }
 
-    // Quick action shortcuts
     document.addEventListener('keydown', function(e) {
-        // Ctrl+N or Cmd+N for new sale
         if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
             e.preventDefault();
             window.location.href = "{% url 'hardware:pos' %}";
         }
-        // Ctrl+P for products
         if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
             e.preventDefault();
             window.location.href = "{% url 'hardware:product_list' %}";

@@ -1,38 +1,67 @@
 {% if members.has_previous or members.has_next %}
-    {% if members.has_previous %}
-        <li>
-            <button class="page-link nav" data-page="1" title="First Page" aria-label="First">
-                &laquo;
-            </button>
-        </li>
-        <li>
-            <button class="page-link nav" data-page="{{ members.previous_page_number }}" title="Previous" aria-label="Previous">
-                &lsaquo;
-            </button>
-        </li>
-    {% endif %}
-
-    {% for num in members.paginator.page_range %}
-        {% if num > members.number|add:'-3' and num < members.number|add:'3' or members.paginator.num_pages <= 7 %}
+<nav aria-label="Member pagination" class="pagination-nav">
+    <ul class="pagination">
+        {# First page #}
+        {% if members.has_previous %}
             <li>
-                <button class="page-link {% if members.number == num %}active{% endif %}" 
-                        data-page="{{ num }}">
-                    {{ num }}
+                <button class="page-link nav" data-page="1" aria-label="First page">
+                    <i class="bi bi-chevron-double-left"></i>
                 </button>
             </li>
+            <li>
+                <button class="page-link nav" data-page="{{ members.previous_page_number }}" aria-label="Previous page">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+            </li>
+        {% else %}
+            <li class="disabled">
+                <span class="page-link"><i class="bi bi-chevron-double-left"></i></span>
+            </li>
+            <li class="disabled">
+                <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+            </li>
         {% endif %}
-    {% endfor %}
 
-    {% if members.has_next %}
-        <li>
-            <button class="page-link nav" data-page="{{ members.next_page_number }}" title="Next" aria-label="Next">
-                &rsaquo;
-            </button>
-        </li>
-        <li>
-            <button class="page-link nav" data-page="{{ members.paginator.num_pages }}" title="Last Page" aria-label="Last">
-                &raquo;
-            </button>
-        </li>
-    {% endif %}
+        {# Page numbers with ellipsis #}
+        {% with num_pages=members.paginator.num_pages current=members.number %}
+            {% for num in members.paginator.page_range %}
+                {% if num == current %}
+                    <li><button class="page-link active" data-page="{{ num }}" aria-current="page">{{ num }}</button></li>
+                {% elif num == 1 or num == num_pages %}
+                    <li><button class="page-link" data-page="{{ num }}">{{ num }}</button></li>
+                {% elif num >= current|add:'-2' and num <= current|add:'2' %}
+                    <li><button class="page-link" data-page="{{ num }}">{{ num }}</button></li>
+                {% elif num == current|add:'-3' or num == current|add:'3' %}
+                    {# Show ellipsis when there is a gap of exactly 1 page #}
+                    {% if current|add:'-3' > 1 %}
+                        <li class="ellipsis"><span class="page-link">…</span></li>
+                    {% elif current|add:'3' < num_pages %}
+                        <li class="ellipsis"><span class="page-link">…</span></li>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endwith %}
+
+        {# Next / Last #}
+        {% if members.has_next %}
+            <li>
+                <button class="page-link nav" data-page="{{ members.next_page_number }}" aria-label="Next page">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </li>
+            <li>
+                <button class="page-link nav" data-page="{{ members.paginator.num_pages }}" aria-label="Last page">
+                    <i class="bi bi-chevron-double-right"></i>
+                </button>
+            </li>
+        {% else %}
+            <li class="disabled">
+                <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+            </li>
+            <li class="disabled">
+                <span class="page-link"><i class="bi bi-chevron-double-right"></i></span>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
 {% endif %}

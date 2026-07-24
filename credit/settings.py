@@ -54,12 +54,15 @@ INSTALLED_APPS = [
     # Your Apps
     'members',
     'finance',
+    'hardware',
+    'notifications',
 
     # 2FA Apps
     'django_otp',
     'django_otp.plugins.otp_static',
     'django_otp.plugins.otp_totp',
     'two_factor',
+    'widget_tweaks',
     'django_celery_beat',
 ]
 
@@ -88,6 +91,7 @@ MIDDLEWARE = [
 # URLS & WSGI
 # ==========================================
 
+
 ROOT_URLCONF = 'credit.urls'
 
 WSGI_APPLICATION = 'credit.wsgi.application'
@@ -111,7 +115,9 @@ TEMPLATES = [
 
                 # Custom Context Processors
                 'finance.context_processors.sacco_stats',
+                'notifications.context_processors.notifications',
                 'members.context_processors.module_permissions',
+                'finance.context_processors.company_context',
             ],
         },
     },

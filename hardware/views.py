@@ -23,6 +23,8 @@ from .forms import ProductForm
 
 
 # ==================== DASHBOARD ====================
+from .services import get_dashboard_stats
+
 class DashboardView(TemplateView):
     template_name = 'hardware/dashboard.html'
 
@@ -30,8 +32,7 @@ class DashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         context.update(get_dashboard_stats())
         return context
-
-
+    
 # ==================== CATEGORY CRUD ====================
 class CategoryListView(LoginRequiredMixin, ListView):
     model = Category
@@ -119,14 +120,45 @@ class ProductDeleteView(LoginRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
+from django.db.models import F
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from .models import Product, Category
+
 class ProductListView(LoginRequiredMixin, ListView):
     model = Product
     template_name = 'hardware/product_list.html'
     context_object_name = 'products'
     ordering = ['-created_at']
+    paginate_by = 20  # <-- enables pagination so start_index, end_index work
 
     def get_queryset(self):
-        return Product.objects.all()
+        return Product.objects.select_related('category').all()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        products = self.get_queryset()
+
+        # Calculate stock statistics
+        low_stock = products.filter(
+            current_stock__lte=F('reorder_level'),
+            current_stock__gt=0
+        ).count()
+
+        in_stock = products.filter(
+            current_stock__gt=F('reorder_level')
+        ).count()
+
+        out_of_stock = products.filter(current_stock=0).count()
+
+        context.update({
+            'low_stock_count': low_stock,
+            'in_stock_count': in_stock,
+            'out_of_stock_count': out_of_stock,
+            'categories': Category.objects.all().order_by('name'),
+        })
+
+        return context
 
 
 # ==================== SUPPLIER CRUD ====================
@@ -244,6 +276,33 @@ class SalesListView(LoginRequiredMixin, ListView):
         return context
 
 
+from django.views.generic import DetailView
+from .models import StockTransaction
+
+class TransactionDetailView(LoginRequiredMixin, DetailView):
+    model = StockTransaction
+    template_name = 'hardware/transaction_detail.html'
+    context_object_name = 'transaction'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Optional: add related data like product, user, etc.
+        return context
+
+
+# hardware/views.py
+from django.views.generic import ListView
+from .models import StockTransaction
+
+class TransactionListView(LoginRequiredMixin, ListView):
+    model = StockTransaction
+    template_name = 'hardware/transactions_list.html'
+    context_object_name = 'transactions'
+    ordering = ['-created_at']
+    paginate_by = 25
+
+    def get_queryset(self):
+        return StockTransaction.objects.select_related('product', 'created_by').order_by('-created_at')
 # ==================== REPORTS ====================
 class ReportView(LoginRequiredMixin, TemplateView):
     template_name = 'hardware/reports.html'

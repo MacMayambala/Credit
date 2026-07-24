@@ -3,46 +3,27 @@
 
 {% block title %}Portfolio Dashboard | MAC Technologies{% endblock %}
 
-{% block content %}
+{% block page_title %}Portfolio Dashboard{% endblock %}
+{% block page_subtitle %}Analytics &amp; Asset Distribution for {{ today|date:"F Y" }}{% endblock %}
 
+{% block breadcrumb %}
+    <span>/</span>
+    <span>Dashboard</span>
+{% endblock %}
+
+{% block extra_css %}
 <style>
-    :root {
-        --brand-cobalt: #1632af;
-        --brand-cobalt-dark: #0f248a;
-        --brand-cobalt-light: #2a4ad8;
-        --brand-cobalt-bg: rgba(22, 50, 175, 0.08);
-        --brand-cobalt-glow: rgba(22, 50, 175, 0.15);
-        --slate-900: #0f172a;
-        --slate-600: #475569;
-        --bg-soft: #f1f5f9;
-        --border-color: #e2e8f0;
-        --text-muted: #94a3b8;
-        --text-secondary: #475569;
-        --card-bg: #ffffff;
-        --hover-bg: #f8fafc;
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-        --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.06);
-        --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.08);
-        --radius: 16px;
-        --success: #10b981;
-        --warning: #f59e0b;
-    }
-
-    body {
-        background-color: var(--bg-soft);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
     /* ============================================
-       KPI CARDS
+       KPI CARDS (matching base design)
        ============================================ */
     .kpi-card {
-        border: 1px solid var(--border-color);
         background: var(--card-bg);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius);
+        padding: 1.25rem 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-sm);
     }
-    
     .kpi-card:hover {
         transform: translateY(-6px);
         box-shadow: var(--shadow-lg) !important;
@@ -50,104 +31,67 @@
     }
 
     .icon-box {
-        width: 54px;
-        height: 54px;
+        width: 48px;
+        height: 48px;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: 14px;
         flex-shrink: 0;
+        font-size: 1.25rem;
     }
 
-    .kpi-card .kpi-value {
-        font-size: 1.5rem;
+    .kpi-value {
+        font-size: 1.6rem;
         font-weight: 800;
-        color: var(--slate-900);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
         letter-spacing: -0.02em;
         margin-top: 0.25rem;
+        line-height: 1.2;
     }
 
-    .kpi-card .kpi-label {
+    .kpi-label {
         font-size: 0.65rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
         color: var(--text-muted);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    .kpi-card .kpi-change {
+    .kpi-change {
         font-size: 0.7rem;
         font-weight: 600;
     }
 
-    .kpi-card .kpi-sub {
+    .kpi-sub {
         font-size: 0.75rem;
         color: var(--text-muted);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         margin-top: 0.15rem;
     }
 
     /* ============================================
-       BUTTONS
+       CARD OVERRIDES (for chart & list)
        ============================================ */
-    .btn-brand {
-        background: var(--brand-cobalt);
-        color: white;
-        border: none;
-        font-weight: 700;
-        font-size: 0.85rem;
-        padding: 0.5rem 1.25rem;
-        border-radius: 10px;
-        transition: all 0.3s ease;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-    }
-    .btn-brand:hover {
-        background: var(--brand-cobalt-dark);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
+    .chart-container {
+        position: relative;
+        height: 320px;
+        width: 100%;
     }
 
-    .btn-outline-cobalt {
-        color: var(--brand-cobalt);
-        border: 1.5px solid var(--brand-cobalt);
-        background: transparent;
-        font-weight: 600;
-        font-size: 0.85rem;
-        padding: 0.4rem 1rem;
-        border-radius: 10px;
-        transition: all 0.3s ease;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    .btn-outline-cobalt:hover {
-        background: var(--brand-cobalt);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
-    }
-
-    /* ============================================
-       LIST GROUP
-       ============================================ */
     .loan-item {
         transition: all 0.2s ease;
         cursor: pointer;
         border: none;
         padding: 0.75rem 1.25rem;
+        background: transparent;
     }
     .loan-item:hover {
-        background-color: var(--hover-bg);
+        background: var(--hover-bg);
     }
 
-    .loan-item .avatar-circle {
-        width: 42px;
-        height: 42px;
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
         background: var(--brand-cobalt-bg);
         color: var(--brand-cobalt);
         font-weight: 700;
@@ -156,28 +100,22 @@
         justify-content: center;
         border-radius: 50%;
         flex-shrink: 0;
-        font-size: 0.9rem;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.85rem;
     }
 
-    .loan-item .loan-name {
+    .loan-name {
         font-weight: 700;
         font-size: 0.85rem;
-        color: var(--slate-900);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
     }
-
-    .loan-item .loan-id {
+    .loan-id {
         font-size: 0.65rem;
         color: var(--text-muted);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-
-    .loan-item .loan-amount {
+    .loan-amount {
         font-weight: 700;
         font-size: 0.85rem;
-        color: var(--slate-900);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
     }
 
     .badge-status {
@@ -187,143 +125,57 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-
     .badge-approved {
         background: rgba(16, 185, 129, 0.12);
         color: #10b981;
     }
-
     .badge-pending {
         background: rgba(245, 158, 11, 0.12);
         color: #f59e0b;
     }
-
     .badge-closed {
         background: rgba(239, 68, 68, 0.12);
         color: #ef4444;
     }
 
     /* ============================================
-       CHART
+       RESPONSIVE TWEAKS
        ============================================ */
-    .chart-container {
-        position: relative;
-        height: 350px;
-        width: 100%;
-    }
-
-    /* ============================================
-       CARDS
-       ============================================ */
-    .card-custom {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-sm);
-        transition: box-shadow 0.3s ease;
-        overflow: hidden;
-    }
-
-    .card-custom:hover {
-        box-shadow: var(--shadow-md);
-    }
-
-    .card-custom .card-header-custom {
-        background: var(--card-bg);
-        border-bottom: 1px solid var(--border-color);
-        padding: 1.25rem 1.5rem;
-    }
-
-    .card-custom .card-header-custom h5 {
-        font-weight: 700;
-        font-size: 1rem;
-        color: var(--slate-900);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        margin: 0;
-    }
-
-    .card-custom .card-body-custom {
-        padding: 1.25rem 1.5rem;
-    }
-
-    /* ============================================
-       HEADER
-       ============================================ */
-    .page-header h2 {
-        font-weight: 800;
-        font-size: 1.75rem;
-        color: var(--slate-900);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        letter-spacing: -0.02em;
-    }
-
-    .page-header p {
-        font-size: 0.9rem;
-        color: var(--text-muted);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    /* ============================================
-       RESPONSIVE
-       ============================================ */
-    @media (max-width: 992px) {
-        .kpi-card .kpi-value {
+    @media (max-width: 768px) {
+        .kpi-card {
+            padding: 0.75rem 1rem;
+        }
+        .kpi-value {
             font-size: 1.3rem;
         }
-        .chart-container {
-            height: 280px;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .page-header h2 {
-            font-size: 1.4rem;
-        }
-        .kpi-card {
-            padding: 0.75rem !important;
-        }
-        .kpi-card .kpi-value {
-            font-size: 1.1rem;
-        }
         .icon-box {
-            width: 44px;
-            height: 44px;
-            font-size: 0.9rem;
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
         }
         .chart-container {
-            height: 220px;
+            height: 240px;
         }
         .loan-item {
             padding: 0.6rem 1rem;
         }
-        .loan-item .loan-name {
+        .loan-name {
             font-size: 0.8rem;
-        }
-        .card-custom .card-header-custom {
-            padding: 0.75rem 1rem;
-        }
-        .card-custom .card-body-custom {
-            padding: 0.75rem 1rem;
         }
     }
 
     @media (max-width: 576px) {
-        .container-fluid {
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
+        .kpi-value {
+            font-size: 1.1rem;
         }
-        .page-header h2 {
-            font-size: 1.2rem;
+        .icon-box {
+            width: 34px;
+            height: 34px;
+            font-size: 0.85rem;
         }
-        .btn-brand {
-            font-size: 0.75rem;
-            padding: 0.35rem 0.8rem;
-        }
-        .btn-outline-cobalt {
-            font-size: 0.75rem;
-            padding: 0.3rem 0.8rem;
+        .chart-container {
+            height: 180px;
         }
         .row.g-4 {
             --bs-gutter-y: 1rem;
@@ -332,216 +184,232 @@
             flex: 0 0 50%;
             max-width: 50%;
         }
-        .kpi-card .kpi-value {
-            font-size: 1rem;
-        }
-        .kpi-card .kpi-label {
-            font-size: 0.55rem;
-        }
-        .icon-box {
-            width: 36px;
-            height: 36px;
-            font-size: 0.8rem;
-        }
-        .chart-container {
-            height: 180px;
-        }
     }
 
     /* ============================================
        ANIMATIONS
        ============================================ */
     @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(15px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
     }
-
     .kpi-card {
         animation: fadeInUp 0.4s ease forwards;
     }
-
     .kpi-card:nth-child(1) { animation-delay: 0.05s; }
     .kpi-card:nth-child(2) { animation-delay: 0.10s; }
     .kpi-card:nth-child(3) { animation-delay: 0.15s; }
     .kpi-card:nth-child(4) { animation-delay: 0.20s; }
-
-    .card-custom {
-        animation: fadeInUp 0.4s ease forwards;
-        animation-delay: 0.1s;
-    }
 </style>
+{% endblock %}
 
-<div class="container-fluid py-4 px-3 px-lg-4">
+{% block content %}
 
-    <!-- ==========================================
-    HEADER SECTION
-    ========================================== -->
-    <div class="page-header d-flex flex-wrap flex-sm-nowrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h2 class="fw-bold mb-1 d-flex align-items-center gap-2">
-                <i class="bi bi-speedometer2" style="color: var(--brand-cobalt);"></i>
-                Portfolio Dashboard
-            </h2>
-            <p class="text-muted mb-0">
-                <i class="bi bi-calendar3 me-1"></i>
-                Analytics &amp; Asset Distribution for {{ today|date:"F Y" }}
-            </p>
-        </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <button onclick="window.print()" class="btn btn-outline-secondary rounded-2 px-3 d-flex align-items-center gap-2" style="font-weight: 600; font-size: 0.85rem; border-color: var(--border-color);">
-                <i class="bi bi-printer"></i> Print
-            </button>
-            <a href="{% url 'deposit_savings' 1 %}" class="btn btn-brand">
-                <i class="bi bi-plus-lg"></i> New Transaction
-            </a>
+<!-- ==========================================
+KPI METRICS (inside content card)
+========================================== -->
+<div class="row g-4 mb-4">
+    <!-- Savings -->
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="icon-box" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <span class="kpi-change text-success">
+                    <i class="bi bi-graph-up me-1"></i>+2.4%
+                </span>
+            </div>
+            <div class="kpi-label">Total Savings</div>
+            <div class="kpi-value">UGX {{ total_savings|default:"0"|floatformat:0|intcomma }}</div>
         </div>
     </div>
 
-    <!-- ==========================================
-    KPI METRICS
-    ========================================== -->
-    <div class="row g-4 mb-5">
-        <!-- Savings -->
-        <div class="col-xl-3 col-md-6">
-            <div class="kpi-card card p-4">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="icon-box" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
-                        <i class="bi bi-wallet2 fs-4"></i>
-                    </div>
-                    <span class="kpi-change text-success">
-                        <i class="bi bi-graph-up me-1"></i>+2.4%
-                    </span>
+    <!-- Loans -->
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="icon-box" style="background: var(--brand-cobalt-bg); color: var(--brand-cobalt);">
+                    <i class="bi bi-bank"></i>
                 </div>
-                <span class="kpi-label">Total Savings</span>
-                <h3 class="kpi-value">UGX {{ total_savings|default:"0"|floatformat:0|intcomma }}</h3>
+                <span class="kpi-change text-brand"><i class="bi bi-arrow-up me-1"></i>5.1%</span>
             </div>
+            <div class="kpi-label">Loan Book</div>
+            <div class="kpi-value">UGX {{ total_loans|default:"0"|floatformat:0|intcomma }}</div>
+            <div class="kpi-sub">{{ active_loans_count|default:"0" }} Active Accounts</div>
         </div>
+    </div>
 
-        <!-- Loans -->
-        <div class="col-xl-3 col-md-6">
-            <div class="kpi-card card p-4">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="icon-box" style="background: var(--brand-cobalt-bg); color: var(--brand-cobalt);">
-                        <i class="bi bi-bank fs-4"></i>
-                    </div>
+    <!-- Interest Yield -->
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="icon-box" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+                    <i class="bi bi-lightning-charge"></i>
                 </div>
-                <span class="kpi-label">Loan Book</span>
-                <h3 class="kpi-value">UGX {{ total_loans|default:"0"|floatformat:0|intcomma }}</h3>
-                <div class="kpi-sub">{{ active_loans_count|default:"0" }} Active Accounts</div>
+                <span class="kpi-change text-warning">
+                    <i class="bi bi-arrow-up me-1"></i>
+                    {% if interest_yield >= 10 %}High{% elif interest_yield >= 5 %}Moderate{% else %}Low{% endif %}
+                </span>
             </div>
+            <div class="kpi-label">Interest Yield (Annual)</div>
+            <div class="kpi-value">{{ interest_yield|floatformat:1 }}%</div>
+            <div class="kpi-sub">Last 12 months</div>
         </div>
+    </div>
 
-        <!-- Interest -->
-        <div class="col-xl-3 col-md-6">
-            <div class="kpi-card card p-4">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="icon-box" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
-                        <i class="bi bi-lightning-charge fs-4"></i>
-                    </div>
+    <!-- Members -->
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="icon-box" style="background: var(--brand-cobalt); color: white;">
+                    <i class="bi bi-people"></i>
                 </div>
-                <span class="kpi-label">Interest Yield</span>
-                <h3 class="kpi-value">UGX {{ total_interest|default:"0"|floatformat:0|intcomma }}</h3>
+                <span class="kpi-change text-brand"><i class="bi bi-arrow-up me-1"></i>3.2%</span>
             </div>
+            <div class="kpi-label">Membership</div>
+            <div class="kpi-value">{{ total_members|default:"0"|intcomma }}</div>
         </div>
+    </div>
+</div>
 
-        <!-- Members -->
-        <div class="col-xl-3 col-md-6">
-            <div class="kpi-card card p-4">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="icon-box" style="background: var(--brand-cobalt); color: white;">
-                        <i class="bi bi-people fs-4"></i>
-                    </div>
+<!-- ==========================================
+CHART & RECENT ACTIVITY
+========================================== -->
+<div class="row g-4">
+    <!-- Growth Chart -->
+    <div class="col-xl-8">
+        <div class="card-custom">
+            <div class="card-header-custom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h5 class="mb-0"><i class="bi bi-graph-up me-2" style="color: var(--brand-cobalt);"></i>Financial Performance</h5>
+                <select class="form-select form-select-sm w-auto" style="border-color: var(--border-color); border-radius: var(--radius-sm); font-weight: 600; font-size: 0.8rem; background: var(--bg);">
+                    <option>Last 12 Months</option>
+                    <option>Year to Date</option>
+                </select>
+            </div>
+            <div class="card-body-custom pt-0">
+                <div class="chart-container">
+                    <canvas id="growthChart"></canvas>
                 </div>
-                <span class="kpi-label">Membership</span>
-                <h3 class="kpi-value">{{ total_members|default:"0"|intcomma }}</h3>
             </div>
         </div>
     </div>
 
-    <!-- ==========================================
-    CHART & RECENT ACTIVITY
-    ========================================== -->
-    <div class="row g-4">
-        <!-- Growth Chart -->
-        <div class="col-xl-8">
-            <div class="card-custom">
-                <div class="card-header-custom d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <h5><i class="bi bi-graph-up me-2" style="color: var(--brand-cobalt);"></i>Financial Performance</h5>
-                    <select class="form-select form-select-sm w-auto" style="border-color: var(--border-color); border-radius: 8px; font-weight: 600; font-size: 0.8rem; background: var(--bg-soft);">
-                        <option>Last 12 Months</option>
-                        <option>Year to Date</option>
-                    </select>
-                </div>
-                <div class="card-body-custom pt-0">
-                    <div class="chart-container">
-                        <canvas id="growthChart"></canvas>
+    <!-- Recent Loans -->
+    <div class="col-xl-4">
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2" style="color: var(--brand-cobalt);"></i>Recent Disbursements</h5>
+            </div>
+            <div class="card-body-custom p-0">
+                <div class="list-group list-group-flush">
+                    {% for loan in loans|slice:":5" %}
+                    <div class="list-group-item loan-item d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar-circle">
+                                {{ loan.member.first_name|slice:":1" }}{{ loan.member.last_name|slice:":1" }}
+                            </div>
+                            <div>
+                                <div class="loan-name">{{ loan.member.first_name }} {{ loan.member.last_name }}</div>
+                                <div class="loan-id">#{{ loan.loan_reference|default:loan.id }}</div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="loan-amount">UGX {{ loan.principal_balance|add:loan.interest_balance|floatformat:0|intcomma }}</div>
+                            <span class="badge-status 
+                                {% if loan.status == 'approved' or loan.status == 'active' %}badge-approved
+                                {% elif loan.status == 'pending' %}badge-pending
+                                {% else %}badge-closed{% endif %}">
+                                {{ loan.status|default:"PENDING"|upper }}
+                            </span>
+                        </div>
                     </div>
+                    {% empty %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25" style="color: var(--text-muted);"></i>
+                        <p class="text-muted small mb-0">No active disbursements found</p>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="col-xl-4">
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h5><i class="bi bi-clock-history me-2" style="color: var(--brand-cobalt);"></i>Recent Disbursements</h5>
-                </div>
-                <div class="card-body-custom p-0">
-                    <div class="list-group list-group-flush">
-                        {% for loan in loans|slice:":5" %}
-                        <div class="list-group-item loan-item d-flex align-items-center justify-content-between">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="avatar-circle">
-                                    {{ loan.member.first_name|slice:":1" }}{{ loan.member.last_name|slice:":1" }}
-                                </div>
-                                <div>
-                                    <div class="loan-name">{{ loan.member.first_name }} {{ loan.member.last_name }}</div>
-                                    <div class="loan-id">#{{ loan.loan_reference|default:loan.id }}</div>
-                                </div>
-                            </div>
-                            <div class="text-end">
-                                <div class="loan-amount">UGX {{ loan.principal_balance|add:loan.interest_balance|floatformat:0|intcomma }}</div>
-                                <span class="badge-status 
-                                    {% if loan.status == 'approved' or loan.status == 'active' %}badge-approved
-                                    {% elif loan.status == 'pending' %}badge-pending
-                                    {% else %}badge-closed{% endif %}">
-                                    {{ loan.status|default:"PENDING"|upper }}
-                                </span>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="text-center py-5">
-                            <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25" style="color: var(--text-muted);"></i>
-                            <p class="text-muted small mb-0">No active disbursements found</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="card-footer bg-transparent border-top p-3" style="border-color: var(--border-color);">
-                    <a href="{% url 'customer_list' %}" class="btn btn-outline-cobalt w-100 py-2">
-                        View All Members <i class="bi bi-arrow-right ms-2"></i>
-                    </a>
-                </div>
+            <div class="card-footer bg-transparent border-top p-3" style="border-color: var(--border-color);">
+                <a href="{% url 'customer_list' %}" class="btn btn-outline-cobalt w-100 py-2">
+                    View All Members <i class="bi bi-arrow-right ms-2"></i>
+                </a>
             </div>
         </div>
     </div>
 </div>
 
 <!-- ==========================================
-CHART JS
+CUSTOM STYLES FOR CARDS (align with base)
 ========================================== -->
+<style>
+    .card-custom {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        transition: box-shadow 0.3s ease;
+        overflow: hidden;
+    }
+    .card-custom:hover {
+        box-shadow: var(--shadow-md);
+    }
+    .card-header-custom {
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1.25rem 1.5rem;
+    }
+    .card-header-custom h5 {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-primary);
+        margin: 0;
+    }
+    .card-body-custom {
+        padding: 1.25rem 1.5rem;
+    }
+    .btn-outline-cobalt {
+        color: var(--brand-cobalt);
+        border: 1.5px solid var(--brand-cobalt);
+        background: transparent;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0.4rem 1rem;
+        border-radius: var(--radius-sm);
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+    }
+    .btn-outline-cobalt:hover {
+        background: var(--brand-cobalt);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
+    }
+    @media (max-width: 768px) {
+        .card-header-custom {
+            padding: 0.75rem 1rem;
+        }
+        .card-body-custom {
+            padding: 0.75rem 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const ctx = document.getElementById('growthChart').getContext('2d');
-        
-        // Custom Gradient for Cobalt Blue (Loans)
+
+        // Gradient for Loans (cobalt)
         const gradientBlue = ctx.createLinearGradient(0, 0, 0, 400);
         gradientBlue.addColorStop(0, 'rgba(22, 50, 175, 0.2)');
         gradientBlue.addColorStop(1, 'rgba(22, 50, 175, 0)');
@@ -600,24 +468,23 @@ CHART JS
                 scales: {
                     y: {
                         grid: { borderDash: [5, 5], color: '#e2e8f0' },
-                        ticks: { 
+                        ticks: {
                             font: { size: 11, family: 'Inter, sans-serif' },
                             callback: function(value) {
                                 return 'UGX ' + value.toLocaleString();
                             }
                         }
                     },
-                    x: { 
-                        grid: { display: false }, 
-                        ticks: { 
+                    x: {
+                        grid: { display: false },
+                        ticks: {
                             font: { size: 11, family: 'Inter, sans-serif' },
                             color: '#94a3b8'
-                        } 
+                        }
                     }
                 }
             }
         });
     });
 </script>
-
 {% endblock %}

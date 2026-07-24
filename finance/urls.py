@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from django.urls import path
-from .views import view_receipt
+from .views import account_balance_api, journal_entry, view_receipt
 from .views import ExecutiveCEODashboardView, InterestIncomeReportView, LoansInArrearsReportView, TreasuryDashboardView, export_report_excel
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
@@ -28,7 +28,8 @@ urlpatterns = [
     path('reports/arrears/', views.arrears_report, name='arreards_report'),
     path('reports/portfolio-status/', views.portfolio_status_report, name='portfolio_status_report'),
     path('transaction/<int:transaction_id>/reverse/', views.reverse_transaction, name='reverse_transaction'),
-    path('loann/<int:loan_id>/', views.loan_details, name='loan_details'),
+    path('loan/<int:loan_id>/send-reminder/', views.send_loan_reminder, name='send_loan_reminder'),
+    path('loans/<int:loan_id>/', views.loan_details, name='loan_details'),
 
     ################################# Accounting API Endpoints #################################
     path('ledger/', views.general_ledger, name='general_ledger'),
@@ -40,6 +41,8 @@ urlpatterns = [
     path('expense/add/', views.record_expense, name='record_expense'),
     path('ledger/inflow/', views.record_inflow, name='record_inflow'),
     path('accounts/hub/', views.accounts_hub, name='accounts_hub'),
+    path('api/account-balance/<int:account_id>/', account_balance_api, name='account_balance_api'),
+    path('journal-entry/', journal_entry, name='journal_entry'),
     path('auto-repayment-dashboard/', views.auto_repayment_dashboard, name='auto_repayment_dashboard'),
 
 
@@ -50,6 +53,8 @@ urlpatterns = [
     path('treasury/liquidity/', TreasuryDashboardView.as_view(), name='treasury_dashboard'),
     #path('system/export/', ExportFinancialReportView.as_view(), name='stream_export'),
     path('analytics/interest-income/', InterestIncomeReportView.as_view(), name='interest_income_report'),
+    
+    path('send-bulk-reminder/', views.send_bulk_arrears_reminders, name='send_bulk_arrears_reminder'),
     
     # 2. Distinct Export Endpoint
     #path('analytics/interest-income/export/', ExportFinancialReportView.as_view(), name='export_financial_report'),

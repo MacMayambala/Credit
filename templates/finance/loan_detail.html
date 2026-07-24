@@ -3,10 +3,80 @@
 
 {% block title %}Loan #{{ loan.loan_reference }} | {{ company.name }}{% endblock %}
 
-{% block content %}
+{% block page_title %}Loan #{{ loan.loan_reference }}{% endblock %}
+{% block page_subtitle %}
+    Borrower: {{ loan.member.get_full_name }} &nbsp;·&nbsp; 
+    Status: {{ loan.get_status_display|upper }} &nbsp;·&nbsp;
+    Disbursed: {{ disbursement_date|date:"d M, Y"|default:"Not Disbursed" }}
+{% endblock %}
 
+{% block breadcrumb %}
+    <span>/</span>
+    <span>Loans</span>
+    <span>/</span>
+    <span>{{ loan.loan_reference }}</span>
+{% endblock %}
+
+{% block quick_actions %}
+    <!-- Status Badge (always visible) -->
+    <span class="badge-status 
+        {% if loan.status == 'approved' or loan.status == 'active' %}badge-approved
+        {% elif loan.status == 'pending' %}badge-pending
+        {% elif loan.status == 'rejected' %}badge-rejected
+        {% elif loan.status == 'defaulted' %}badge-defaulted
+        {% elif loan.status == 'closed' %}badge-closed
+        {% else %}badge-disbursed{% endif %}">
+        {% if loan.status == 'approved' or loan.status == 'active' %}
+            <i class="bi bi-check-circle-fill"></i> {{ loan.get_status_display }}
+        {% elif loan.status == 'pending' %}
+            <i class="bi bi-clock-history"></i> {{ loan.get_status_display }}
+        {% elif loan.status == 'rejected' %}
+            <i class="bi bi-x-circle-fill"></i> {{ loan.get_status_display }}
+        {% elif loan.status == 'defaulted' %}
+            <i class="bi bi-exclamation-triangle-fill"></i> {{ loan.get_status_display }}
+        {% elif loan.status == 'closed' %}
+            <i class="bi bi-check2-all"></i> {{ loan.get_status_display }}
+        {% else %}
+            <i class="bi bi-credit-card"></i> {{ loan.get_status_display }}
+        {% endif %}
+    </span>
+
+    <!-- ==========================================
+    SMS REMINDER BUTTON – ALWAYS RENDERED
+    ========================================== -->
+    {% if loan.status == 'approved' or loan.status == 'arrears' %}
+        {% if sms_balance >= 300 %}
+            <!-- ✅ Active: Can send SMS -->
+            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#smsConfirmModal">
+                <i class="bi bi-envelope-paper"></i> SMS Reminder
+            </button>
+        {% else %}
+            <!-- ⛔ Disabled: Insufficient credits -->
+            <button type="button" class="btn btn-secondary btn-sm" disabled 
+                    title="Insufficient SMS credits (need UGX 300, you have {{ sms_balance }})">
+                <i class="bi bi-envelope-paper"></i> SMS Reminder
+                <span class="badge bg-danger ms-1">Low Credit</span>
+            </button>
+        {% endif %}
+    {% else %}
+        <!-- ⛔ Disabled: Loan not active -->
+        <button type="button" class="btn btn-secondary btn-sm" disabled 
+                title="SMS reminders are only available for active loans (current status: {{ loan.get_status_display }})">
+            <i class="bi bi-envelope-paper"></i> SMS Reminder
+            <span class="badge bg-secondary ms-1">{{ loan.get_status_display }}</span>
+        </button>
+    {% endif %}
+
+    <a href="{% url 'loan_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> All Loans
+    </a>
+{% endblock %}
+
+{% block extra_css %}
 <style>
-    /* (All your existing CSS – unchanged) */
+    /* ============================================================
+       LOAN DETAIL STYLES (preserved from original)
+       ============================================================ */
     :root {
         --brand-cobalt: #1632af;
         --brand-cobalt-dark: #0f248a;
@@ -42,44 +112,59 @@
     .loan-detail-wrapper {
         max-width: 1340px;
         margin: 0 auto;
-        padding: 1.5rem 1.5rem 3rem;
+        padding: 0;
     }
 
-    /* ---- Top Action Bar ---- */
-    .action-bar {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 2rem;
-    }
-
-    .btn-ghost {
-        background: var(--card-bg);
-        color: var(--text-secondary);
-        border: 1px solid var(--border-color);
-        font-weight: 600;
-        font-size: 0.85rem;
-        padding: 0.5rem 1.25rem;
+    /* ---- Status Badge (for quick_actions) ---- */
+    .badge-status {
+        padding: 0.35rem 1rem;
         border-radius: 100px;
-        transition: all 0.25s ease;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-        box-shadow: var(--shadow-sm);
+        gap: 0.4rem;
+        border: 1px solid transparent;
+        white-space: nowrap;
     }
 
-    .btn-ghost:hover {
-        background: var(--hover-bg);
-        border-color: var(--brand-cobalt);
-        color: var(--brand-cobalt);
-        transform: translateY(-3px) scale(1.02);
-        box-shadow: var(--shadow-md);
+    .badge-approved {
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+        border-color: rgba(16, 185, 129, 0.2);
     }
 
-    .btn-ghost i { font-size: 1.1rem; }
+    .badge-pending {
+        background: rgba(245, 158, 11, 0.12);
+        color: #f59e0b;
+        border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    .badge-rejected {
+        background: rgba(239, 68, 68, 0.12);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .badge-disbursed {
+        background: rgba(59, 130, 246, 0.12);
+        color: #3b82f6;
+        border-color: rgba(59, 130, 246, 0.2);
+    }
+
+    .badge-defaulted {
+        background: rgba(239, 68, 68, 0.12);
+        color: #dc2626;
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .badge-closed {
+        background: rgba(100, 116, 139, 0.12);
+        color: #64748b;
+        border-color: rgba(100, 116, 139, 0.2);
+    }
 
     /* ---- Profile Header ---- */
     .profile-header {
@@ -137,42 +222,6 @@
         border: 4px solid var(--card-bg);
         box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         flex-shrink: 0;
-    }
-
-    .profile-header .badge-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3rem;
-        padding: 0.3rem 1rem;
-        border-radius: 100px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        background: var(--brand-cobalt-bg);
-        color: var(--brand-cobalt);
-        border: 1px solid rgba(22,50,175,0.1);
-    }
-
-    .profile-header .badge-status.success {
-        background: rgba(16,185,129,0.12);
-        color: var(--success);
-        border-color: rgba(16,185,129,0.2);
-    }
-    .profile-header .badge-status.warning {
-        background: rgba(245,158,11,0.12);
-        color: var(--warning);
-        border-color: rgba(245,158,11,0.2);
-    }
-    .profile-header .badge-status.danger {
-        background: rgba(239,68,68,0.12);
-        color: var(--danger);
-        border-color: rgba(239,68,68,0.2);
-    }
-    .profile-header .badge-status.info {
-        background: rgba(59,130,246,0.12);
-        color: var(--info);
-        border-color: rgba(59,130,246,0.2);
     }
 
     .profile-header .meta-detail {
@@ -444,6 +493,52 @@
         box-shadow: 0 4px 15px rgba(239,68,68,0.2);
     }
 
+    .btn-warning-solid {
+        background: var(--warning);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        padding: 0.6rem 1.5rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(245,158,11,0.2);
+        text-decoration: none;
+    }
+
+    .btn-warning-solid:hover {
+        background: #d97706;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(245,158,11,0.3);
+        color: #ffffff;
+    }
+
+    .btn-bulk-sms {
+        background: var(--info);
+        color: #ffffff;
+        border: none;
+        font-weight: 700;
+        padding: 0.6rem 1.5rem;
+        border-radius: 100px;
+        transition: all 0.25s ease;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(59,130,246,0.2);
+        text-decoration: none;
+    }
+
+    .btn-bulk-sms:hover {
+        background: #2563eb;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(59,130,246,0.3);
+        color: #ffffff;
+    }
+
     /* ---- Payment Obligation Banner ---- */
     .obligation-banner {
         background: linear-gradient(135deg, var(--card-bg), var(--brand-cobalt-bg));
@@ -558,29 +653,6 @@
         padding: 0.2rem 0.8rem;
         border-radius: 100px;
         margin-left: 0.5rem;
-    }
-
-    .btn-warning-solid {
-        background: var(--warning);
-        color: #ffffff;
-        border: none;
-        font-weight: 700;
-        padding: 0.6rem 1.5rem;
-        border-radius: 100px;
-        transition: all 0.25s ease;
-        font-size: 0.85rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        box-shadow: 0 4px 15px rgba(245,158,11,0.2);
-        text-decoration: none;
-    }
-
-    .btn-warning-solid:hover {
-        background: #d97706;
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(245,158,11,0.3);
-        color: #ffffff;
     }
 
     .btn-sm-outline-danger {
@@ -744,7 +816,7 @@
         .profile-header h3 { font-size: 1.4rem; }
         .balance-card .balance-amount { font-size: 1.3rem; }
         .obligation-banner .due-amount { font-size: 1.6rem; }
-        .loan-detail-wrapper { padding: 1rem; }
+        .loan-detail-wrapper { padding: 0; }
     }
 
     @media (max-width: 768px) {
@@ -761,7 +833,6 @@
             padding-top: 1rem;
         }
         .profile-header .meta-detail { justify-content: center; }
-        .action-bar .d-flex.gap-2 { width: 100%; justify-content: flex-start; }
         .operations-bar { flex-direction: column; align-items: stretch; }
         .operations-bar .d-flex { justify-content: center; }
         .obligation-banner { flex-direction: column; text-align: center; }
@@ -779,11 +850,12 @@
         .btn-primary-solid,
         .btn-success-solid,
         .btn-outline-danger,
-        .btn-warning-solid {
+        .btn-warning-solid,
+        .btn-bulk-sms {
             width: 100%;
             justify-content: center;
         }
-        .loan-detail-wrapper { padding: 0.75rem; }
+        .loan-detail-wrapper { padding: 0; }
     }
 
     @media (max-width: 576px) {
@@ -802,20 +874,11 @@
         .schedule-card .schedule-header .text-muted { text-align: center; }
     }
 </style>
+{% endblock %}
+
+{% block content %}
 
 <div class="loan-detail-wrapper">
-
-    <!-- Top Action Bar -->
-    <div class="action-bar">
-        <a href="{% url 'loan_list' %}" class="btn-ghost">
-            <i class="bi bi-arrow-left"></i> All Loans
-        </a>
-        <div class="d-flex gap-2">
-            <button onclick="window.print()" class="btn-ghost">
-                <i class="bi bi-printer"></i> Print
-            </button>
-        </div>
-    </div>
 
     <!-- Profile Header -->
     <div class="profile-header">
@@ -843,17 +906,6 @@
             <div class="col-lg-auto text-lg-end border-start ps-lg-5 mt-3 mt-lg-0">
                 <div class="text-uppercase fw-bold small text-muted mb-1" style="letter-spacing: 0.08em; font-size: 0.65rem;">Loan Reference</div>
                 <div class="loan-ref">{{ loan.loan_reference }}</div>
-                <div class="mt-2">
-                    {% if loan.status == 'approved' or loan.status == 'active' %}
-                        <span class="badge-status success"><i class="bi bi-check-circle-fill"></i> {{ loan.get_status_display|upper }}</span>
-                    {% elif loan.status == 'pending' %}
-                        <span class="badge-status warning"><i class="bi bi-clock-history"></i> {{ loan.get_status_display|upper }}</span>
-                    {% elif loan.status == 'rejected' %}
-                        <span class="badge-status danger"><i class="bi bi-x-circle-fill"></i> {{ loan.get_status_display|upper }}</span>
-                    {% else %}
-                        <span class="badge-status info"><i class="bi bi-credit-card"></i> {{ loan.get_status_display|upper }}</span>
-                    {% endif %}
-                </div>
             </div>
         </div>
     </div>
@@ -961,7 +1013,9 @@
         </div>
     </div>
 
-    <!-- Operations Bar -->
+    <!-- ========================================== -->
+    <!-- OPERATIONS BAR – with both SMS buttons     -->
+    <!-- ========================================== -->
     <div class="operations-bar">
         <div>
             <div class="ops-title"><i class="bi bi-tools"></i> Loan Operations</div>
@@ -975,11 +1029,25 @@
                 <a href="{% url 'reject_loan' loan.id %}" class="btn-outline-danger" onclick="return confirm('Reject this application?')">
                     <i class="bi bi-x-circle"></i> Reject
                 </a>
-            {% elif loan.status == 'approved' %}
+            {% elif loan.status == 'approved' or loan.status == 'arrears' %}
                 <button class="btn-primary-solid" data-bs-toggle="collapse" data-bs-target="#repaymentFormArea">
                     <i class="bi bi-plus-circle-fill"></i> Post Repayment
                 </button>
             {% endif %}
+
+            <!-- Bulk SMS to all arrears members -->
+            {% if perms.finance.can_send_sms and arrears_count > 0 %}
+                {% if sms_balance >= arrears_total_cost %}
+                    <button type="button" class="btn-bulk-sms" data-bs-toggle="modal" data-bs-target="#bulkSmsConfirmModal">
+                        <i class="bi bi-megaphone"></i> Bulk SMS ({{ arrears_count }})
+                    </button>
+                {% else %}
+                    <span class="btn btn-secondary disabled" title="Insufficient SMS credits. Need UGX {{ arrears_total_cost }}">
+                        <i class="bi bi-megaphone"></i> Bulk SMS
+                    </span>
+                {% endif %}
+            {% endif %}
+
             <a href="{% url 'loan_details' loan.id %}" class="btn-primary-solid" style="background: var(--text-secondary); box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
                 <i class="bi bi-file-earmark-text"></i> Loan Details
             </a>
@@ -1001,7 +1069,7 @@
     </div>
 
     <!-- Repayment Form (collapsible) -->
-    {% if loan.status == 'approved' %}
+    {% if loan.status == 'approved' or loan.status == 'arrears' %}
     <div id="repaymentFormArea" class="collapse mb-4">
         <div class="repayment-form-card">
             <div class="form-header">
@@ -1120,7 +1188,6 @@
                         <th class="text-end">Penalty</th>
                         <th class="text-end">Balance</th>
                         <th class="text-center">Status</th>
-                        <!-- NEW COLUMN for action -->
                         <th class="text-center">Action</th>
                     </tr>
                 </thead>
@@ -1185,4 +1252,71 @@
     </div>
 
 </div>
+
+<!-- ==========================================
+INDIVIDUAL SMS CONFIRMATION MODAL
+========================================== -->
+<div class="modal fade" id="smsConfirmModal" tabindex="-1" aria-labelledby="smsConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4">
+                <div class="mb-3">
+                    <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 72px; height: 72px;">
+                        <i class="bi bi-envelope-paper" style="font-size: 2.5rem; color: var(--warning);"></i>
+                    </div>
+                </div>
+                <h5 class="fw-bold mb-2" style="color: var(--text-primary);" id="smsConfirmModalLabel">Send SMS Reminder?</h5>
+                <p class="text-muted mb-3" style="font-size: 0.95rem;">
+                    You are about to send a payment reminder SMS to <strong>{{ loan.member.first_name }}</strong>.<br>
+                    This action will cost <strong class="text-danger">UGX 300</strong> from your SMS wallet.
+                </p>
+                <div class="d-flex justify-content-center gap-3 mt-4">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal" style="font-weight: 600;">
+                        Cancel
+                    </button>
+                    <a href="{% url 'send_loan_reminder' loan.id %}" class="btn btn-warning rounded-pill px-4" style="font-weight: 700; background: var(--warning); border-color: var(--warning); color: #ffffff;">
+                        <i class="bi bi-send me-2"></i> Send SMS
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+BULK SMS CONFIRMATION MODAL
+========================================== -->
+<div class="modal fade" id="bulkSmsConfirmModal" tabindex="-1" aria-labelledby="bulkSmsConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4">
+                <div class="mb-3">
+                    <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 72px; height: 72px;">
+                        <i class="bi bi-megaphone" style="font-size: 2.5rem; color: var(--info);"></i>
+                    </div>
+                </div>
+                <h5 class="fw-bold mb-2" style="color: var(--text-primary);" id="bulkSmsConfirmModalLabel">Send Bulk SMS Reminders?</h5>
+                <p class="text-muted mb-3" style="font-size: 0.95rem;">
+                    You are about to send payment reminder SMS to <strong>{{ arrears_count }}</strong> member{% if arrears_count > 1 %}s{% endif %} with overdue loans.<br>
+                    Total cost: <strong class="text-danger">UGX {{ arrears_total_cost|intcomma }}</strong> (UGX 300 per SMS).
+                </p>
+                <div class="d-flex justify-content-center gap-3 mt-4">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal" style="font-weight: 600;">
+                        Cancel
+                    </button>
+                    <a href="{% url 'send_bulk_arrears_reminder' %}" class="btn btn-info rounded-pill px-4" style="font-weight: 700; background: var(--info); border-color: var(--info); color: #ffffff;">
+                        <i class="bi bi-send me-2"></i> Send All
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

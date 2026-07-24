@@ -1,0 +1,1002 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}General Journal Entry | {{ company.name }}{% endblock %}
+
+{% block page_title %}General Journal Entry{% endblock %}
+{% block page_subtitle %}Enter debit and credit entries for your accounts{% endblock %}
+
+{% block breadcrumb %}
+    <span>/</span>
+    <span>Accounting</span>
+    <span>/</span>
+    <span>Journal Entry</span>
+{% endblock %}
+
+{% block quick_actions %}
+    <a href="{% url 'general_ledger' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to Ledger
+    </a>
+{% endblock %}
+
+{% block extra_css %}
+    <!-- Tom Select CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Flatpickr dark theme (we customise over it) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <style>
+        /* ============================================================
+           JOURNAL ENTRY STYLES (preserved from original)
+           ============================================================ */
+        :root {
+            --brand-cobalt: #1632af;
+            --brand-cobalt-dark: #0f248a;
+            --brand-cobalt-light: #2a4ad8;
+            --brand-cobalt-bg: rgba(22, 50, 175, 0.08);
+            --brand-cobalt-glow: rgba(22, 50, 175, 0.15);
+            --slate-50: #f8fafc;
+            --slate-200: #e2e8f0;
+            --slate-700: #334155;
+            --slate-900: #0f172a;
+            --border-color: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-secondary: #475569;
+            --bg-body: #f1f5f9;
+            --bg-card: #ffffff;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --shadow-md: 0 8px 25px rgba(0,0,0,0.08);
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background-color: var(--bg-body);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* ===== FORCE HIDE ORIGINAL SELECT ===== */
+        .ts-wrapper .ts-control {
+            border: 1px solid var(--border-color);
+            border-radius: 12px !important;
+            padding: 0.7rem 1rem !important;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            background: var(--bg-card);
+            color: var(--slate-900);
+            box-shadow: none;
+            transition: border-color var(--transition), box-shadow var(--transition);
+            min-height: calc(1.5em + 1.4rem + 2px);
+            cursor: pointer;
+        }
+        .ts-wrapper .ts-control:focus {
+            border-color: var(--brand-cobalt) !important;
+            box-shadow: 0 0 0 4px var(--brand-cobalt-glow) !important;
+        }
+
+        select.form-select {
+            display: none !important;
+        }
+        .ts-wrapper {
+            display: block !important;
+        }
+
+        .journal-card {
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            background: var(--bg-card);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: box-shadow var(--transition);
+        }
+        .journal-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .journal-card .card-header {
+            background: var(--brand-cobalt);
+            padding: 1.25rem 1.75rem;
+            border-bottom: none;
+        }
+        .journal-card .card-header h5 {
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: -0.01em;
+        }
+
+        .journal-card .card-body {
+            padding: 2rem 2.25rem;
+        }
+
+        .form-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--slate-700);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.4rem;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .form-label .balance-badge {
+            font-weight: 600;
+            font-size: 0.7rem;
+            background: var(--brand-cobalt-bg);
+            color: var(--brand-cobalt);
+            padding: 0.2rem 0.8rem;
+            border-radius: 100px;
+            text-transform: none;
+            letter-spacing: normal;
+            opacity: 0;
+            transition: opacity var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .form-label .balance-badge.visible {
+            opacity: 1;
+        }
+        .form-label .balance-badge .spinner {
+            display: none;
+            width: 0.8rem;
+            height: 0.8rem;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--brand-cobalt);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        .form-label .balance-badge.loading .spinner {
+            display: inline-block;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .form-control, .form-select {
+            border: 1px solid var(--border-color);
+            padding: 0.7rem 1rem;
+            font-size: 0.9rem;
+            border-radius: 12px;
+            transition: border-color var(--transition), box-shadow var(--transition);
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-card);
+            color: var(--slate-900);
+            width: 100%;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--brand-cobalt);
+            box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+            outline: 0;
+        }
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .input-group .input-group-text {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+            color: var(--text-muted);
+            font-weight: 700;
+            padding: 0.7rem 1rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+        }
+        .input-group .form-control {
+            border-radius: 0 12px 12px 0;
+            border-left: none;
+        }
+        .input-group .form-control:focus {
+            border-color: var(--brand-cobalt);
+            box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+            border-left-color: var(--brand-cobalt);
+        }
+
+        .btn-brand {
+            background: var(--brand-cobalt);
+            color: white;
+            font-weight: 700;
+            padding: 0.8rem 2rem;
+            border-radius: 12px;
+            border: none;
+            transition: all var(--transition);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            cursor: pointer;
+        }
+        .btn-brand:hover {
+            background: var(--brand-cobalt-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
+            color: #ffffff;
+        }
+        .btn-brand:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .alert {
+            border: none;
+            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
+            padding: 0.75rem 1.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .summary-box {
+            background: var(--brand-cobalt-bg);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-top: 1rem;
+            border-left: 4px solid var(--brand-cobalt);
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+        }
+        .summary-box.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .summary-box .summary-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+        .summary-box .summary-value {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+        .summary-box .summary-value span {
+            color: var(--brand-cobalt);
+        }
+
+        .is-invalid {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.15) !important;
+        }
+        .invalid-feedback {
+            display: block;
+            font-size: 0.8rem;
+            color: #dc3545;
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+        .field-error-list {
+            list-style: none;
+            padding: 0;
+            margin: 0.25rem 0 0;
+            font-size: 0.8rem;
+            color: #dc3545;
+            font-weight: 500;
+        }
+        .field-error-list li {
+            margin-bottom: 0.1rem;
+        }
+
+        /* ============================================================
+           TOM SELECT – Cobalt theme
+           ============================================================ */
+        .ts-wrapper .ts-control .item {
+            color: var(--slate-900);
+        }
+        .ts-wrapper .ts-control .placeholder {
+            color: var(--text-muted);
+        }
+        .ts-wrapper .ts-control .dropdown-button {
+            color: var(--text-muted);
+        }
+
+        .ts-wrapper .ts-dropdown {
+            border: 1px solid var(--border-color);
+            border-radius: 12px !important;
+            box-shadow: var(--shadow-md);
+            background: var(--bg-card);
+            margin-top: 4px;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            animation: dropdownFadeIn 0.2s ease;
+        }
+        @keyframes dropdownFadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .ts-wrapper .ts-dropdown .option {
+            padding: 0.6rem 1rem;
+            font-size: 0.9rem;
+            color: var(--slate-700);
+            transition: background 0.15s ease, color 0.15s ease;
+            cursor: pointer;
+        }
+        .ts-wrapper .ts-dropdown .option.active {
+            background: var(--brand-cobalt-bg);
+            color: var(--brand-cobalt);
+        }
+        .ts-wrapper .ts-dropdown .option.selected {
+            background: var(--brand-cobalt);
+            color: white;
+        }
+        .ts-wrapper .ts-dropdown .option:hover {
+            background: var(--brand-cobalt-bg);
+            color: var(--brand-cobalt);
+        }
+        .ts-wrapper .ts-dropdown .no-results,
+        .ts-wrapper .ts-dropdown .create {
+            padding: 0.6rem 1rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .ts-wrapper .ts-dropdown .create {
+            color: var(--brand-cobalt);
+            font-style: normal;
+        }
+
+        /* ============================================================
+           FLATPICKR – Cobalt theme
+           ============================================================ */
+        .flatpickr-calendar {
+            border-radius: 12px !important;
+            box-shadow: var(--shadow-md) !important;
+            border: 1px solid var(--border-color) !important;
+            background: var(--bg-card) !important;
+            font-family: 'Inter', sans-serif !important;
+            padding: 0.5rem !important;
+            animation: calendarFadeIn 0.2s ease;
+        }
+        @keyframes calendarFadeIn {
+            from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .flatpickr-calendar .flatpickr-months {
+            background: transparent !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+        .flatpickr-calendar .flatpickr-months .flatpickr-prev-month,
+        .flatpickr-calendar .flatpickr-months .flatpickr-next-month {
+            fill: var(--slate-700) !important;
+            padding: 0.5rem !important;
+            border-radius: 8px !important;
+            transition: background 0.2s ease;
+        }
+        .flatpickr-calendar .flatpickr-months .flatpickr-prev-month:hover,
+        .flatpickr-calendar .flatpickr-months .flatpickr-next-month:hover {
+            background: var(--brand-cobalt-bg) !important;
+            fill: var(--brand-cobalt) !important;
+        }
+        .flatpickr-calendar .flatpickr-current-month {
+            font-size: 0.95rem !important;
+            color: var(--slate-900) !important;
+            font-weight: 600 !important;
+            padding-top: 0.2rem !important;
+        }
+        .flatpickr-calendar .flatpickr-current-month .flatpickr-monthDropdown-months {
+            color: var(--slate-900) !important;
+            background: transparent !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 8px !important;
+            padding: 0.2rem 0.5rem !important;
+            font-weight: 500 !important;
+        }
+        .flatpickr-calendar .flatpickr-current-month .numInputWrapper {
+            color: var(--slate-900) !important;
+        }
+        .flatpickr-calendar .flatpickr-weekdays {
+            background: transparent !important;
+            color: var(--text-muted) !important;
+            font-weight: 600 !important;
+        }
+        .flatpickr-calendar .flatpickr-weekday {
+            color: var(--text-muted) !important;
+            font-weight: 600 !important;
+            font-size: 0.75rem !important;
+        }
+        .flatpickr-calendar .flatpickr-day {
+            border-radius: 8px !important;
+            color: var(--slate-900) !important;
+            transition: background 0.2s ease, color 0.2s ease;
+            font-weight: 500 !important;
+        }
+        .flatpickr-calendar .flatpickr-day:hover {
+            background: var(--brand-cobalt-bg) !important;
+            color: var(--brand-cobalt) !important;
+        }
+        .flatpickr-calendar .flatpickr-day.selected {
+            background: var(--brand-cobalt) !important;
+            color: white !important;
+            border-color: var(--brand-cobalt) !important;
+        }
+        .flatpickr-calendar .flatpickr-day.today {
+            border-color: var(--brand-cobalt) !important;
+            color: var(--brand-cobalt) !important;
+            background: transparent !important;
+        }
+        .flatpickr-calendar .flatpickr-day.today.selected {
+            background: var(--brand-cobalt) !important;
+            color: white !important;
+            border-color: var(--brand-cobalt) !important;
+        }
+        .flatpickr-calendar .flatpickr-day.inRange,
+        .flatpickr-calendar .flatpickr-day.startRange,
+        .flatpickr-calendar .flatpickr-day.endRange {
+            background: var(--brand-cobalt-bg) !important;
+            color: var(--brand-cobalt) !important;
+            border-color: var(--brand-cobalt-bg) !important;
+        }
+        .flatpickr-calendar .flatpickr-day.disabled,
+        .flatpickr-calendar .flatpickr-day.flatpickr-disabled {
+            color: var(--text-muted) !important;
+        }
+        .flatpickr-calendar .flatpickr-day.nextMonthDay,
+        .flatpickr-calendar .flatpickr-day.prevMonthDay {
+            color: var(--text-muted) !important;
+            opacity: 0.5 !important;
+        }
+        .flatpickr-calendar .flatpickr-day.nextMonthDay:hover,
+        .flatpickr-calendar .flatpickr-day.prevMonthDay:hover {
+            color: var(--slate-900) !important;
+            opacity: 1 !important;
+            background: var(--brand-cobalt-bg) !important;
+        }
+        .flatpickr-calendar .flatpickr-time {
+            border-top: 1px solid var(--border-color) !important;
+            padding: 0.3rem 0 !important;
+        }
+        .flatpickr-calendar .flatpickr-time input,
+        .flatpickr-calendar .flatpickr-time .flatpickr-am-pm {
+            color: var(--slate-900) !important;
+            font-weight: 500 !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .journal-card .card-body { padding: 1.5rem !important; }
+            .form-label .balance-badge { font-size: 0.6rem; padding: 0.1rem 0.6rem; }
+            .ts-wrapper .ts-control { font-size: 0.85rem; padding: 0.5rem 0.75rem !important; }
+            .flatpickr-calendar {
+                width: 90% !important;
+                max-width: 320px !important;
+                left: 5% !important;
+            }
+        }
+        @media (max-width: 576px) {
+            .journal-card .card-body { padding: 1rem !important; }
+            .form-control, .form-select { padding: 0.5rem 0.75rem; font-size: 0.85rem; }
+            .form-label { font-size: 0.65rem; }
+            .btn-brand { font-size: 0.85rem; padding: 0.6rem 1rem; }
+            .ts-wrapper .ts-control { font-size: 0.8rem; padding: 0.4rem 0.6rem !important; }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ===== DYNAMIC API URL (with fallback) ===== -->
+<script>
+    const ACCOUNT_BALANCE_API_URL = "{% url 'account_balance_api' 0 %}".replace(/\/0\/$/, '/');
+</script>
+
+<!-- Messages -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Non‑field errors -->
+{% if form.non_field_errors %}
+    <div class="alert alert-danger mb-4" role="alert">
+        {{ form.non_field_errors }}
+    </div>
+{% endif %}
+
+<!-- Card -->
+<div class="journal-card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-pencil-square me-2" aria-hidden="true"></i> Enter Debit &amp; Credit</h5>
+    </div>
+    <div class="card-body">
+
+        <form method="POST" novalidate id="journalForm">
+            {% csrf_token %}
+
+            <!-- Debit Account -->
+            <div class="mb-4">
+                <label for="{{ form.debit_account.id_for_label }}" class="form-label">
+                    <span>{{ form.debit_account.label }} <span class="text-danger">*</span></span>
+                    <span class="balance-badge" id="debitBalanceBadge" role="status" aria-live="polite">
+                        <span class="spinner" aria-hidden="true"></span>
+                        <i class="bi bi-wallet2 me-1" aria-hidden="true"></i> Balance: <span id="debitBalance">0</span>
+                    </span>
+                </label>
+                {{ form.debit_account }}
+                {% if form.debit_account.errors %}
+                    <ul class="field-error-list" role="alert">
+                        {% for error in form.debit_account.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="form-text">{{ form.debit_account.help_text }}</div>
+                <div class="invalid-feedback" id="debitError"></div>
+            </div>
+
+            <!-- Credit Account -->
+            <div class="mb-4">
+                <label for="{{ form.credit_account.id_for_label }}" class="form-label">
+                    <span>{{ form.credit_account.label }} <span class="text-danger">*</span></span>
+                    <span class="balance-badge" id="creditBalanceBadge" role="status" aria-live="polite">
+                        <span class="spinner" aria-hidden="true"></span>
+                        <i class="bi bi-wallet2 me-1" aria-hidden="true"></i> Balance: <span id="creditBalance">0</span>
+                    </span>
+                </label>
+                {{ form.credit_account }}
+                {% if form.credit_account.errors %}
+                    <ul class="field-error-list" role="alert">
+                        {% for error in form.credit_account.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="form-text">{{ form.credit_account.help_text }}</div>
+                <div class="invalid-feedback" id="creditError"></div>
+            </div>
+
+            <!-- Amount -->
+            <div class="mb-4">
+                <label for="{{ form.amount.id_for_label }}" class="form-label">
+                    {{ form.amount.label }} <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                    <span class="input-group-text">UGX</span>
+                    {{ form.amount }}
+                </div>
+                {% if form.amount.errors %}
+                    <ul class="field-error-list" role="alert">
+                        {% for error in form.amount.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="form-text">{{ form.amount.help_text }}</div>
+                <div class="invalid-feedback" id="amountError"></div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-4">
+                <label for="{{ form.description.id_for_label }}" class="form-label">
+                    {{ form.description.label }} <span class="text-danger">*</span>
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <ul class="field-error-list" role="alert">
+                        {% for error in form.description.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="form-text">{{ form.description.help_text }}</div>
+            </div>
+
+            <!-- Reference -->
+            <div class="mb-4">
+                <label for="{{ form.reference.id_for_label }}" class="form-label">
+                    {{ form.reference.label }}
+                </label>
+                {{ form.reference }}
+                <div class="form-text">
+                    {{ form.reference.help_text }}
+                    <span id="generatedRefPreview" style="color: var(--brand-cobalt); font-weight: 600; display: none;"></span>
+                </div>
+                {% if form.reference.errors %}
+                    <ul class="field-error-list" role="alert">
+                        {% for error in form.reference.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <!-- Entry Date -->
+            <div class="mb-4">
+                <label for="{{ form.date.id_for_label }}" class="form-label">
+                    {{ form.date.label }}
+                </label>
+                {{ form.date }}
+                <div class="form-text">{{ form.date.help_text }}</div>
+                {% if form.date.errors %}
+                    <ul class="field-error-list" role="alert">
+                        {% for error in form.date.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <!-- Live Summary -->
+            <div class="summary-box" id="summaryBox" aria-hidden="true">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="summary-label">Debit Total</div>
+                        <div class="summary-value"><span id="summaryDebit">0</span> UGX</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="summary-label">Credit Total</div>
+                        <div class="summary-value"><span id="summaryCredit">0</span> UGX</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="btn-brand" id="submitBtn">
+                <i class="bi bi-check-circle" aria-hidden="true"></i> POST JOURNAL ENTRY
+            </button>
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+    <!-- Tom Select JS -->
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <!-- Flatpickr default locale -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/default.js"></script>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ============================================================
+            // UTILITY FUNCTIONS
+            // ============================================================
+            const formatCurrency = (num) => Math.round(num).toLocaleString();
+            const generateReference = () => {
+                const now = new Date();
+                const ts = now.getFullYear().toString() +
+                    String(now.getMonth() + 1).padStart(2, '0') +
+                    String(now.getDate()).padStart(2, '0') +
+                    String(now.getHours()).padStart(2, '0') +
+                    String(now.getMinutes()).padStart(2, '0') +
+                    String(now.getSeconds()).padStart(2, '0');
+                const randomSuffix = String(Math.floor(Math.random() * 900) + 100);
+                return `JRN-${ts}-${randomSuffix}`;
+            };
+
+            // ============================================================
+            // DOM REFERENCES
+            // ============================================================
+            const debitSelect = document.getElementById('{{ form.debit_account.id_for_label }}');
+            const creditSelect = document.getElementById('{{ form.credit_account.id_for_label }}');
+            const amountInput = document.getElementById('{{ form.amount.id_for_label }}');
+            const debitBalanceSpan = document.getElementById('debitBalance');
+            const creditBalanceSpan = document.getElementById('creditBalance');
+            const debitBadge = document.getElementById('debitBalanceBadge');
+            const creditBadge = document.getElementById('creditBalanceBadge');
+            const summaryBox = document.getElementById('summaryBox');
+            const summaryDebit = document.getElementById('summaryDebit');
+            const summaryCredit = document.getElementById('summaryCredit');
+            const refInput = document.getElementById('{{ form.reference.id_for_label }}');
+            const refPreview = document.getElementById('generatedRefPreview');
+            const form = document.getElementById('journalForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const debitError = document.getElementById('debitError');
+            const creditError = document.getElementById('creditError');
+            const amountError = document.getElementById('amountError');
+
+            // ============================================================
+            // BALANCE FETCHING WITH DEBOUNCE & LOADING STATE
+            // ============================================================
+            let balanceFetchTimeout = null;
+
+            function fetchBalance(accountId, targetSpan, badgeElement) {
+                if (balanceFetchTimeout) {
+                    clearTimeout(balanceFetchTimeout);
+                    balanceFetchTimeout = null;
+                }
+
+                if (!accountId) {
+                    targetSpan.textContent = '0';
+                    badgeElement.classList.remove('visible', 'loading');
+                    return;
+                }
+
+                badgeElement.classList.add('loading');
+                badgeElement.classList.add('visible');
+
+                balanceFetchTimeout = setTimeout(() => {
+                    fetch(`${ACCOUNT_BALANCE_API_URL}${accountId}/`)
+                        .then(response => {
+                            if (!response.ok) throw new Error('Network response was not ok');
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                targetSpan.textContent = formatCurrency(data.balance);
+                                badgeElement.classList.remove('loading');
+                                badgeElement.classList.add('visible');
+                            } else {
+                                targetSpan.textContent = '?';
+                                badgeElement.classList.remove('loading');
+                                badgeElement.classList.add('visible');
+                            }
+                        })
+                        .catch(() => {
+                            targetSpan.textContent = 'Error';
+                            badgeElement.classList.remove('loading');
+                            badgeElement.classList.add('visible');
+                        });
+                }, 300);
+            }
+
+            // ============================================================
+            // SUMMARY & VALIDATION
+            // ============================================================
+            function updateSummary() {
+                const amount = parseFloat(amountInput.value) || 0;
+                const debitSelected = debitSelect.value;
+                const creditSelected = creditSelect.value;
+
+                if (amount > 0 && debitSelected && creditSelected) {
+                    summaryDebit.textContent = formatCurrency(amount);
+                    summaryCredit.textContent = formatCurrency(amount);
+                    summaryBox.classList.add('visible');
+                    summaryBox.setAttribute('aria-hidden', 'false');
+                } else {
+                    summaryBox.classList.remove('visible');
+                    summaryBox.setAttribute('aria-hidden', 'true');
+                }
+            }
+
+            function validateForm() {
+                let isValid = true;
+
+                if (debitSelect.value && creditSelect.value && debitSelect.value === creditSelect.value) {
+                    debitError.textContent = 'Debit and Credit accounts cannot be the same.';
+                    debitSelect.classList.add('is-invalid');
+                    creditError.textContent = 'Debit and Credit accounts cannot be the same.';
+                    creditSelect.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    debitError.textContent = '';
+                    debitSelect.classList.remove('is-invalid');
+                    creditError.textContent = '';
+                    creditSelect.classList.remove('is-invalid');
+                }
+
+                const amount = parseFloat(amountInput.value);
+                if (!amount || amount <= 0) {
+                    amountError.textContent = 'Amount must be greater than zero.';
+                    amountInput.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    amountError.textContent = '';
+                    amountInput.classList.remove('is-invalid');
+                }
+
+                submitBtn.disabled = !isValid;
+                return isValid;
+            }
+
+            // ============================================================
+            // REFERENCE AUTO-GENERATION
+            // ============================================================
+            function autoGenerateReference() {
+                if (!refInput.value.trim()) {
+                    const ref = generateReference();
+                    refInput.value = ref;
+                    refPreview.textContent = ` (auto: ${ref})`;
+                    refPreview.style.display = 'inline';
+                } else {
+                    refPreview.style.display = 'none';
+                }
+            }
+
+            // ============================================================
+            // EVENT LISTENERS
+            // ============================================================
+            debitSelect.addEventListener('change', function() {
+                fetchBalance(this.value, debitBalanceSpan, debitBadge);
+                updateSummary();
+                validateForm();
+            });
+
+            creditSelect.addEventListener('change', function() {
+                fetchBalance(this.value, creditBalanceSpan, creditBadge);
+                updateSummary();
+                validateForm();
+            });
+
+            amountInput.addEventListener('input', function() {
+                updateSummary();
+                validateForm();
+            });
+
+            refInput.addEventListener('blur', autoGenerateReference);
+
+            form.addEventListener('submit', function(e) {
+                autoGenerateReference();
+                const isValid = validateForm();
+                if (!isValid) {
+                    e.preventDefault();
+                    const firstInvalid = form.querySelector('.is-invalid');
+                    if (firstInvalid) {
+                        firstInvalid.focus();
+                        const tsWrapper = firstInvalid.closest('.ts-wrapper');
+                        if (tsWrapper) {
+                            const tsInput = tsWrapper.querySelector('.ts-control');
+                            if (tsInput) tsInput.focus();
+                        }
+                    }
+                }
+            });
+
+            form.querySelectorAll('input, select, textarea').forEach(el => {
+                el.addEventListener('input', validateForm);
+                el.addEventListener('change', validateForm);
+            });
+
+            // ============================================================
+            // INITIAL LOAD
+            // ============================================================
+            if (debitSelect.value) {
+                fetchBalance(debitSelect.value, debitBalanceSpan, debitBadge);
+            }
+            if (creditSelect.value) {
+                fetchBalance(creditSelect.value, creditBalanceSpan, creditBadge);
+            }
+            updateSummary();
+            validateForm();
+
+            // ============================================================
+            // REFERENCE PREVIEW ON INPUT
+            // ============================================================
+            refInput.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    refPreview.style.display = 'none';
+                } else {
+                    refPreview.style.display = 'inline';
+                    const now = new Date();
+                    const ts = now.getFullYear().toString() +
+                        String(now.getMonth() + 1).padStart(2, '0') +
+                        String(now.getDate()).padStart(2, '0') +
+                        String(now.getHours()).padStart(2, '0') +
+                        String(now.getMinutes()).padStart(2, '0') +
+                        String(now.getSeconds()).padStart(2, '0');
+                    refPreview.textContent = ` (will auto-generate: JRN-${ts}-XXX)`;
+                    refPreview.style.display = 'inline';
+                }
+            });
+            if (!refInput.value.trim()) {
+                const now = new Date();
+                const ts = now.getFullYear().toString() +
+                    String(now.getMonth() + 1).padStart(2, '0') +
+                    String(now.getDate()).padStart(2, '0') +
+                    String(now.getHours()).padStart(2, '0') +
+                    String(now.getMinutes()).padStart(2, '0') +
+                    String(now.getSeconds()).padStart(2, '0');
+                refPreview.textContent = ` (will auto-generate: JRN-${ts}-XXX)`;
+                refPreview.style.display = 'inline';
+            }
+
+            // ============================================================
+            // TOM SELECT – ENHANCED WITH SEARCH FOR ALL SELECTS
+            // ============================================================
+            document.querySelectorAll('select.form-select').forEach(function(selectEl) {
+                // Skip if already initialised (guard against double init)
+                if (selectEl.dataset.tsInitialized === 'true') return;
+                selectEl.dataset.tsInitialized = 'true';
+
+                new TomSelect(selectEl, {
+                    plugins: ['dropdown_input', 'remove_button'],
+                    searchField: ['text'],
+                    maxItems: 1,
+                    placeholder: selectEl.dataset.placeholder || '– Select –',
+                    allowEmptyOption: false,
+                    create: false,
+                    preload: 'focus',
+                    // Enable search for ALL selects, regardless of option count
+                    // The `searchField` is already set, so it will always search
+                    onDropdownOpen: function() {
+                        const searchInput = this.dropdown.querySelector('.ts-dropdown .ts-dropdown-input');
+                        if (searchInput) {
+                            setTimeout(() => searchInput.focus(), 50);
+                        }
+                    },
+                    onInitialize: function() {
+                        this.on('change', function() {
+                            selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        });
+                    }
+                });
+            });
+
+            // ============================================================
+            // FLATPICKR INITIALISATION
+            // ============================================================
+            document.querySelectorAll('input[type="date"].form-control').forEach(function(dateInput) {
+                if (dateInput._flatpickr) return;
+
+                const defaultDate = dateInput.value || undefined;
+                const dateFormat = dateInput.dataset.dateFormat || 'Y-m-d';
+                const enableTime = dateInput.dataset.enableTime === 'true';
+
+                flatpickr(dateInput, {
+                    dateFormat: dateFormat,
+                    defaultDate: defaultDate,
+                    allowInput: true,
+                    enableTime: enableTime,
+                    time_24hr: true,
+                    locale: 'default',
+                    onChange: function(selectedDates, dateStr) {
+                        dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    },
+                });
+            });
+
+            // ============================================================
+            // ACCESSIBILITY: Announce validation errors
+            // ============================================================
+            const errorContainer = document.createElement('div');
+            errorContainer.setAttribute('role', 'alert');
+            errorContainer.setAttribute('aria-live', 'assertive');
+            errorContainer.style.position = 'absolute';
+            errorContainer.style.width = '1px';
+            errorContainer.style.height = '1px';
+            errorContainer.style.padding = '0';
+            errorContainer.style.margin = '-1px';
+            errorContainer.style.overflow = 'hidden';
+            errorContainer.style.clip = 'rect(0,0,0,0)';
+            errorContainer.style.border = '0';
+            document.body.appendChild(errorContainer);
+
+            const originalValidate = validateForm;
+            validateForm = function() {
+                const isValid = originalValidate();
+                if (!isValid) {
+                    const errors = [];
+                    if (debitError.textContent) errors.push(debitError.textContent);
+                    if (creditError.textContent) errors.push(creditError.textContent);
+                    if (amountError.textContent) errors.push(amountError.textContent);
+                    if (errors.length) {
+                        errorContainer.textContent = 'Form errors: ' + errors.join('. ');
+                    }
+                } else {
+                    errorContainer.textContent = '';
+                }
+                return isValid;
+            };
+            validateForm();
+
+            console.log('✨ Journal Entry form initialised successfully.');
+        })();
+    </script>
+{% endblock %}
