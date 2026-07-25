@@ -3,881 +3,771 @@
 
 {% block title %}Cash Deposit | {{ company.name|default:"MAC Technologies" }}{% endblock %}
 
-{% block content %}
+{% block page_title %}Cash Deposit{% endblock %}
+{% block page_subtitle %}
+    <i class="bi bi-shield-check me-1"></i>
+    Securely credit funds to member savings account
+{% endblock %}
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+{% block breadcrumb %}
+    <span>/</span>
+    <span>Savings</span>
+    <span>/</span>
+    <span>Deposit</span>
+{% endblock %}
 
+{% block quick_actions %}
+    <a href="{% url 'member_profile' member.id %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to Profile
+    </a>
+{% endblock %}
+
+{% block extra_css %}
 <style>
-:root {
-    --brand-cobalt: #1632af;
-    --brand-cobalt-dark: #0f248a;
-    --brand-cobalt-bg: rgba(22, 50, 175, 0.08);
-    --brand-cobalt-glow: rgba(22, 50, 175, 0.15);
-}
-
-.container-fluid {
-    background: var(--bg);
-    min-height: 100vh;
-}
-
-.page-header {
-    margin-bottom: 2rem;
-}
-
-.page-header h1 {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 800;
-    color: var(--text-primary);
-}
-
-.card-main {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
-    transition: box-shadow 0.3s ease;
-}
-
-.card-main:hover {
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
-}
-
-.header-gradient {
-    background: linear-gradient(135deg, var(--brand-cobalt) 0%, var(--brand-cobalt-dark) 100%);
-    padding: 2.5rem 2rem;
-    text-align: center;
-    color: white;
-}
-
-.header-gradient .icon-circle {
-    width: 80px;
-    height: 80px;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 1rem;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.header-gradient h4 {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 700;
-}
-
-.header-gradient p {
-    opacity: 0.8;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.form-section {
-    padding: 2.5rem 3rem 3rem;
-}
-
-.tracking-widest {
-    letter-spacing: 0.08em;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.account-holder-card {
-    background: var(--hover-bg);
-    border-radius: 16px;
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    border: 1px solid var(--border-color);
-    transition: border-color 0.3s ease;
-}
-
-.account-holder-card:hover {
-    border-color: var(--brand-cobalt);
-}
-
-.account-holder-card .avatar-circle {
-    width: 56px;
-    height: 56px;
-    background: var(--brand-cobalt-bg);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.account-holder-card .avatar-circle i {
-    font-size: 1.5rem;
-    color: var(--brand-cobalt);
-}
-
-.account-holder-card .holder-name {
-    font-weight: 700;
-    font-size: 1.05rem;
-    color: var(--text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.account-holder-card .holder-balance {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.account-holder-card .holder-balance strong {
-    color: var(--text-primary);
-}
-
-.input-group-custom {
-    border-radius: 16px;
-    overflow: hidden;
-    border: 2px solid var(--border-color);
-    transition: all 0.3s ease;
-    background: var(--card-bg);
-}
-
-.input-group-custom:focus-within {
-    border-color: var(--brand-cobalt);
-    box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
-}
-
-.input-group-custom .input-group-text {
-    background: var(--bg-body);
-    border: none;
-    font-weight: 700;
-    color: var(--brand-cobalt);
-    padding: 1rem 1.5rem;
-    font-size: 0.95rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.input-group-custom .form-control {
-    border: none;
-    font-size: 1.35rem;
-    font-weight: 700;
-    padding: 1rem 1.25rem;
-    background: var(--card-bg);
-    color: var(--text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.input-group-custom .form-control:focus {
-    box-shadow: none;
-}
-
-.input-group-custom .form-control::placeholder {
-    color: var(--text-muted);
-    font-weight: 400;
-}
-
-.btn-confirm {
-    background: var(--brand-cobalt);
-    border: none;
-    font-weight: 700;
-    font-size: 1rem;
-    padding: 1rem;
-    border-radius: 9999px;
-    transition: all 0.3s ease;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
-}
-
-.btn-confirm:hover {
-    background: var(--brand-cobalt-dark);
-    color: #ffffff;
-    transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(22, 50, 175, 0.35);
-}
-
-.btn-confirm:active {
-    transform: translateY(0);
-}
-
-.btn-confirm i {
-    font-size: 1.2rem;
-}
-
-.alert-info-custom {
-    background: var(--brand-cobalt-bg);
-    border: 1px solid rgba(22, 50, 175, 0.15);
-    border-radius: 16px;
-    padding: 1.25rem 1.5rem;
-}
-
-.alert-info-custom .alert-icon {
-    color: var(--brand-cobalt);
-    font-size: 1.25rem;
-    flex-shrink: 0;
-}
-
-.alert-info-custom .alert-title {
-    font-weight: 700;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--brand-cobalt);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.alert-info-custom .alert-text {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    margin: 0;
-}
-
-.backdate-section {
-    background: rgba(245, 158, 11, 0.06);
-    border: 1px solid rgba(245, 158, 11, 0.2);
-    border-radius: 16px;
-    padding: 1.25rem 1.5rem;
-}
-
-.backdate-section .form-control {
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 0.7rem 1rem;
-    font-size: 0.9rem;
-    background: var(--card-bg);
-    color: var(--text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.backdate-section .form-control:focus {
-    border-color: var(--brand-cobalt);
-    box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
-}
-
-.footer-secure {
-    background: var(--bg-body);
-    padding: 1rem 2rem;
-    text-align: center;
-    border-top: 1px solid var(--border-color);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.footer-secure small {
-    color: var(--text-muted);
-    font-size: 0.75rem;
-}
-
-.footer-secure small i {
-    color: var(--brand-cobalt);
-}
-
-/* ============================================
-   RECEIPT MODAL – STANDALONE RECEIPT STYLE
-   ============================================ */
-.receipt-modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(8px);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-    padding: 1.5rem;
-}
-
-.receipt-modal-overlay.open {
-    display: flex;
-}
-
-.receipt-modal {
-    background: var(--card-bg);
-    border-radius: 24px;
-    max-width: 520px;
-    width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-    animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
-    padding: 2rem 2rem 1.8rem;
-    border: 1px solid var(--border-color);
-}
-
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: scale(0.92) translateY(20px);
+    /* ==========================================================
+       CASH DEPOSIT – ENHANCED STYLES
+       ========================================================== */
+    .deposit-wrapper {
+        max-width: 640px;
+        margin: 0 auto;
     }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
+
+    .deposit-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
     }
-}
-
-.receipt-modal-header {
-    text-align: center;
-    padding-bottom: 1.25rem;
-    border-bottom: 2px solid var(--brand-cobalt);
-    margin-bottom: 1.25rem;
-}
-
-.receipt-modal-header .brand-icon {
-    display: inline-block;
-    width: 48px;
-    height: 48px;
-    background: var(--brand-cobalt);
-    border-radius: 12px;
-    color: #fff;
-    font-size: 1.6rem;
-    line-height: 48px;
-    margin-bottom: 0.5rem;
-    overflow: hidden;
-}
-
-.receipt-modal-header .brand-icon img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-}
-
-.receipt-modal-header h2 {
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: var(--brand-cobalt);
-    letter-spacing: -0.3px;
-    margin: 0.25rem 0 0.1rem;
-}
-
-.receipt-modal-header .tagline {
-    font-size: 0.65rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted);
-    margin: 0;
-}
-
-.receipt-modal-header .receipt-badge {
-    display: inline-block;
-    background: var(--brand-cobalt-bg);
-    color: var(--brand-cobalt);
-    font-size: 0.55rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 0.1rem 1rem;
-    border-radius: 100px;
-    margin-top: 0.5rem;
-    border: 1px solid rgba(22, 50, 175, 0.1);
-}
-
-.receipt-meta {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem 1rem;
-    margin-bottom: 1rem;
-    font-size: 0.8rem;
-}
-
-.receipt-meta .label {
-    display: block;
-    font-size: 0.55rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-}
-
-.receipt-meta .value {
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.receipt-divider {
-    border: none;
-    border-top: 1.5px dashed var(--border-color);
-    margin: 1rem 0;
-    opacity: 0.6;
-}
-
-.receipt-details .detail-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.4rem 0;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 0.85rem;
-}
-
-.receipt-details .detail-row:last-child {
-    border-bottom: none;
-}
-
-.receipt-details .detail-label {
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-.receipt-details .detail-value {
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.receipt-details .detail-value.amount {
-    color: var(--brand-cobalt);
-    font-size: 1.1rem;
-    font-weight: 700;
-}
-
-.receipt-totals {
-    margin-top: 0.5rem;
-    padding: 0.75rem 0.5rem;
-    background: var(--brand-cobalt-bg);
-    border-radius: 12px;
-    border: 1px solid rgba(22, 50, 175, 0.08);
-}
-
-.totals-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    padding: 0.2rem 0;
-    color: var(--text-secondary);
-}
-
-.totals-row.total {
-    border-top: 2px solid rgba(22, 50, 175, 0.15);
-    margin-top: 0.4rem;
-    padding-top: 0.6rem;
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--text-primary);
-}
-
-.final-amount {
-    color: var(--brand-cobalt);
-    font-size: 1.2rem;
-}
-
-.arrears-cleared {
-    margin-top: 0.75rem;
-    padding: 0.5rem 0.75rem;
-    background: rgba(16, 185, 129, 0.08);
-    border: 1px solid rgba(16, 185, 129, 0.15);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-}
-
-.arrears-cleared i {
-    color: var(--success);
-    font-size: 1rem;
-}
-
-.receipt-footer {
-    margin-top: 1.25rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border-color);
-    text-align: center;
-    font-size: 0.65rem;
-    color: var(--text-muted);
-}
-
-.receipt-footer p {
-    margin: 0.15rem 0;
-}
-
-.receipt-footer p i {
-    color: var(--brand-cobalt);
-    margin-right: 0.25rem;
-}
-
-.contact {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem 0.8rem;
-    margin: 0.5rem 0 0.25rem;
-    font-size: 0.6rem;
-}
-
-.contact span i {
-    color: var(--brand-cobalt);
-    margin-right: 0.2rem;
-}
-
-.thank-you {
-    margin-top: 0.4rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    font-size: 0.7rem;
-    letter-spacing: 0.02em;
-}
-
-.barcode {
-    margin-top: 1rem;
-    text-align: center;
-    font-family: 'Courier New', monospace;
-    font-size: 1.2rem;
-    letter-spacing: 0.2em;
-    color: var(--text-muted);
-    opacity: 0.4;
-    border-top: 1px solid var(--border-color);
-    padding-top: 0.75rem;
-}
-
-.barcode span:last-child {
-    display: block;
-    font-size: 0.55rem;
-    letter-spacing: 0.15em;
-    margin-top: 0.1rem;
-}
-
-.receipt-actions {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 1rem;
-    border-top: 1px solid var(--border-color);
-    padding-top: 1rem;
-}
-
-.receipt-actions .btn-print {
-    flex: 1;
-    padding: 0.6rem;
-    border-radius: 12px;
-    border: none;
-    background: var(--brand-cobalt);
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 0.85rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.receipt-actions .btn-print:hover {
-    background: var(--brand-cobalt-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);
-}
-
-.receipt-actions .btn-close-modal {
-    padding: 0.6rem 1.5rem;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    background: transparent;
-    color: var(--text-secondary);
-    font-weight: 600;
-    font-size: 0.85rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    transition: all 0.3s ease;
-}
-
-.receipt-actions .btn-close-modal:hover {
-    background: var(--hover-bg);
-}
-
-@media (max-width: 600px) {
-    .receipt-modal {
-        max-width: 100%;
-        margin: 0.5rem;
-        border-radius: 16px;
-        padding: 1.25rem;
+    .deposit-card:hover {
+        box-shadow: var(--shadow-lg);
     }
-    .receipt-modal-header h2 {
-        font-size: 1.1rem;
+
+    .deposit-header {
+        background: linear-gradient(135deg, var(--brand-cobalt) 0%, var(--brand-cobalt-dark) 100%);
+        padding: 2rem 1.5rem;
+        text-align: center;
+        color: #fff;
     }
-    .receipt-meta {
-        grid-template-columns: 1fr 1fr;
-        gap: 0.4rem 0.8rem;
+    .deposit-header .icon-circle {
+        width: 72px;
+        height: 72px;
+        background: rgba(255,255,255,0.12);
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.75rem;
+        border: 2px solid rgba(255,255,255,0.1);
+        font-size: 2rem;
     }
-    .receipt-details .detail-row {
-        font-size: 0.75rem;
+    .deposit-header h4 {
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.02em;
     }
-    .totals-row {
+    .deposit-header p {
+        opacity: 0.8;
+        font-size: 0.9rem;
+        margin: 0.25rem 0 0;
+    }
+
+    .deposit-body {
+        padding: 2rem 2rem 2.5rem;
+    }
+
+    /* Labels */
+    .form-label {
         font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin-bottom: 0.35rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
     }
-    .final-amount {
+    .form-label i {
+        color: var(--brand-cobalt);
+    }
+
+    /* Account holder card */
+    .holder-card {
+        background: var(--bg-body);
+        border-radius: var(--radius-sm);
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        border: 1px solid var(--border-color);
+        transition: border-color 0.25s ease;
+    }
+    .holder-card:hover {
+        border-color: var(--brand-cobalt);
+    }
+    .holder-card .avatar {
+        width: 48px;
+        height: 48px;
+        background: var(--brand-cobalt-bg);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--brand-cobalt);
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+    .holder-card .name {
+        font-weight: 700;
+        color: var(--text-primary);
         font-size: 1rem;
     }
-    .contact {
-        font-size: 0.55rem;
-        gap: 0.3rem 0.6rem;
+    .holder-card .balance {
+        font-size: 0.85rem;
+        color: var(--text-muted);
     }
-    .barcode {
-        font-size: 1rem;
+    .holder-card .balance strong {
+        color: var(--text-primary);
+        font-weight: 700;
     }
-    .receipt-actions {
-        flex-direction: column;
-        gap: 0.5rem;
+
+    /* Amount input */
+    .amount-input-group {
+        display: flex;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        background: var(--card-bg);
     }
-    .receipt-actions .btn-print,
-    .receipt-actions .btn-close-modal {
+    .amount-input-group:focus-within {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+    }
+    .amount-input-group .currency-symbol {
+        background: var(--bg-body);
+        padding: 0.75rem 1.25rem;
+        font-weight: 700;
+        color: var(--brand-cobalt);
+        font-size: 0.95rem;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .amount-input-group .form-control {
+        border: none;
+        padding: 0.75rem 1rem;
+        font-size: 1.25rem;
+        font-weight: 700;
+        background: transparent;
+        color: var(--text-primary);
+        outline: none;
         width: 100%;
     }
-}
+    .amount-input-group .form-control::placeholder {
+        color: var(--text-muted);
+        font-weight: 400;
+        font-size: 1rem;
+    }
+    .amount-input-group .form-control:focus {
+        box-shadow: none;
+    }
 
-/* ============================================
-   RESPONSIVE OVERRIDES FOR MAIN CARD
-   ============================================ */
-@media (max-width: 768px) {
-    .form-section {
+    /* Min / step hints */
+    .input-hint {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 0.35rem;
+    }
+
+    /* Backdate section */
+    .backdate-section {
+        background: rgba(245, 158, 11, 0.05);
+        border: 1px solid rgba(245, 158, 11, 0.15);
+        border-radius: var(--radius-sm);
+        padding: 1rem 1.25rem;
+    }
+    .backdate-section .form-control {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        background: var(--card-bg);
+        color: var(--text-primary);
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .backdate-section .form-control:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+        outline: none;
+    }
+
+    /* Info alert */
+    .info-alert {
+        background: var(--brand-cobalt-bg);
+        border: 1px solid rgba(22,50,175,0.1);
+        border-radius: var(--radius-sm);
+        padding: 1rem 1.25rem;
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+    .info-alert i {
+        color: var(--brand-cobalt);
+        font-size: 1.2rem;
+        margin-top: 0.1rem;
+        flex-shrink: 0;
+    }
+    .info-alert .alert-title {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--brand-cobalt);
+    }
+    .info-alert .alert-text {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    /* Submit button */
+    .btn-submit {
+        background: var(--brand-cobalt);
+        color: #fff;
+        border: none;
+        padding: 0.9rem;
+        font-weight: 700;
+        font-size: 1rem;
+        border-radius: 100px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 15px rgba(22,50,175,0.2);
+        font-family: var(--font);
+    }
+    .btn-submit:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(22,50,175,0.35);
+        color: #fff;
+    }
+    .btn-submit:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 15px rgba(22,50,175,0.2);
+    }
+
+    /* Footer */
+    .deposit-footer {
+        background: var(--bg-body);
+        padding: 0.75rem 1.5rem;
+        text-align: center;
+        border-top: 1px solid var(--border-color);
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+    .deposit-footer i {
+        color: var(--brand-cobalt);
+        margin-right: 0.3rem;
+    }
+
+    /* Back links */
+    .back-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+    .back-links a {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    .back-links a:hover {
+        color: var(--brand-cobalt);
+    }
+
+    /* ------------------------------------------------
+       RECEIPT MODAL – Standalone receipt styles
+       (unchanged, but kept for consistency)
+    ------------------------------------------------ */
+    .receipt-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
         padding: 1.5rem;
     }
-    .header-gradient {
-        padding: 2rem 1.5rem;
+    .receipt-modal-overlay.open {
+        display: flex;
     }
-    .header-gradient .icon-circle {
-        width: 60px;
-        height: 60px;
+
+    .receipt-modal {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        max-width: 520px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: modalSlideIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+        box-shadow: var(--shadow-xl);
+        border: 1px solid var(--border-color);
+        padding: 2rem 2rem 1.8rem;
     }
-    .account-holder-card {
-        flex-direction: column;
+
+    @keyframes modalSlideIn {
+        from { opacity:0; transform:scale(0.92) translateY(20px); }
+        to { opacity:1; transform:scale(1) translateY(0); }
+    }
+
+    .receipt-modal-header {
         text-align: center;
-        padding: 1rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 2px solid var(--brand-cobalt);
+        margin-bottom: 1.25rem;
     }
-    .input-group-custom .input-group-text {
-        padding: 0.75rem 1rem;
+    .receipt-modal-header .brand-icon {
+        display: inline-block;
+        width: 48px;
+        height: 48px;
+        background: var(--brand-cobalt);
+        border-radius: 12px;
+        color: #fff;
+        font-size: 1.6rem;
+        line-height: 48px;
+        margin-bottom: 0.5rem;
+        overflow: hidden;
+    }
+    .receipt-modal-header .brand-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: brightness(0) invert(1);
+    }
+    .receipt-modal-header h2 {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--brand-cobalt);
+        letter-spacing: -0.3px;
+        margin: 0.25rem 0 0.1rem;
+    }
+    .receipt-modal-header .tagline {
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+        margin: 0;
+    }
+    .receipt-modal-header .receipt-badge {
+        display: inline-block;
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+        font-size: 0.55rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 0.1rem 1rem;
+        border-radius: 100px;
+        margin-top: 0.5rem;
+        border: 1px solid rgba(22,50,175,0.1);
+    }
+
+    .receipt-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem 1rem;
+        margin-bottom: 1rem;
         font-size: 0.8rem;
     }
-    .input-group-custom .form-control {
-        font-size: 1.1rem;
-        padding: 0.75rem 1rem;
+    .receipt-meta .label {
+        display: block;
+        font-size: 0.55rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
     }
-    .btn-confirm {
-        font-size: 0.9rem;
-        padding: 0.8rem;
+    .receipt-meta .value {
+        font-weight: 600;
+        color: var(--text-primary);
     }
-    .receipt-modal {
-        max-width: 100%;
-        margin: 0.5rem;
-        border-radius: 16px;
-    }
-    .receipt-modal-header {
-        border-radius: 16px 16px 0 0;
-        padding: 1.25rem 1.5rem;
-    }
-    .receipt-body {
-        padding: 1.25rem 1.5rem;
-    }
-    .receipt-actions {
-        flex-direction: column;
-        padding: 0.75rem 1.5rem 1.25rem;
-    }
-    .receipt-actions .btn-print,
-    .receipt-actions .btn-close-modal {
-        width: 100%;
-    }
-}
 
-@media (max-width: 576px) {
-    .page-header h1 {
-        font-size: 1.4rem;
+    .receipt-divider {
+        border: none;
+        border-top: 1.5px dashed var(--border-color);
+        margin: 1rem 0;
+        opacity: 0.6;
     }
-    .page-header p {
+
+    .receipt-details .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.4rem 0;
+        border-bottom: 1px solid var(--border-color);
         font-size: 0.85rem;
     }
-    .form-section {
-        padding: 1rem;
+    .receipt-details .detail-row:last-child {
+        border-bottom: none;
     }
-    .header-gradient {
-        padding: 1.5rem 1rem;
+    .receipt-details .detail-label {
+        color: var(--text-muted);
+        font-weight: 500;
     }
-    .header-gradient h4 {
+    .receipt-details .detail-value {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    .receipt-details .detail-value.amount {
+        color: var(--brand-cobalt);
         font-size: 1.1rem;
+        font-weight: 700;
     }
-    .account-holder-card .holder-name {
+
+    .receipt-totals {
+        margin-top: 0.5rem;
+        padding: 0.75rem 0.5rem;
+        background: var(--brand-cobalt-bg);
+        border-radius: 12px;
+        border: 1px solid rgba(22,50,175,0.08);
+    }
+    .totals-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        padding: 0.2rem 0;
+        color: var(--text-secondary);
+    }
+    .totals-row.total {
+        border-top: 2px solid rgba(22,50,175,0.15);
+        margin-top: 0.4rem;
+        padding-top: 0.6rem;
+        font-weight: 700;
         font-size: 0.95rem;
+        color: var(--text-primary);
     }
-    .input-group-custom .form-control {
-        font-size: 1rem;
-        padding: 0.6rem 0.75rem;
+    .final-amount {
+        color: var(--brand-cobalt);
+        font-size: 1.2rem;
     }
-    .input-group-custom .input-group-text {
-        padding: 0.6rem 0.75rem;
+
+    .arrears-cleared {
+        margin-top: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(16,185,129,0.08);
+        border: 1px solid rgba(16,185,129,0.15);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
         font-size: 0.75rem;
+        color: var(--text-secondary);
     }
-    .backdate-section {
-        padding: 0.75rem 1rem;
-    }
-    .alert-info-custom {
-        padding: 0.75rem 1rem;
-    }
-    .receipt-body .receipt-total .value {
+    .arrears-cleared i {
+        color: var(--success);
         font-size: 1rem;
     }
-}
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
+    .receipt-footer {
+        margin-top: 1.25rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border-color);
+        text-align: center;
+        font-size: 0.65rem;
+        color: var(--text-muted);
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+    .receipt-footer p { margin:0.15rem 0; }
+    .receipt-footer p i { color: var(--brand-cobalt); margin-right:0.25rem; }
 
-.card-main {
-    animation: fadeIn 0.4s ease forwards;
-}
+    .contact {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem 0.8rem;
+        margin: 0.5rem 0 0.25rem;
+        font-size: 0.6rem;
+    }
+    .contact span i { color: var(--brand-cobalt); margin-right:0.2rem; }
+
+    .thank-you {
+        margin-top: 0.4rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+        letter-spacing: 0.02em;
+    }
+
+    .barcode {
+        margin-top: 1rem;
+        text-align: center;
+        font-family: 'Courier New', monospace;
+        font-size: 1.2rem;
+        letter-spacing: 0.2em;
+        color: var(--text-muted);
+        opacity: 0.4;
+        border-top: 1px solid var(--border-color);
+        padding-top: 0.75rem;
+    }
+    .barcode span:last-child {
+        display: block;
+        font-size: 0.55rem;
+        letter-spacing: 0.15em;
+        margin-top: 0.1rem;
+    }
+
+    .receipt-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+        border-top: 1px solid var(--border-color);
+        padding-top: 1rem;
+    }
+    .receipt-actions .btn-print {
+        flex: 1;
+        padding: 0.6rem;
+        border-radius: 12px;
+        border: none;
+        background: var(--brand-cobalt);
+        color: #fff;
+        font-weight: 700;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    .receipt-actions .btn-print:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(22,50,175,0.25);
+    }
+    .receipt-actions .btn-close-modal {
+        padding: 0.6rem 1.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: transparent;
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+    }
+    .receipt-actions .btn-close-modal:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 768px) {
+        .deposit-body {
+            padding: 1.5rem;
+        }
+        .holder-card {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+        }
+        .amount-input-group .form-control {
+            font-size: 1rem;
+            padding: 0.6rem 0.75rem;
+        }
+        .amount-input-group .currency-symbol {
+            padding: 0.6rem 0.75rem;
+            font-size: 0.85rem;
+        }
+        .receipt-modal {
+            max-width: 100%;
+            margin: 0.5rem;
+            border-radius: 16px;
+            padding: 1.25rem;
+        }
+        .receipt-meta {
+            grid-template-columns: 1fr 1fr;
+        }
+        .receipt-actions {
+            flex-direction: column;
+        }
+        .receipt-actions .btn-print,
+        .receipt-actions .btn-close-modal {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .deposit-header {
+            padding: 1.5rem 1rem;
+        }
+        .deposit-header .icon-circle {
+            width: 56px;
+            height: 56px;
+            font-size: 1.5rem;
+        }
+        .deposit-header h4 {
+            font-size: 1.1rem;
+        }
+        .deposit-body {
+            padding: 1rem;
+        }
+        .back-links {
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .receipt-modal-header h2 {
+            font-size: 1.1rem;
+        }
+        .final-amount {
+            font-size: 1rem;
+        }
+    }
+
+    /* Animation */
+    @keyframes fadeInUp {
+        from { opacity:0; transform:translateY(10px); }
+        to { opacity:1; transform:translateY(0); }
+    }
+    .deposit-card {
+        animation: fadeInUp 0.4s ease forwards;
+    }
 </style>
+{% endblock %}
 
-<div class="container-fluid py-4 px-3 px-lg-4">
+{% block content %}
 
-    <div class="row justify-content-center">
-        <div class="col-xl-6 col-lg-7 col-md-9">
+<div class="deposit-wrapper">
 
-            <!-- Page Title -->
-            <div class="page-header text-center text-md-start">
-                <h1 class="h3 fw-bold mb-1 d-flex align-items-center gap-2">
-                    <i class="bi bi-cash-stack" style="color: var(--brand-cobalt);"></i>
-                    Cash Deposit
-                </h1>
-                <p class="text-muted" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
-                    Securely credit funds to member savings account
-                </p>
+    <div class="deposit-card">
+
+        <!-- Header -->
+        <div class="deposit-header">
+            <div class="icon-circle">
+                <i class="bi bi-cash-stack"></i>
             </div>
+            <h4>Secure Cash Deposit</h4>
+            <p>
+                {{ company.name|default:"MAC Technologies" }}
+                &middot; Member ID: <strong>{{ member.member_number|default:member.id }}</strong>
+            </p>
+        </div>
 
-            <div class="card-main">
+        <!-- Body -->
+        <div class="deposit-body">
 
-                <!-- Header -->
-                <div class="header-gradient">
-                    <div class="icon-circle">
-                        <i class="bi bi-shield-check text-white fs-1"></i>
+            <form method="post" id="depositForm" novalidate>
+                {% csrf_token %}
+
+                <!-- Account Holder -->
+                <div class="mb-4">
+                    <label class="form-label"><i class="bi bi-person"></i>Account Holder</label>
+                    <div class="holder-card">
+                        <div class="avatar">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <div>
+                            <div class="name">{{ member.first_name }} {{ member.last_name }}</div>
+                            <div class="balance">
+                                Current Balance: <strong>UGX {{ savings_balance|default:0|floatformat:0|intcomma }}</strong>
+                            </div>
+                        </div>
                     </div>
-                    <h4 class="fw-bold mb-2">Secure Cash Deposit</h4>
-                    <p class="mb-0">
-                        <strong>{{ company.name|default:"MAC Technologies" }}</strong>
-                        &middot; Member ID: <strong>{{ member.member_number|default:member.id }}</strong>
-                    </p>
+                    <input type="hidden" name="member" value="{{ member.id }}">
                 </div>
 
-                <div class="form-section">
-
-                    <form method="post" id="depositForm" class="needs-validation" novalidate>
-                        {% csrf_token %}
-
-                        <!-- Account Holder -->
-                        <div class="mb-4">
-                            <label class="tracking-widest mb-2 d-block">Account Holder</label>
-                            <div class="account-holder-card">
-                                <div class="avatar-circle">
-                                    <i class="bi bi-person-fill"></i>
-                                </div>
-                                <div>
-                                    <div class="holder-name">{{ member.first_name }} {{ member.last_name }}</div>
-                                    <div class="holder-balance">
-                                        Current Balance: 
-                                        <strong>UGX {{ member.savings.balance|default:0|floatformat:0|intcomma }}</strong>
-                                    </div>
-                                </div>
-                            </div>
-                            <input type="hidden" name="member" value="{{ member.id }}">
-                        </div>
-
-                        <!-- Deposit Amount -->
-                        <div class="mb-4">
-                            <label class="tracking-widest mb-2 d-block">Deposit Amount</label>
-                            <div class="input-group-custom d-flex">
-                                <span class="input-group-text">UGX</span>
-                                <input type="number" 
-                                       id="depositAmount"
-                                       name="amount" 
-                                       class="form-control fw-bold" 
-                                       placeholder="0.00" 
-                                       min="1000" 
-                                       step="1000" 
-                                       required 
-                                       autofocus>
-                            </div>
-                            <small class="text-muted mt-2 d-block" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
-                                Minimum: UGX 1,000 • Recommended in multiples of 1,000
-                            </small>
-                        </div>
-
-                        <!-- Backdate Option -->
-                        {% if backdate_allowed %}
-                        <div class="mb-4">
-                            <label class="tracking-widest text-warning mb-2 d-block">
-                                <i class="bi bi-calendar-check me-1"></i> Admin Override Date
-                            </label>
-                            <div class="backdate-section">
-                                <input type="datetime-local" 
-                                       name="back_date" 
-                                       class="form-control">
-                                <small class="text-muted mt-2 d-block" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
-                                    Leave empty to use current time
-                                </small>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <!-- Info Box -->
-                        <div class="alert-info-custom d-flex gap-3 mb-4">
-                            <i class="bi bi-info-circle-fill alert-icon mt-1"></i>
-                            <div>
-                                <div class="alert-title">Automatic Arrears Clearance</div>
-                                <p class="alert-text">
-                                    Any outstanding loan installments will be cleared automatically before 
-                                    the remaining amount is credited to savings.
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Submit -->
-                        <button type="submit" class="btn-confirm w-100">
-                            <i class="bi bi-check-circle"></i>
-                            Confirm &amp; Record Deposit
-                        </button>
-                    </form>
+                <!-- Amount -->
+                <div class="mb-4">
+                    <label class="form-label"><i class="bi bi-currency-dollar"></i>Deposit Amount</label>
+                    <div class="amount-input-group">
+                        <span class="currency-symbol">UGX</span>
+                        <input type="number"
+                               id="depositAmount"
+                               name="amount"
+                               class="form-control"
+                               placeholder="0.00"
+                               min="1000"
+                               step="1000"
+                               required
+                               autofocus>
+                    </div>
+                    <div class="input-hint">
+                        Minimum: UGX 1,000 • Recommended in multiples of 1,000
+                    </div>
                 </div>
 
-                <!-- Footer -->
-                <div class="footer-secure">
-                    <small>
-                        <i class="bi bi-lock-fill me-1"></i>
-                        Secured by {{ company.name|default:"MAC Technologies" }} &bull; SSL Encrypted
-                    </small>
+                <!-- Backdate (admin only) -->
+                {% if backdate_allowed %}
+                <div class="mb-4">
+                    <label class="form-label"><i class="bi bi-calendar-check text-warning"></i>Admin Override Date</label>
+                    <div class="backdate-section">
+                        <input type="datetime-local" name="back_date" class="form-control">
+                        <div class="input-hint">Leave empty to use current time</div>
+                    </div>
                 </div>
-            </div>
+                {% endif %}
 
-            <!-- Back Links -->
-            <div class="text-center mt-4">
-                <a href="{% url 'member_profile' member.id %}" class="text-muted small me-4 text-decoration-none" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
-                    <i class="bi bi-arrow-left me-1"></i> Back to Member Profile
-                </a>
-                <a href="{% url 'dashboard' %}" class="text-muted small text-decoration-none" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
-                    <i class="bi bi-grid me-1"></i> Dashboard
-                </a>
-            </div>
+                <!-- Info Alert -->
+                <div class="info-alert mb-4">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <div>
+                        <div class="alert-title">Automatic Arrears Clearance</div>
+                        <p class="alert-text">
+                            Any outstanding loan installments will be cleared automatically before
+                            the remaining amount is credited to savings.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn-submit">
+                    <i class="bi bi-check-circle"></i>
+                    Confirm &amp; Record Deposit
+                </button>
+            </form>
 
         </div>
+
+        <!-- Footer -->
+        <div class="deposit-footer">
+            <i class="bi bi-lock-fill"></i>
+            Secured by {{ company.name|default:"MAC Technologies" }} &bull; SSL Encrypted
+        </div>
     </div>
+
+    <!-- Back Links -->
+    <div class="back-links">
+        <a href="{% url 'member_profile' member.id %}">
+            <i class="bi bi-arrow-left"></i> Back to Member Profile
+        </a>
+        <a href="{% url 'dashboard' %}">
+            <i class="bi bi-grid"></i> Dashboard
+        </a>
+    </div>
+
 </div>
 
-<!-- ============================================
-RECEIPT MODAL
-============================================ -->
+<!-- ==========================================================
+RECEIPT MODAL (unchanged)
+========================================================== -->
 <div class="receipt-modal-overlay" id="receiptModal">
     <div class="receipt-modal">
         <!-- Receipt Header -->
         <div class="receipt-modal-header">
             <div class="brand-icon">
                 {% if company.logo %}
-                    <img src="{{ company.logo.url }}" alt="{{ company.name }}" style="width: 40px; height: 40px; object-fit: contain; filter: brightness(0) invert(1);">
+                    <img src="{{ company.logo.url }}" alt="{{ company.name }}" style="width:40px;height:40px;object-fit:contain;filter:brightness(0) invert(1);">
                 {% else %}
                     <i class="bi bi-cpu-fill"></i>
                 {% endif %}
@@ -1000,6 +890,7 @@ RECEIPT MODAL
                     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
                     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
                     <style>
+                        /* Inline styles for print (simplified) */
                         body { padding: 2rem; font-family: 'Inter', sans-serif; }
                         .receipt-modal { max-width: 520px; margin: 0 auto; padding: 2rem; border: 1px solid #e2e8f0; border-radius: 24px; }
                         .receipt-modal-header { text-align: center; padding-bottom: 1.25rem; border-bottom: 2px solid #1632af; margin-bottom: 1.25rem; }
@@ -1060,12 +951,11 @@ RECEIPT MODAL
         }
     });
 
-    // If you have receipt data stored in session, show it on page load
+    // Show receipt if data exists in session
     (function() {
         const receiptData = {{ request.session.deposit_receipt.data|default:"null"|safe }};
         if (receiptData && receiptData.show) {
             showReceipt(receiptData.data);
-            // Session cleared automatically when the session ends, no need to fetch.
         }
     })();
 

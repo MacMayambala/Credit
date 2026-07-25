@@ -1,201 +1,510 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
+{% block title %}Savings Withdrawal | {{ company.name|default:"MAC Technologies" }}{% endblock %}
+
+{% block page_title %}Savings Withdrawal{% endblock %}
+{% block page_subtitle %}
+    <i class="bi bi-shield-exclamation me-1"></i>
+    Process cash withdrawal from member savings account
+{% endblock %}
+
+{% block breadcrumb %}
+    <span>/</span>
+    <span>Savings</span>
+    <span>/</span>
+    <span>Withdrawal</span>
+{% endblock %}
+
+{% block quick_actions %}
+    <a href="{% url 'member_profile' member.id %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to Profile
+    </a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ==========================================================
+       WITHDRAWAL – ENHANCED STYLES
+       ========================================================== */
+    .withdrawal-wrapper {
+        max-width: 640px;
+        margin: 0 auto;
+    }
+
+    .withdrawal-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+    .withdrawal-card:hover {
+        box-shadow: var(--shadow-lg);
+    }
+
+    .withdrawal-header {
+        background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+        padding: 2rem 1.5rem;
+        text-align: center;
+        color: #fff;
+    }
+    .withdrawal-header .icon-circle {
+        width: 72px;
+        height: 72px;
+        background: rgba(255,255,255,0.12);
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.75rem;
+        border: 2px solid rgba(255,255,255,0.1);
+        font-size: 2rem;
+    }
+    .withdrawal-header h4 {
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.02em;
+    }
+    .withdrawal-header p {
+        opacity: 0.8;
+        font-size: 0.9rem;
+        margin: 0.25rem 0 0;
+    }
+
+    .withdrawal-body {
+        padding: 2rem 2rem 2.5rem;
+    }
+
+    /* Labels */
+    .form-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin-bottom: 0.35rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .form-label i {
+        color: var(--brand-cobalt);
+    }
+    .form-label.text-danger i {
+        color: #b91c1c;
+    }
+
+    /* Account holder card */
+    .holder-card {
+        background: var(--bg-body);
+        border-radius: var(--radius-sm);
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        border: 1px solid var(--border-color);
+        transition: border-color 0.25s ease;
+    }
+    .holder-card:hover {
+        border-color: #b91c1c;
+    }
+    .holder-card .avatar {
+        width: 48px;
+        height: 48px;
+        background: rgba(185,28,28,0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #b91c1c;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+    .holder-card .name {
+        font-weight: 700;
+        color: var(--text-primary);
+        font-size: 1rem;
+    }
+    .holder-card .balance {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+    .holder-card .balance strong {
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+
+    /* Balance alert */
+    .balance-alert {
+        background: rgba(185,28,28,0.06);
+        border: 1px solid rgba(185,28,28,0.15);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .balance-alert .label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+    }
+    .balance-alert .amount {
+        font-weight: 800;
+        font-size: 1.3rem;
+        color: #b91c1c;
+    }
+
+    /* Amount input */
+    .amount-input-group {
+        display: flex;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        background: var(--card-bg);
+    }
+    .amount-input-group:focus-within {
+        border-color: #b91c1c;
+        box-shadow: 0 0 0 4px rgba(185,28,28,0.12);
+    }
+    .amount-input-group .currency-symbol {
+        background: var(--bg-body);
+        padding: 0.75rem 1.25rem;
+        font-weight: 700;
+        color: #b91c1c;
+        font-size: 0.95rem;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .amount-input-group .form-control {
+        border: none;
+        padding: 0.75rem 1rem;
+        font-size: 1.25rem;
+        font-weight: 700;
+        background: transparent;
+        color: var(--text-primary);
+        outline: none;
+        width: 100%;
+    }
+    .amount-input-group .form-control::placeholder {
+        color: var(--text-muted);
+        font-weight: 400;
+        font-size: 1rem;
+    }
+    .amount-input-group .form-control:focus {
+        box-shadow: none;
+    }
+
+    .input-hint {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 0.35rem;
+    }
+
+    /* Backdate section */
+    .backdate-section {
+        background: rgba(245, 158, 11, 0.05);
+        border: 1px solid rgba(245, 158, 11, 0.15);
+        border-radius: var(--radius-sm);
+        padding: 1rem 1.25rem;
+    }
+    .backdate-section .form-control {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        background: var(--card-bg);
+        color: var(--text-primary);
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .backdate-section .form-control:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+        outline: none;
+    }
+
+    /* Notes input */
+    .form-control-text {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 0.6rem 1rem;
+        background: var(--card-bg);
+        color: var(--text-primary);
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        width: 100%;
+        font-size: 0.95rem;
+    }
+    .form-control-text:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+        outline: none;
+    }
+
+    /* Submit button */
+    .btn-submit-danger {
+        background: #b91c1c;
+        color: #fff;
+        border: none;
+        padding: 0.9rem;
+        font-weight: 700;
+        font-size: 1rem;
+        border-radius: 100px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 15px rgba(185,28,28,0.25);
+        font-family: var(--font);
+    }
+    .btn-submit-danger:hover {
+        background: #991b1b;
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(185,28,28,0.35);
+        color: #fff;
+    }
+    .btn-submit-danger:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 15px rgba(185,28,28,0.25);
+    }
+
+    /* Footer */
+    .withdrawal-footer {
+        background: var(--bg-body);
+        padding: 0.75rem 1.5rem;
+        text-align: center;
+        border-top: 1px solid var(--border-color);
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+    .withdrawal-footer i {
+        color: #b91c1c;
+        margin-right: 0.3rem;
+    }
+
+    /* Back links */
+    .back-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+    .back-links a {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    .back-links a:hover {
+        color: var(--brand-cobalt);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .withdrawal-body {
+            padding: 1.5rem;
+        }
+        .holder-card {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+        }
+        .amount-input-group .form-control {
+            font-size: 1rem;
+            padding: 0.6rem 0.75rem;
+        }
+        .amount-input-group .currency-symbol {
+            padding: 0.6rem 0.75rem;
+            font-size: 0.85rem;
+        }
+        .balance-alert .amount {
+            font-size: 1.1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .withdrawal-header {
+            padding: 1.5rem 1rem;
+        }
+        .withdrawal-header .icon-circle {
+            width: 56px;
+            height: 56px;
+            font-size: 1.5rem;
+        }
+        .withdrawal-header h4 {
+            font-size: 1.1rem;
+        }
+        .withdrawal-body {
+            padding: 1rem;
+        }
+        .back-links {
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    }
+
+    /* Animation */
+    @keyframes fadeInUp {
+        from { opacity:0; transform:translateY(10px); }
+        to { opacity:1; transform:translateY(0); }
+    }
+    .withdrawal-card {
+        animation: fadeInUp 0.4s ease forwards;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<div class="withdrawal-wrapper">
 
-<style>
-:root {
-    --brand-cobalt: #1632af;
-}
+    <div class="withdrawal-card">
 
-.container-fluid {
-    background: var(--bg);
-    min-height: 100vh;
-}
-
-.card-main {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
-}
-
-.header-danger {
-    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-    padding: 3rem 2rem;
-    text-align: center;
-    color: white;
-}
-
-.form-section {
-    padding: 3rem;
-}
-
-.tracking-widest {
-    letter-spacing: 0.08em;
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.input-group-lg .input-group-text {
-    background: #f8fafc;
-    border: none;
-    font-weight: 600;
-    color: var(--text-secondary);
-}
-
-.form-control {
-    border: none;
-    font-size: 1.1rem;
-    font-weight: 500;
-    padding: 1rem 1.25rem;
-}
-
-.form-control:focus {
-    box-shadow: 0 0 0 4px rgba(185, 28, 28, 0.15);
-    border-color: #b91c1c;
-}
-
-.btn-withdraw {
-    background-color: #b91c1c;
-    border: none;
-    font-weight: 700;
-    font-size: 1.1rem;
-    padding: 1rem;
-    border-radius: 9999px;
-    transition: all 0.3s ease;
-}
-
-.btn-withdraw:hover {
-    background-color: #991b1b;
-    transform: translateY(-3px);
-    box-shadow: 0 12px 25px rgba(185, 28, 28, 0.35);
-}
-
-.balance-box {
-    background: var(--hover-bg);
-    border: 1px solid var(--border-color);
-}
-</style>
-
-<div class="container-fluid py-5 px-4">
-
-    <div class="row justify-content-center">
-        <div class="col-xl-6 col-lg-7 col-md-9">
-
-            <!-- Page Title -->
-            <div class="text-center mb-4">
-                <h1 class="h3 fw-bold mb-1 text-danger">Savings Withdrawal</h1>
-                <p class="text-muted">Process cash withdrawal from member savings</p>
+        <!-- Header -->
+        <div class="withdrawal-header">
+            <div class="icon-circle">
+                <i class="bi bi-dash-circle"></i>
             </div>
+            <h4>Savings Withdrawal</h4>
+            <p>
+                {{ company.name|default:"MAC Technologies" }}
+                &middot; Member ID: <strong>{{ member.member_number|default:member.id }}</strong>
+            </p>
+        </div>
 
-            <div class="card-main">
+        <!-- Body -->
+        <div class="withdrawal-body">
 
-                <!-- Header -->
-                <div class="header-danger">
-                    <div class="mx-auto bg-white bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center mb-4" 
-                         style="width: 80px; height: 80px;">
-                        <i class="bi bi-dash-circle text-white fs-1"></i>
+            <form method="POST" id="withdrawalForm" novalidate>
+                {% csrf_token %}
+
+                <!-- Account Holder -->
+                <div class="mb-4">
+                    <label class="form-label"><i class="bi bi-person"></i>Account Holder</label>
+                    <div class="holder-card">
+                        <div class="avatar">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <div>
+                            <div class="name">{{ member.first_name }} {{ member.last_name }}</div>
+                            <div class="balance">
+                                Member since {{ member.date_joined|date:"F Y" }}
+                            </div>
+                        </div>
                     </div>
-                    <h4 class="fw-bold mb-2">Savings Withdrawal</h4>
-                    <p class="mb-0 opacity-75">Member ID: <strong>{{ member.member_number|default:member.id }}</strong></p>
+                    <input type="hidden" name="member" value="{{ member.id }}">
                 </div>
 
-                <div class="form-section">
-
-                    <form method="POST">
-                        {% csrf_token %}
-
-                        <!-- Account Holder -->
-                        <div class="mb-5">
-                            <label class="tracking-widest text-muted mb-2 d-block">Account Holder</label>
-                            <div class="d-flex align-items-center p-4 rounded-3 balance-box">
-                                <div class="bg-white rounded-circle p-3 me-4 shadow-sm">
-                                    <i class="bi bi-person-fill text-danger fs-2"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-bold fs-5">{{ member.first_name }} {{ member.last_name }}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Available Balance -->
-                        <div class="alert border-0 mb-5" style="background: #fef3f2;">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="small fw-semibold text-danger tracking-widest">AVAILABLE BALANCE</span>
-                                <span class="fw-bold fs-4 text-danger">
-                                    UGX {{ savings.balance|default:0|floatformat:0|intcomma }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Withdrawal Amount -->
-                        <div class="mb-5">
-                            <label class="tracking-widest text-muted mb-2 d-block">Withdrawal Amount</label>
-                            <div class="input-group input-group-lg shadow-sm rounded-3">
-                                <span class="input-group-text fw-bold px-4">UGX</span>
-                                <input type="number" 
-                                       name="amount" 
-                                       class="form-control fw-bold" 
-                                       placeholder="0.00" 
-                                       min="1000" 
-                                       required 
-                                       autofocus>
-                            </div>
-                            <small class="text-muted mt-2 d-block">
-                                Minimum withdrawal: UGX 1,000
-                            </small>
-                        </div>
-
-                        <!-- Back-date (Admin) -->
-                        {% if backdate_allowed %}
-                        <div class="mb-5">
-                            <label class="tracking-widest text-warning mb-2 d-block">
-                                <i class="bi bi-calendar-event me-1"></i> Admin: Back-date Withdrawal
-                            </label>
-                            <div class="p-4 rounded-3 border border-warning bg-warning bg-opacity-10">
-                                <input type="datetime-local" 
-                                       name="back_date" 
-                                       class="form-control">
-                                <small class="text-muted mt-2 d-block">
-                                    Leave blank to use current system time
-                                </small>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <!-- Reason / Notes -->
-                        <div class="mb-5">
-                            <label class="tracking-widest text-muted mb-2 d-block">Reference / Reason</label>
-                            <input type="text" 
-                                   name="notes" 
-                                   class="form-control" 
-                                   placeholder="e.g. School fees, Medical expenses, Business capital" 
-                                   required>
-                        </div>
-
-                        <!-- Submit -->
-                        <button type="submit" class="btn btn-withdraw w-100 py-3 shadow">
-                            <i class="bi bi-dash-circle me-2"></i>
-                            Confirm Withdrawal
-                        </button>
-
-                        <div class="text-center mt-4">
-                            <a href="{% url 'member_profile' member.id %}" 
-                               class="text-muted text-decoration-none small">
-                                ← Cancel and Return to Profile
-                            </a>
-                        </div>
-                    </form>
+                <!-- Available Balance -->
+                <div class="mb-4">
+                    <label class="form-label text-danger"><i class="bi bi-wallet2"></i>Available Balance</label>
+                    <div class="balance-alert">
+                        <span class="label">Current Savings</span>
+                        <span class="amount">UGX {{ savings.balance|default:0|floatformat:0|intcomma }}</span>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Amount -->
+                <div class="mb-4">
+                    <label class="form-label"><i class="bi bi-currency-dollar"></i>Withdrawal Amount</label>
+                    <div class="amount-input-group">
+                        <span class="currency-symbol">UGX</span>
+                        <input type="number"
+                               id="withdrawalAmount"
+                               name="amount"
+                               class="form-control"
+                               placeholder="0.00"
+                               min="1000"
+                               step="1000"
+                               required
+                               autofocus>
+                    </div>
+                    <div class="input-hint">
+                        Minimum: UGX 1,000 • Must not exceed available balance
+                    </div>
+                </div>
+
+                <!-- Backdate (admin only) -->
+                {% if backdate_allowed %}
+                <div class="mb-4">
+                    <label class="form-label"><i class="bi bi-calendar-check text-warning"></i>Admin Override Date</label>
+                    <div class="backdate-section">
+                        <input type="datetime-local" name="back_date" class="form-control">
+                        <div class="input-hint">Leave empty to use current time</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Reason / Notes -->
+                <div class="mb-4">
+                    <label class="form-label"><i class="bi bi-chat-text"></i>Reference / Reason</label>
+                    <input type="text"
+                           name="notes"
+                           class="form-control-text"
+                           placeholder="e.g. School fees, Medical expenses, Business capital"
+                           required>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn-submit-danger">
+                    <i class="bi bi-dash-circle"></i>
+                    Confirm Withdrawal
+                </button>
+            </form>
 
         </div>
+
+        <!-- Footer -->
+        <div class="withdrawal-footer">
+            <i class="bi bi-lock-fill"></i>
+            Secured by {{ company.name|default:"MAC Technologies" }} &bull; SSL Encrypted
+        </div>
     </div>
+
+    <!-- Back Links -->
+    <div class="back-links">
+        <a href="{% url 'member_profile' member.id %}">
+            <i class="bi bi-arrow-left"></i> Back to Member Profile
+        </a>
+        <a href="{% url 'dashboard' %}">
+            <i class="bi bi-grid"></i> Dashboard
+        </a>
+    </div>
+
 </div>
+
+<script>
+    // Optional: client-side validation to prevent exceeding balance
+    document.getElementById('withdrawalForm')?.addEventListener('submit', function(e) {
+        const amountInput = document.getElementById('withdrawalAmount');
+        const balance = {{ savings.balance|default:0 }};
+        const amount = parseFloat(amountInput.value);
+
+        if (amount && amount > balance) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Insufficient Balance',
+                text: `Withdrawal amount (UGX ${amount.toLocaleString()}) exceeds available balance (UGX ${balance.toLocaleString()}).`,
+                confirmButtonColor: '#b91c1c',
+            });
+        }
+    });
+
+    console.log('💡 Withdrawal form ready.');
+</script>
 
 {% endblock %}

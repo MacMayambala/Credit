@@ -3,17 +3,39 @@
 
 {% block title %}Login | {{ company.name|default:"MAC Technologies" }}{% endblock %}
 
-{% block content %}
+{% block page_title %}Welcome Back{% endblock %}
+{% block page_subtitle %}
+    <i class="bi bi-shield-lock me-1"></i>
+    Authorized Personnel Access Only
+{% endblock %}
+
+{% block extra_css %}
 <style>
-    /* Background logo watermark */
+    /* ==========================================================
+       LOGIN PAGE – CARD-LESS, CLEAN
+       ========================================================== */
     .login-wrapper {
         position: relative;
-        min-height: 75vh;
+        min-height: 80vh;
         display: flex;
         align-items: center;
         justify-content: center;
+        background: var(--bg-body);
+        overflow: hidden;
     }
 
+    /* Subtle background pattern */
+    .login-wrapper::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: 
+            radial-gradient(circle at 20% 30%, rgba(22,50,175,0.02) 0%, transparent 60%),
+            radial-gradient(circle at 80% 70%, rgba(22,50,175,0.02) 0%, transparent 60%);
+        pointer-events: none;
+    }
+
+    /* Background logo watermark */
     .bg-logo {
         position: absolute;
         top: 50%;
@@ -23,20 +45,19 @@
         user-select: none;
         z-index: 0;
         opacity: 0.04;
-        width: 80%;
-        max-width: 500px;
+        width: 70%;
+        max-width: 400px;
         text-align: center;
     }
-
     .bg-logo img {
         width: 100%;
         height: auto;
-        max-height: 300px;
+        max-height: 280px;
         object-fit: contain;
+        filter: grayscale(1);
     }
-
     .bg-logo i {
-        font-size: 20rem;
+        font-size: 18rem;
         color: var(--brand-cobalt);
         display: block;
     }
@@ -45,9 +66,11 @@
         position: relative;
         z-index: 1;
         width: 100%;
+        max-width: 440px;
+        padding: 0 1rem;
     }
 
-    /* Existing styles preserved below */
+    /* Brand logo */
     .brand-logo {
         width: 80px;
         height: 80px;
@@ -55,107 +78,247 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 10px 30px rgba(22, 50, 175, 0.15);
+        box-shadow: 0 10px 30px rgba(22,50,175,0.12);
         overflow: hidden;
         background: #ffffff;
         border: 2px solid var(--border-color);
+        margin: 0 auto 0.75rem;
+        transition: transform 0.3s ease;
     }
-
+    .brand-logo:hover {
+        transform: scale(1.04);
+    }
     .brand-logo img {
-        width: 60px;
-        height: 60px;
+        width: 56px;
+        height: 56px;
         object-fit: contain;
     }
 
-    h2.fw-bold {
+    .brand-title {
+        font-weight: 800;
         color: var(--text-primary);
-        letter-spacing: -0.8px;
+        letter-spacing: -0.02em;
+        font-size: 1.4rem;
+        margin: 0;
     }
 
-    .input-group:focus-within .input-group-text,
-    .input-group:focus-within .form-control {
-        border-color: var(--brand-cobalt) !important;
+    .brand-subtitle {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin: 0.1rem 0 1.5rem;
     }
-    
-    .form-control:focus {
-        box-shadow: none;
+
+    /* Form labels */
+    .form-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin-bottom: 0.35rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .form-label i {
+        color: var(--brand-cobalt);
+    }
+
+    /* Input groups (consistent with deposit) */
+    .input-group-custom {
+        display: flex;
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        background: var(--card-bg);
+    }
+    .input-group-custom:focus-within {
         border-color: var(--brand-cobalt);
-        box-shadow: 0 0 0 3px rgba(22, 50, 175, 0.1);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+    }
+    .input-group-custom .input-icon {
+        background: var(--bg-body);
+        padding: 0.6rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 1.1rem;
+        border: none;
+        flex-shrink: 0;
+    }
+    .input-group-custom .form-control {
+        border: none;
+        padding: 0.6rem 0.75rem;
+        font-size: 0.95rem;
+        background: transparent;
+        color: var(--text-primary);
+        outline: none;
+        width: 100%;
+    }
+    .input-group-custom .form-control:focus {
+        box-shadow: none;
+    }
+    .input-group-custom .form-control::placeholder {
+        color: var(--text-muted);
+        font-weight: 400;
+        font-size: 0.85rem;
     }
 
-    .input-group-text {
-        padding-left: 1.2rem;
-        padding-right: 1.2rem;
+    /* Password toggle button */
+    .input-group-custom .toggle-btn {
+        background: var(--bg-body);
+        border: none;
+        padding: 0.6rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        flex-shrink: 0;
+    }
+    .input-group-custom .toggle-btn:hover {
+        color: var(--brand-cobalt);
     }
 
+    /* Checkbox */
+    .form-check-input {
+        border: 1.5px solid var(--border-color);
+        border-radius: 4px;
+        margin-top: 0.15rem;
+        cursor: pointer;
+    }
     .form-check-input:checked {
         background-color: var(--brand-cobalt);
         border-color: var(--brand-cobalt);
     }
-
     .form-check-input:focus {
         border-color: var(--brand-cobalt);
-        box-shadow: 0 0 0 3px rgba(22, 50, 175, 0.1);
+        box-shadow: 0 0 0 3px var(--brand-cobalt-glow);
+    }
+    .form-check-label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        cursor: pointer;
     }
 
-    .btn-primary {
-        background-color: var(--brand-cobalt);
+    /* Forgot password link */
+    .forgot-link {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--brand-cobalt);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+    .forgot-link:hover {
+        color: var(--brand-cobalt-dark);
+        text-decoration: underline;
+    }
+
+    /* Submit button – matches deposit/withdrawal */
+    .btn-submit {
+        background: var(--brand-cobalt);
+        color: #fff;
         border: none;
-        transition: all 0.3s ease;
+        padding: 0.8rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+        border-radius: 100px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 15px rgba(22,50,175,0.2);
+        font-family: var(--font);
+        margin-top: 0.5rem;
+    }
+    .btn-submit:hover {
+        background: var(--brand-cobalt-dark);
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(22,50,175,0.35);
+        color: #fff;
+    }
+    .btn-submit:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 15px rgba(22,50,175,0.2);
     }
 
-    .btn-primary:hover {
-        background-color: var(--brand-cobalt-hover, #11268a) !important;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(22, 50, 175, 0.3);
+    /* Footer */
+    .login-footer {
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--border-color);
+        text-align: center;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+    .login-footer i {
+        color: var(--brand-cobalt);
+        margin: 0 0.2rem;
+    }
+    .login-footer p {
+        margin: 0.2rem 0;
     }
 
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.02); }
-        100% { transform: scale(1); }
-    }
-
-    .brand-logo {
-        animation: pulse 3s ease-in-out infinite;
-    }
-
+    /* Responsive */
     @media (max-width: 576px) {
         .brand-logo {
-            width: 60px !important;
-            height: 60px !important;
+            width: 60px;
+            height: 60px;
         }
         .brand-logo img {
-            width: 45px !important;
-            height: 45px !important;
+            width: 42px;
+            height: 42px;
         }
-        h2.fw-bold {
-            font-size: 1.5rem !important;
+        .brand-title {
+            font-size: 1.2rem;
         }
-        .btn-primary {
-            font-size: 0.9rem !important;
-            padding: 0.75rem !important;
+        .input-group-custom .form-control {
+            font-size: 0.85rem;
+            padding: 0.5rem 0.6rem;
         }
-        .input-group-text {
-            padding-left: 0.8rem !important;
-            padding-right: 0.8rem !important;
+        .input-group-custom .input-icon,
+        .input-group-custom .toggle-btn {
+            padding: 0.5rem 0.7rem;
+            font-size: 1rem;
         }
-        .form-control-lg {
-            font-size: 0.9rem !important;
-            padding: 0.5rem 0.75rem !important;
+        .btn-submit {
+            font-size: 0.85rem;
+            padding: 0.7rem;
         }
         .bg-logo {
             width: 60%;
-            max-width: 300px;
+            max-width: 280px;
         }
         .bg-logo i {
             font-size: 12rem;
         }
     }
+
+    /* Animation */
+    @keyframes fadeInUp {
+        from { opacity:0; transform:translateY(12px); }
+        to { opacity:1; transform:translateY(0); }
+    }
+    .login-card-container {
+        animation: fadeInUp 0.5s ease forwards;
+    }
 </style>
+{% endblock %}
+
+{% block content %}
 
 <div class="login-wrapper">
-    <!-- Background logo watermark -->
+
+    <!-- Background watermark -->
     <div class="bg-logo">
         {% if company.logo %}
             <img src="{{ company.logo.url }}" alt="{{ company.name }}">
@@ -164,94 +327,83 @@
         {% endif %}
     </div>
 
-    <!-- Login Card -->
+    <!-- Login Form Container (no card) -->
     <div class="login-card-container">
-        <div class="row justify-content-center">
-            <div class="col-md-10 col-lg-7 col-xl-5">
-                <div class="text-center mb-4">
-                    <div class="brand-logo mx-auto mb-3">
-                        {% if company.logo %}
-                            <img src="{{ company.logo.url }}" alt="{{ company.name }}">
-                        {% else %}
-                            <img src="{% static 'images/mac.png' %}" alt="MAC Technologies">
-                        {% endif %}
-                    </div>
-                    <h2 class="fw-bold">{{ company.name|default:"MAC Technologies" }}</h2>
-                    <p class="text-secondary small">Authorized Personnel Access Only</p>
-                </div>
 
-                <div class="p-1">
-                    <form method="POST" action="{% url 'login' %}" novalidate>
-                        {% csrf_token %}
+        <!-- Brand -->
+        <div class="text-center">
+            <div class="brand-logo mx-auto">
+                {% if company.logo %}
+                    <img src="{{ company.logo.url }}" alt="{{ company.name }}">
+                {% else %}
+                    <img src="{% static 'images/mac.png' %}" alt="MAC Technologies">
+                {% endif %}
+            </div>
+            <h1 class="brand-title">{{ company.name|default:"MAC Technologies" }}</h1>
+            <p class="brand-subtitle">Authorized Personnel Access Only</p>
+        </div>
 
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-uppercase" style="letter-spacing: 0.5px; color: var(--text-secondary);">
-                                <i class="bi bi-person me-1"></i> Username
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0 border-2" style="border-color: var(--border-color);">
-                                    <i class="bi bi-person text-muted"></i>
-                                </span>
-                                <input type="text" 
-                                       name="username" 
-                                       class="form-control form-control-lg border-start-0 border-2" 
-                                       style="border-color: var(--border-color); font-size: 1rem;"
-                                       placeholder="Enter your username" 
-                                       required autofocus>
-                            </div>
-                        </div>
+        <!-- Form -->
+        <form method="POST" action="{% url 'login' %}" novalidate>
+            {% csrf_token %}
 
-                        <div class="mb-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <label class="form-label small fw-bold text-uppercase" style="letter-spacing: 0.5px; color: var(--text-secondary);">
-                                    <i class="bi bi-lock me-1"></i>Password
-                                </label>
-                                <a href="{% url 'password_reset' %}" class="small mb-2 text-decoration-none fw-bold" style="color: var(--brand-cobalt);">Forgot?</a>
-                            </div>
-                            <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0 border-2" style="border-color: var(--border-color);">
-                                    <i class="bi bi-lock text-muted"></i>
-                                </span>
-                                <input type="password" 
-                                       name="password" 
-                                       id="passwordInput" 
-                                       class="form-control form-control-lg border-start-0 border-end-0 border-2" 
-                                       style="border-color: var(--border-color); font-size: 1rem;"
-                                       placeholder="••••••••" 
-                                       required>
-                                <span class="input-group-text bg-transparent border-start-0 border-2" 
-                                      style="border-color: var(--border-color); cursor: pointer;" 
-                                      onclick="togglePassword()">
-                                    <i class="bi bi-eye text-muted" id="toggleIcon"></i>
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="mb-3 d-flex align-items-center justify-content-between">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="remember" id="rememberMe" style="border-color: var(--border-color);">
-                                <label class="form-check-label small text-muted" for="rememberMe">
-                                    Remember me
-                                </label>
-                            </div>
-                           
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm">
-                            <i class="bi bi-box-arrow-in-right me-2"></i> LOG IN
-                        </button>
-
-                        <div class="text-center mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
-                            
-                            <p class="small text-muted mt-2 mb-0">
-                                
-                                &copy; {% now "Y" %} MAC Technologies. All rights reserved.
-                            </p>
-                        </div>
-                    </form>
+            <!-- Username -->
+            <div class="mb-3">
+                <label class="form-label"><i class="bi bi-person"></i>Username</label>
+                <div class="input-group-custom">
+                    <span class="input-icon"><i class="bi bi-person"></i></span>
+                    <input type="text"
+                           name="username"
+                           class="form-control"
+                           placeholder="Enter your username"
+                           required
+                           autofocus>
                 </div>
             </div>
+
+            <!-- Password -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="form-label"><i class="bi bi-lock"></i>Password</label>
+                    <a href="{% url 'password_reset' %}" class="forgot-link">Forgot?</a>
+                </div>
+                <div class="input-group-custom">
+                    <span class="input-icon"><i class="bi bi-lock"></i></span>
+                    <input type="password"
+                           name="password"
+                           id="passwordInput"
+                           class="form-control"
+                           placeholder="••••••••"
+                           required>
+                    <button type="button" class="toggle-btn" onclick="togglePassword()" aria-label="Toggle password visibility">
+                        <i class="bi bi-eye" id="toggleIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Remember me -->
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="remember" id="rememberMe">
+                    <label class="form-check-label" for="rememberMe">Remember me</label>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="btn-submit">
+                <i class="bi bi-box-arrow-in-right"></i>
+                Log In
+            </button>
+        </form>
+
+        <!-- Footer -->
+        <div class="login-footer">
+            <p><i class="bi bi-lock-fill"></i> Secured by {{ company.name|default:"MAC Technologies" }}</p>
+            <p class="small">
+                &copy; {% now "Y" %} {{ company.name|default:"MAC Technologies" }}. All rights reserved.
+            </p>
         </div>
+
     </div>
 </div>
 
@@ -268,14 +420,6 @@
         }
     }
 
-    // Keyboard shortcut: Press Enter to submit
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            const form = document.querySelector('form');
-            if (form && document.activeElement?.tagName === 'INPUT') {
-                form.submit();
-            }
-        }
-    });
+    console.log('💡 Login page ready – press Enter to submit.');
 </script>
 {% endblock %}

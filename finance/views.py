@@ -741,67 +741,67 @@ def apply_loan(request, member_id=None):
 @login_required
 @transaction.atomic
 def approve_loan(request, pk, action):
-    """
-    Handles atomic execution of loan validation, state transitions, and immediate savings disbursement.
-    """
     loan = get_object_or_404(Loan.objects.select_for_update(), pk=pk)
-    
+
     if action == 'approve':
         if loan.status == 'approved' or loan.is_active:
             messages.info(request, "This loan has already been approved and disbursed.")
             return redirect('loan_detail', pk=loan.id)
 
         try:
-            savings = loan.member.savings  
-            savings = type(savings).objects.select_for_update().get(id=savings.id)
+            # ---- Ensure savings account exists ----
+            savings, created = SavingsAccount.objects.get_or_create(member=loan.member)
+            # Lock the row for update to prevent race conditions
+            savings = SavingsAccount.objects.select_for_update().get(id=savings.id)
+
             principal = Decimal(str(loan.principal_amount))
 
-            # Update status safely
+            # Update loan status
             loan.status = 'approved'
             loan.is_active = True
             if not loan.disbursed_date:
                 loan.disbursed_date = timezone.now().date()
             loan.save()
 
-            # Execute underlying calculations
+            # Generate schedule if missing
             if not loan.installments.exists():
-               generate_schedule(loan)
-            # Route currency pool to member portfolio
+                generate_schedule(loan)
+
+            # ---- Disburse to savings ----
             savings.balance += principal
             savings.save()
 
+            # ---- Create transaction with member ----
             ref = generate_transaction_ref("DSB")
             Transaction.objects.create(
                 member=loan.member,
                 amount=principal,
-                type='disbursement',  
-                reference=ref
+                type='disbursement',
+                reference=ref,
+                timestamp=timezone.now(),
+                created_by=request.user,
             )
 
             messages.success(
-                request, 
+                request,
                 f"Loan {loan.id} approved successfully. Reference {ref}: UGX {principal:,.0f} disbursed to savings."
             )
 
-        except AttributeError:
-            messages.error(request, "Approval failed: Member has no active savings account.")
-            return redirect('loan_detail', pk=loan.id)
         except Exception as e:
-            messages.error(request, f"Error during approval and disbursement: {str(e)}")
+            messages.error(request, f"Error during approval: {str(e)}")
             return redirect('loan_detail', pk=loan.id)
 
     elif action == 'reject':
         if loan.status != 'pending':
             messages.error(request, "Only pending loans can be rejected.")
             return redirect('loan_detail', pk=loan.id)
-            
+
         loan.status = 'rejected'
         loan.is_active = False
         loan.save()
         messages.warning(request, f"Loan {loan.id} has been rejected.")
 
     return redirect('loan_detail', pk=loan.id)
-
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -1177,77 +1177,6 @@ def member_statement(request, member_id):
     })
 
 
-@login_required
-@transaction.atomic
-def receive_payment(request, loan_id):
-    """
-    Accepts external user payment injections, writes ledger records,
-    and runs the allocation calculation module.
-    """
-    if request.method != "POST":
-        return redirect('loan_detail', pk=loan_id)
-
-    loan = get_object_or_404(Loan.objects.select_for_update(), id=loan_id)
-    backdate_allowed = SystemSetting.is_backdate_allowed()
-
-    if loan.status not in ['approved', 'arrears']:
-        messages.error(request, "Repayments are only accepted for active loans.")
-        return redirect('loan_detail', pk=loan_id)
-
-    try:
-        current_balance = Decimal(str(loan.principal_balance + loan.interest_balance))
-        if current_balance <= 0:
-            messages.warning(request, "This loan is already fully paid.")
-            return redirect('loan_detail', pk=loan_id)
-
-        principal = Decimal(request.POST.get('principal', '0').strip() or '0')
-        interest = Decimal(request.POST.get('interest', '0').strip() or '0')
-        penalty = Decimal(request.POST.get('penalty', '0').strip() or '0')
-        custom_date = request.POST.get('back_date')
-        notes = request.POST.get('notes', '').strip()
-
-        total_payment = principal + interest + penalty
-
-        if total_payment <= 0:
-            messages.error(request, "Total payment must be greater than zero.")
-            return redirect('loan_detail', pk=loan_id)
-
-        txn_timestamp = timezone.now()
-        if backdate_allowed and custom_date:
-            txn_timestamp = custom_date
-
-        ref = generate_transaction_ref("PAY")
-
-        # 1. Instantiation of Repayment tracking model
-        Repayment.objects.create(
-            loan=loan,
-            amount_paid=total_payment,
-            receipt_number=ref,
-            date_paid=txn_timestamp, 
-            notes=notes if notes else None,
-        )
-
-        # 2. Append general financial audit line
-        Transaction.objects.create(
-            member=loan.member,
-            amount=total_payment,
-            type='repayment',
-            reference=ref,
-            timestamp=txn_timestamp
-        )
-
-        # 3. CRITICAL ENGINE TRIGGER: Run split balance allocation calculations 
-        process_repayment(loan.id)
-
-        messages.success(request, f"Payment {ref} recorded and allocated successfully.")
-
-    except (ValueError, InvalidOperation):
-        messages.error(request, "Invalid payment amounts entered.")
-    except Exception as e:
-        messages.error(request, f"Error processing payment execution: {str(e)}")
-
-    return redirect('loan_detail', pk=loan_id)
-
 
 @login_required
 def arrears_report(request):
@@ -1586,7 +1515,7 @@ def receive_payment(request, loan_id):
     # Permission check: Only staff can backdate, and only if global setting is ON
     backdate_allowed = SystemSetting.is_backdate_allowed()
 
-    if loan.status != 'approved' and loan.status != 'arrears':
+    if loan.status not in ['approved', 'arrears']:
         messages.error(request, "Repayments are only accepted for active loans.")
         return redirect('loan_detail', pk=loan_id)
 
@@ -1616,8 +1545,9 @@ def receive_payment(request, loan_id):
 
         ref = generate_transaction_ref("PAY")
 
-        # 1. Create the repayment record 
-        # (Pass date_paid to override the default now())
+        # ✅ Create ONLY the Repayment – it will handle Transaction & Ledger
+        # The Repayment.save() method already creates a Transaction and posts ledger entries.
+        # Do NOT create a Transaction manually here – it would cause duplication.
         Repayment.objects.create(
             loan=loan,
             amount_paid=total_payment,
@@ -1626,24 +1556,17 @@ def receive_payment(request, loan_id):
             notes=notes if notes else None,
         )
 
-        # 2. Create Transaction log
-        Transaction.objects.create(
-            member=loan.member,
-            amount=total_payment,
-            type='repayment',
-            reference=ref,
-            timestamp=txn_timestamp
-        )
+        # ❌ REMOVED: Manual Transaction.objects.create – it's duplicated inside Repayment.save()
+        # Transaction.objects.create(...)   <-- DELETE THIS LINE
 
-        messages.success(request, f"Payment {ref} recorded for date: {txn_timestamp}.")
+        messages.success(request, f"Payment {ref} recorded and allocated successfully.")
 
     except (ValueError, InvalidOperation):
         messages.error(request, "Invalid payment amounts entered.")
     except Exception as e:
-        messages.error(request, f"Error: {str(e)}")
+        messages.error(request, f"Error processing payment: {str(e)}")
 
     return redirect('loan_detail', pk=loan_id)
-
 
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
@@ -1655,71 +1578,6 @@ from django.db import transaction
 from decimal import Decimal
 from .models import Loan, Transaction, SavingsAccount
 
-@transaction.atomic
-def update_loan_status(request, pk, action):
-    """
-    Handles approval or rejection of a loan with unique disbursement referencing.
-    """
-    loan = get_object_or_404(Loan, pk=pk)
-    
-    if action == 'approve':
-        if loan.status == 'approved':
-            messages.info(request, "This loan has already been approved.")
-            return redirect('loan_detail', pk=loan.id)
-
-        try:
-            with transaction.atomic():
-                # 1. Update Loan Status
-                loan.status = 'approved'
-                loan.is_active = True
-                if not loan.disbursed_date:
-                    loan.disbursed_date = timezone.now().date()
-                
-                loan.save()
-
-                # 2. Generate Repayment Schedule
-                # This ensures installments start with the correct amount_remaining
-                generate_schedule(loan)
-
-                # 3. Disburse principal to member's savings
-                savings = loan.member.savings
-                principal = Decimal(str(loan.principal_amount))
-                
-                # Using select_for_update here is a good safety measure if not already in the model
-                savings.balance += principal
-                savings.save()
-
-                # 4. Record disbursement transaction with UNIQUE REFERENCE
-                # We use the 'DSB' prefix for disbursements
-                ref = generate_transaction_ref("DSB")
-                Transaction.objects.create(
-                    member=loan.member,
-                    amount=principal,
-                    type='disbursement',
-                    reference=ref
-                )
-
-                messages.success(
-                    request, 
-                    f"Loan {loan.id} approved successfully. "
-                    f"Reference {ref}: UGX {principal:,.0f} disbursed to savings."
-                )
-
-        except AttributeError:
-            messages.error(request, "Approval failed: Member has no savings account.")
-            return redirect('loan_detail', pk=loan.id)
-
-        except Exception as e:
-            messages.error(request, f"Error during approval: {str(e)}")
-            return redirect('loan_detail', pk=loan.id)
-
-    elif action == 'reject':
-        loan.status = 'rejected'
-        loan.is_active = False
-        loan.save()
-        messages.warning(request, f"Loan {loan.id} has been rejected.")
-
-    return redirect('loan_detail', pk=loan.id)
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
