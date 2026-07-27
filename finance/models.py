@@ -562,8 +562,7 @@ class AccountingEngine:
             balance=new_running_balance,
             transaction=transaction_obj
         )
-
-
+from .signals import disable_ledger_processing, enable_ledger_processing
 class Repayment(models.Model):
     """Explicit wrapper around programmatic waterfall repayments."""
     loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='repayments')
@@ -610,11 +609,8 @@ class Repayment(models.Model):
             allocated_penalty = Decimal("0.00")
 
             # --------------------------------------------------
-            # 2. Waterfall
-            # Oldest installment first
-            # Penalty -> Interest -> Principal
+            # 2. Waterfall: Penalty → Interest → Principal
             # --------------------------------------------------
-
             installments = (
                 loan_obj.installments
                 .select_for_update()
@@ -623,7 +619,6 @@ class Repayment(models.Model):
             )
 
             for inst in installments:
-
                 if repayment_pool <= 0:
                     break
 
@@ -631,81 +626,53 @@ class Repayment(models.Model):
                     Decimal("0.00"),
                     inst.penalty_amount - inst.penalty_paid
                 )
-
                 interest_remaining = max(
                     Decimal("0.00"),
                     inst.interest_portion - inst.interest_paid
                 )
-
                 principal_remaining = max(
                     Decimal("0.00"),
                     inst.principal_portion - inst.principal_paid
                 )
 
-                # -----------------------------------------
                 # Penalty
-                # -----------------------------------------
                 if penalty_remaining > 0 and repayment_pool > 0:
-
                     pay = min(repayment_pool, penalty_remaining)
-
                     inst.penalty_paid += pay
                     repayment_pool -= pay
                     allocated_penalty += pay
 
-                    penalty_remaining -= pay
-
-                # -----------------------------------------
                 # Interest
-                # -----------------------------------------
                 if interest_remaining > 0 and repayment_pool > 0:
-
                     pay = min(repayment_pool, interest_remaining)
-
                     inst.interest_paid += pay
                     repayment_pool -= pay
                     allocated_interest += pay
 
-                    interest_remaining -= pay
-
-                # -----------------------------------------
                 # Principal
-                # -----------------------------------------
                 if principal_remaining > 0 and repayment_pool > 0:
-
                     pay = min(repayment_pool, principal_remaining)
-
                     inst.principal_paid += pay
                     repayment_pool -= pay
                     allocated_principal += pay
-
-                    principal_remaining -= pay
 
                 remaining_total = (
                     (inst.penalty_amount - inst.penalty_paid)
                     + (inst.interest_portion - inst.interest_paid)
                     + (inst.principal_portion - inst.principal_paid)
                 )
-
-                inst.amount_remaining = max(
-                    Decimal("0.00"),
-                    remaining_total
-                )
-
+                inst.amount_remaining = max(Decimal("0.00"), remaining_total)
                 if inst.amount_remaining <= Decimal("0.00"):
                     inst.paid = True
-
                 inst.save()
 
             # --------------------------------------------------
             # 3. Update Loan Balances
             # --------------------------------------------------
-
             loan_obj.interest_balance = max(
                 Decimal("0.00"),
                 loan_obj.interest_balance - allocated_interest
             )
-
             loan_obj.principal_balance = max(
                 Decimal("0.00"),
                 loan_obj.principal_balance - allocated_principal
@@ -714,9 +681,7 @@ class Repayment(models.Model):
             # --------------------------------------------------
             # 4. Loan Status
             # --------------------------------------------------
-
             today = timezone.now().date()
-
             overdue_exists = loan_obj.installments.filter(
                 due_date__lt=today,
                 paid=False
@@ -727,71 +692,70 @@ class Repayment(models.Model):
             elif loan_obj.status != "closed":
                 loan_obj.status = "approved"
 
-            if (
-                loan_obj.principal_balance <= 0 and
-                loan_obj.interest_balance <= 0
-            ):
+            if loan_obj.principal_balance <= 0 and loan_obj.interest_balance <= 0:
                 loan_obj.status = "closed"
                 loan_obj.is_active = False
 
             loan_obj.save()
 
             # --------------------------------------------------
-            # 5. Transaction Log
+            # 5. Transaction Log – DISABLE SIGNAL TO AVOID DUPLICATES
             # --------------------------------------------------
-
-            tx_log = Transaction.objects.create(
-                member=loan_obj.member,
-                amount=self.amount_paid,
-                type="repayment",
-                reference=f"LOAN-PYMT-{self.receipt_number}",
-                loan=loan_obj,
-                timestamp=self.date_paid
-            )
+            disable_ledger_processing()
+            try:
+                tx_log = Transaction.objects.create(
+                    member=loan_obj.member,
+                    amount=self.amount_paid,
+                    type="repayment",
+                    reference=f"LOAN-PYMT-{self.receipt_number}",
+                    loan=loan_obj,
+                    timestamp=self.date_paid
+                )
+            finally:
+                enable_ledger_processing()
 
             # --------------------------------------------------
-            # 6. Ledger Entries
+            # 6. Ledger Entries (via AccountingEngine) – CORRECT ACCOUNTS
             # --------------------------------------------------
-
+            # Debit Savings Liability (2100) – reduces member's savings
             AccountingEngine.post_ledger_entry(
-                account_code="2000",
-                description=f"Savings withdrawal for Loan Repayment {loan_obj.loan_reference}",
+                account_code='2100',  # Member Savings (liability)
+                description=f"Savings withdrawal - {loan_obj.loan_reference}",
                 reference=self.receipt_number,
                 debit=self.amount_paid,
-                credit=Decimal("0.00"),
+                credit=Decimal('0.00'),
                 transaction_obj=tx_log,
                 date_context=self.date_paid.date()
             )
 
+            # Credit Loan Asset (1210) – reduces outstanding principal
             if allocated_principal > 0:
-
                 AccountingEngine.post_ledger_entry(
-                    account_code="1200",
-                    description=f"Principal Recovery on Loan {loan_obj.loan_reference}",
+                    account_code='1210',  # Loans to Members (asset)
+                    description=f"Principal recovery - {loan_obj.loan_reference}",
                     reference=self.receipt_number,
-                    debit=Decimal("0.00"),
+                    debit=Decimal('0.00'),
                     credit=allocated_principal,
                     transaction_obj=tx_log,
                     date_context=self.date_paid.date()
                 )
 
+            # Credit Interest Income (4100) – recognises earned interest
             if allocated_interest > 0:
-
                 AccountingEngine.post_ledger_entry(
-                    account_code="2100",
-                    description=f"Interest Income Recognized on Loan {loan_obj.loan_reference}",
+                    account_code='4100',  # Interest Income (income)
+                    description=f"Interest earned - {loan_obj.loan_reference}",
                     reference=self.receipt_number,
-                    debit=Decimal("0.00"),
+                    debit=Decimal('0.00'),
                     credit=allocated_interest,
                     transaction_obj=tx_log,
                     date_context=self.date_paid.date()
                 )
 
             super().save(*args, **kwargs)
+
     def __str__(self):
         return f"Repayment {self.receipt_number} - {self.loan.member.last_name}"
-
-
 # =========================================================
 # 4. BATCH PROCESSING ENGINE & UTILITY RECONCILIATION
 # =========================================================

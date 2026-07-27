@@ -934,11 +934,12 @@ def deposit_savings(request, member_id):
     
     # Get previous balance for receipt
     previous_balance = Decimal('0')
-    if hasattr(member, 'savings') and member.savings:
-        previous_balance = member.savings.balance
+    savings, savings_created = SavingsAccount.objects.get_or_create(member=member)
+    if savings:
+        previous_balance = savings.balance
         print(f"Previous balance: {previous_balance}")
     else:
-        print("No savings account found for member")
+        print("No savings account found for member, created one.")
     
     # ---- FETCH COMPANY ONCE ----
     company = Company.get_company()
@@ -983,25 +984,36 @@ def deposit_savings(request, member_id):
             txn_timestamp = custom_date if (backdate_allowed and custom_date) else timezone.now()
             print(f"Transaction timestamp: {txn_timestamp}")
             
-            # Execute Atomic Transaction via Service Layer
-            print("Calling FinancialTransactionService.record_deposit...")
-            transaction_obj = FinancialTransactionService.record_deposit(
+            # ------------------------------------------------------
+            # 1. CREATE THE TRANSACTION (will trigger ledger signal)
+            # ------------------------------------------------------
+            # Ensure savings account exists
+            savings, _ = SavingsAccount.objects.get_or_create(member=member)
+            
+            # Create the Transaction – the post_save signal will call process_transaction_to_ledger
+            transaction_obj = Transaction.objects.create(
                 member=member,
                 amount=amount,
+                type='deposit',
                 reference=ref,
-                date=txn_timestamp,
-                created_by=request.user
+                timestamp=txn_timestamp,
+                created_by=request.user,
             )
-            print(f"Deposit recorded successfully. Transaction ID: {transaction_obj.id}")
+            print(f"Deposit transaction created: {transaction_obj.id}")
+            
+            # Update savings balance
+            savings.balance += amount
+            savings.save()
+            print(f"Savings balance updated to: {savings.balance}")
             
             # Refresh member to get updated balance
             member.refresh_from_db()
-            new_balance = Decimal('0')
-            if hasattr(member, 'savings') and member.savings:
-                new_balance = member.savings.balance
-                print(f"New balance: {new_balance}")
+            new_balance = savings.balance
+            print(f"New balance: {new_balance}")
             
-            # Check for Arrears/Auto-Sweep Recovery
+            # ------------------------------------------------------
+            # 2. AUTO‑REPAYMENT (if arrears exist)
+            # ------------------------------------------------------
             arrears_cleared = Decimal('0')
             active_loan = Loan.objects.filter(member=member, is_active=True).first()
             
@@ -1019,6 +1031,7 @@ def deposit_savings(request, member_id):
                     print("Processing repayment...")
                     result = process_repayment(active_loan.id)
                     print(f"Repayment result: {result}")
+                    # Update arrears cleared to show on receipt
                     arrears_cleared = amount
                     messages.info(request, f"Deposit {ref} recorded. Arrears detected; auto-repayment triggered.")
                 else:
@@ -1028,13 +1041,15 @@ def deposit_savings(request, member_id):
                 print("No active loan found")
                 messages.success(request, f"Deposit {ref} of UGX {amount:,.0f} processed successfully.")
             
-            # Prepare receipt data (adds extra fields for receipt template)
+            # ------------------------------------------------------
+            # 3. PREPARE RECEIPT DATA
+            # ------------------------------------------------------
             receipt_data = {
                 'receipt_id': str(ref),
                 'date': txn_timestamp.strftime('%d %b, %Y %H:%M'),
                 'member_name': f"{member.first_name} {member.last_name}",
                 'member_id': str(member.member_number or member.id),
-                'member_pk': member.id,                     # for back button
+                'member_pk': member.id,
                 'processed_by': request.user.get_full_name() or request.user.username,
                 'amount': str(amount),
                 'prev_balance': str(previous_balance),
@@ -1061,7 +1076,7 @@ def deposit_savings(request, member_id):
             print("DEPOSIT COMPLETED SUCCESSFULLY - Redirecting to receipt")
             print("=" * 60)
             
-            # Redirect to receipt view instead of profile
+            # Redirect to receipt view
             return redirect('view_receipt')
 
         except Exception as e:
@@ -1079,8 +1094,8 @@ def deposit_savings(request, member_id):
         'member': member,
         'backdate_allowed': backdate_allowed,
         'company': company,
+        'savings_balance': savings.balance if savings else Decimal('0'),
     })
-
 
 # ============================================================
 # WITHDRAWAL VIEW

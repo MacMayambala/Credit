@@ -828,7 +828,7 @@
         <nav class="sidebar-nav" id="sidebarNav">
             <div class="nav-section">Main</div>
             <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                <i class="bi bi-grid-1x2-fill"></i> Dashboard
+                <i class="bi bi-grid"></i> Dashboard
             </a>
 
             {% if 'Customers' in allowed_modules %}
