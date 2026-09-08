@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Login | {{ company.name|default:"MAC Innovations Technologies" }}</title>
+    <title>Login | MAC Innovations Technologies</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
@@ -31,21 +31,13 @@
     >
 
     <!-- ==========================================================
-         SET WATERMARK URL AS CSS VARIABLE
+         WATERMARK URL – ALWAYS USES STATIC IMAGE
          ========================================================== -->
-    {% if company.logo %}
-        <style>
-            .login-wrapper {
-                --watermark-url: url("{{ company.logo.url }}");
-            }
-        </style>
-    {% else %}
-        <style>
-            .login-wrapper {
-                --watermark-url: url("{% static 'images/maclog.jpg' %}");
-            }
-        </style>
-    {% endif %}
+    <style>
+        .login-wrapper {
+            --watermark-url: url("{% static 'images/maclog.jpg' %}");
+        }
+    </style>
 
     <style>
         /* =========================================================
@@ -122,7 +114,7 @@
 
 
         /* =========================================================
-           BRAND PANEL
+           BRAND PANEL (no watermark)
            ========================================================= */
 
         .brand-panel {
@@ -206,32 +198,6 @@
                 black,
                 transparent 75%
             );
-        }
-
-
-        /* Watermark on brand side */
-
-        .brand-watermark {
-            position: absolute;
-
-            width: 70%;
-            max-width: 520px;
-
-            left: 50%;
-            top: 50%;
-
-            transform: translate(-50%, -50%);
-
-            opacity: 0.045;
-
-            pointer-events: none;
-            user-select: none;
-        }
-
-        .brand-watermark img {
-            width: 100%;
-            height: auto;
-            object-fit: contain;
         }
 
 
@@ -379,8 +345,7 @@
         }
 
 
-        /* Brand footer */
-
+        /* Brand footer (static MAC Innovations Technologies) */
         .brand-footer {
             position: absolute;
 
@@ -429,7 +394,7 @@
 
 
         /* =========================================================
-           LOGIN CARD – with watermark on the right
+           LOGIN CARD – with watermark in the top‑right corner
            ========================================================= */
 
         .login-wrapper {
@@ -442,20 +407,19 @@
             animation: loginReveal 0.65s ease both;
         }
 
-        /* ---- WATERMARK ON THE CARD ITSELF ---- */
+        /* ---- WATERMARK IN TOP‑RIGHT CORNER (always uses maclog.jpg) ---- */
         .login-wrapper::after {
             content: '';
             position: absolute;
-            top: 50%;
-            right: -30px;
-            transform: translateY(-50%);
-            width: 380px;
-            height: 380px;
+            top: 0;
+            right: 0;
+            width: 260px;
+            height: 260px;
             background-image: var(--watermark-url);
             background-size: contain;
             background-repeat: no-repeat;
-            background-position: right center;
-            opacity: 0.20;
+            background-position: top right;
+            opacity: 0.18;
             pointer-events: none;
             user-select: none;
             z-index: 0;
@@ -983,7 +947,7 @@
 
 
         /* =========================================================
-           LOGIN FOOTER
+           LOGIN FOOTER (static "MAC Innovations Technologies")
            ========================================================= */
 
         .login-footer {
@@ -1330,10 +1294,6 @@
                 height: 450px;
             }
 
-            .brand-watermark {
-                width: 80%;
-            }
-
             .login-panel {
                 width: 100%;
 
@@ -1345,9 +1305,8 @@
             }
 
             .login-wrapper::after {
-                width: 280px;
-                height: 280px;
-                right: -20px;
+                width: 180px;
+                height: 180px;
                 opacity: 0.12;
             }
 
@@ -1421,9 +1380,8 @@
             }
 
             .login-wrapper::after {
-                width: 220px;
-                height: 220px;
-                right: -15px;
+                width: 140px;
+                height: 140px;
                 opacity: 0.10;
             }
 
@@ -1481,30 +1439,12 @@
 <div class="login-page">
 
     <!-- =========================================================
-         BRAND PANEL
+         BRAND PANEL (no watermark)
          ========================================================= -->
 
     <section class="brand-panel">
 
         <div class="brand-grid"></div>
-
-        <!-- Background watermark -->
-        <div class="brand-watermark">
-            {% if company.logo %}
-                <img
-                    src="{{ company.logo.url }}"
-                    alt=""
-                    aria-hidden="true"
-                >
-            {% else %}
-                <img
-                    src="{% static 'images/maclog.jpg' %}"
-                    alt=""
-                    aria-hidden="true"
-                >
-            {% endif %}
-        </div>
-
 
         <div class="brand-content">
 
@@ -1555,24 +1495,22 @@
         </div>
 
 
-        <!-- Footer -->
+        <!-- Footer (static) -->
         <div class="brand-footer">
-            &copy; {% now "Y" %}
-            {{ company.name|default:"MAC Innovations Technologies" }}.
-            All rights reserved.
+            &copy; {% now "Y" %} MAC Innovations Technologies. All rights reserved.
         </div>
 
     </section>
 
 
     <!-- =========================================================
-         LOGIN PANEL
+         LOGIN PANEL (with watermark in white area)
          ========================================================= -->
 
     <main class="login-panel">
 
         <!-- =================================================
-             LOGIN CARD (with watermark on the right)
+             LOGIN CARD (with watermark in the top‑right corner)
              ================================================= -->
 
         <div class="login-wrapper">
@@ -1811,7 +1749,7 @@
 
 
             <!-- =================================================
-                 LOGIN FOOTER
+                 LOGIN FOOTER (static)
                  ================================================= -->
 
             <footer class="login-footer">
@@ -1822,9 +1760,7 @@
                 </p>
 
                 <p>
-                    &copy; {% now "Y" %}
-                    {{ company.name|default:"MAC Innovations Technologies" }}.
-                    All rights reserved.
+                    &copy; {% now "Y" %} MAC Innovations Technologies. All rights reserved.
                 </p>
 
             </footer>
