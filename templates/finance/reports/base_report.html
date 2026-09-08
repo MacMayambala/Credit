@@ -33,62 +33,104 @@
 {% endblock %}
 
 {% block extra_css %}
-    <!-- Flatpickr for date pickers -->
+    <!-- Flatpickr -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         /* ============================================================
-           REPORT-SPECIFIC STYLES (preserved from original)
+           PROFESSIONAL REPORT UI – refined, modern, polished
            ============================================================ */
-        .report-container {
-            max-width: 1340px;
-            margin: 0 auto;
-            background: var(--white);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow-md);
-            padding: 32px;
-            border: 1px solid var(--grey-200);
-            position: relative;
+
+        /* ---------- Variables ---------- */
+        :root {
+            --brand-cobalt: #1a3a8a;
+            --brand-cobalt-dark: #0f2460;
+            --brand-cobalt-light: #4a7ad6;
+            --brand-cobalt-bg: rgba(26, 58, 138, 0.07);
+            --brand-cobalt-glow: rgba(26, 58, 138, 0.12);
+            --bg-body: #f1f5f9;
+            --bg-card: #ffffff;
+            --border-color: #e9edf4;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+            --shadow-lg: 0 20px 50px rgba(0,0,0,0.10);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
+        /* ---------- General ---------- */
+        body {
+            background: var(--bg-body);
+            font-family: var(--font);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .report-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            padding: 36px 40px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            transition: box-shadow 0.3s ease;
+        }
+        .report-container:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* ---------- Watermark ---------- */
         .watermark {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-32deg);
-            font-size: 118px;
+            font-size: 120px;
             font-weight: 900;
-            color: rgba(22, 50, 175, 0.04);
+            color: rgba(26, 58, 138, 0.025);
             pointer-events: none;
             z-index: 0;
-            letter-spacing: 12px;
+            letter-spacing: 14px;
             text-transform: uppercase;
             white-space: nowrap;
+            user-select: none;
         }
 
+        /* ---------- Report Header ---------- */
         .report-header {
-            padding-bottom: 20px;
+            padding-bottom: 24px;
             border-bottom: 3px solid var(--brand-cobalt);
-            margin-bottom: 25px;
+            margin-bottom: 32px;
+            position: relative;
         }
         .report-header .company-name {
-            font-size: 25px;
+            font-size: 28px;
             font-weight: 800;
             color: var(--brand-cobalt);
-            font-family: var(--font);
+            letter-spacing: -0.5px;
         }
         .report-header .company-tagline {
             font-size: 11px;
             color: var(--text-secondary);
             font-weight: 600;
-            letter-spacing: 1px;
+            letter-spacing: 0.8px;
             text-transform: uppercase;
+            margin-top: -2px;
         }
         .report-header .report-title {
-            font-size: 22px;
+            font-size: 26px;
             font-weight: 700;
             color: var(--text-primary);
-            margin-top: 8px;
-            font-family: var(--font);
+            margin-top: 4px;
         }
         .report-header .report-meta {
             font-size: 12px;
@@ -98,40 +140,42 @@
             font-size: 11px;
             color: var(--text-muted);
             text-align: right;
+            line-height: 1.8;
         }
         .report-header .contact-info i {
             color: var(--brand-cobalt);
-            width: 16px;
+            width: 18px;
         }
         .header-divider {
             height: 4px;
-            background: linear-gradient(90deg, var(--brand-cobalt) 0%, var(--brand-cobalt-light) 100%);
-            border-radius: 2px;
-            margin-top: 8px;
+            background: linear-gradient(90deg, var(--brand-cobalt), var(--brand-cobalt-light));
+            border-radius: 4px;
+            margin-top: 12px;
+            width: 80px;
         }
 
+        /* ---------- Filter Toggle + Column Selector ---------- */
         .filter-toggle-wrapper {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 24px;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 12px;
         }
         .filter-toggle-btn {
-            background: var(--white);
-            border: 1px solid var(--grey-300);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
             border-radius: 100px;
-            padding: 0.4rem 1.2rem;
-            font-size: 0.8rem;
+            padding: 0.6rem 1.6rem;
+            font-size: 0.85rem;
             font-weight: 600;
             color: var(--text-secondary);
-            transition: all 0.25s ease;
+            transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.6rem;
             cursor: pointer;
-            font-family: var(--font);
             box-shadow: var(--shadow-sm);
         }
         .filter-toggle-btn:hover {
@@ -139,12 +183,13 @@
             border-color: var(--brand-cobalt);
             color: var(--brand-cobalt);
             box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
         }
         .filter-toggle-btn .badge-count {
             background: var(--brand-cobalt);
-            color: white;
-            font-size: 0.6rem;
-            padding: 0.1rem 0.5rem;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 0.1rem 0.6rem;
             border-radius: 100px;
             font-weight: 700;
         }
@@ -156,32 +201,28 @@
             transform: rotate(180deg);
         }
 
+        /* ---------- Filter Form ---------- */
         .filter-form-wrapper {
             overflow: hidden;
             max-height: 0;
             opacity: 0;
-            transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+            transition: max-height 0.4s ease, opacity 0.35s ease, margin 0.3s ease;
             margin-bottom: 0;
-            border-radius: var(--radius);
+            border-radius: var(--radius-sm);
         }
         .filter-form-wrapper.open {
-            max-height: 1200px;
+            max-height: 1500px;
             opacity: 1;
             margin-bottom: 28px;
         }
         .filter-form {
-            background: var(--white);
-            border: 1px solid var(--grey-200);
-            border-radius: var(--radius);
-            padding: 24px 28px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 28px 32px;
             box-shadow: var(--shadow-sm);
-            transition: box-shadow 0.3s ease;
         }
-        .filter-form:hover {
-            box-shadow: var(--shadow-md);
-        }
-
-        .filter-section-title {
+        .filter-form .filter-section-title {
             font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
@@ -192,86 +233,52 @@
             align-items: center;
             gap: 0.5rem;
         }
-        .filter-section-title i {
+        .filter-form .filter-section-title i {
             color: var(--brand-cobalt);
-            font-size: 0.9rem;
+            font-size: 1rem;
         }
-
-        .filter-actions-row {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.5rem;
-            padding-top: 0.75rem;
-            border-top: 1px solid var(--grey-200);
-            margin-top: 0.5rem;
+        .filter-form hr {
+            border-color: var(--border-color);
+            opacity: 0.4;
+            margin: 1.25rem 0;
         }
-
-        .btn-run {
-            height: 40px;
-            padding: 0 1.5rem;
-            font-size: 0.85rem;
-            border-radius: 10px;
-            background: var(--brand-cobalt);
-            color: white;
-            border: none;
+        .filter-form .form-label {
+            font-size: 0.7rem;
             font-weight: 700;
-            box-shadow: 0 4px 12px rgba(22,50,175,0.2);
-            transition: all 0.25s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            font-family: var(--font);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
         }
-        .btn-run:hover {
-            background: var(--brand-cobalt-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(22,50,175,0.3);
-            color: white;
+        .filter-form .form-control,
+        .filter-form .form-select {
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            padding: 0.5rem 0.8rem;
+            font-size: 0.85rem;
+            transition: border-color 0.25s, box-shadow 0.25s;
         }
-
-        .btn-clear {
-            height: 40px;
-            padding: 0 1rem;
-            font-size: 0.8rem;
-            border-radius: 10px;
-            background: transparent;
-            border: 1.5px solid var(--grey-300);
-            color: var(--text-secondary);
-            font-weight: 600;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            cursor: pointer;
-            font-family: var(--font);
-            text-decoration: none;
-        }
-        .btn-clear:hover {
-            background: var(--brand-cobalt-bg);
+        .filter-form .form-control:focus,
+        .filter-form .form-select:focus {
             border-color: var(--brand-cobalt);
-            color: var(--brand-cobalt);
+            box-shadow: 0 0 0 3px var(--brand-cobalt-bg);
         }
-
         .quick-date-buttons {
             display: flex;
             gap: 4px;
             flex-wrap: wrap;
-            margin-top: 0.2rem;
+            margin-top: 0.25rem;
         }
         .quick-date-buttons .btn-quick {
             background: transparent;
-            border: 1px solid var(--grey-300);
+            border: 1px solid var(--border-color);
             border-radius: 20px;
-            padding: 0.1rem 0.6rem;
+            padding: 0.1rem 0.7rem;
             font-size: 0.6rem;
             font-weight: 600;
             color: var(--text-secondary);
             transition: all 0.2s ease;
             cursor: pointer;
-            font-family: var(--font);
             line-height: 1.6;
         }
         .quick-date-buttons .btn-quick:hover {
@@ -279,7 +286,6 @@
             border-color: var(--brand-cobalt);
             color: var(--brand-cobalt);
         }
-
         .officer-filter {
             position: relative;
         }
@@ -287,17 +293,16 @@
             height: 40px;
             padding: 0.4rem 0.8rem;
             font-size: 0.85rem;
-            border-radius: 10px;
-            border: 1.5px solid var(--grey-300);
-            background: var(--white);
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            background: var(--bg-card);
             width: 100%;
             pointer-events: none;
             transition: all 0.25s ease;
-            font-family: var(--font);
         }
         .officer-filter .officer-search:focus {
             border-color: var(--brand-cobalt);
-            box-shadow: 0 0 0 4px var(--brand-cobalt-bg);
+            box-shadow: 0 0 0 3px var(--brand-cobalt-bg);
             pointer-events: auto;
             outline: none;
         }
@@ -312,27 +317,87 @@
             z-index: 2;
         }
 
+        /* ---------- Filter Actions ---------- */
+        .filter-actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 0.75rem;
+        }
+        .btn-run {
+            height: 44px;
+            padding: 0 1.8rem;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            background: var(--brand-cobalt);
+            color: #fff;
+            border: none;
+            font-weight: 700;
+            box-shadow: 0 4px 12px var(--brand-cobalt-glow);
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        .btn-run:hover {
+            background: var(--brand-cobalt-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26,58,138,0.35);
+            color: #fff;
+        }
+        .btn-clear {
+            height: 44px;
+            padding: 0 1.2rem;
+            font-size: 0.8rem;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            border: 1.5px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-clear:hover {
+            background: var(--brand-cobalt-bg);
+            border-color: var(--brand-cobalt);
+            color: var(--brand-cobalt);
+        }
+
+        /* ---------- Filter Info Badges ---------- */
         .filter-info {
             background: var(--brand-cobalt-bg);
             border-radius: var(--radius-sm);
-            padding: 0.6rem 1rem;
-            margin-bottom: 1.25rem;
+            padding: 0.6rem 1.2rem;
+            margin-bottom: 1.5rem;
             border-left: 4px solid var(--brand-cobalt);
         }
         .filter-badge {
             display: inline-flex;
             align-items: center;
-            gap: 0.3rem;
-            background: var(--white);
-            border: 1px solid var(--grey-200);
+            gap: 0.35rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
             border-radius: 100px;
-            padding: 0.15rem 0.75rem;
+            padding: 0.2rem 0.8rem;
             font-size: 0.7rem;
             font-weight: 600;
             color: var(--text-secondary);
             white-space: nowrap;
         }
+        .filter-badge i {
+            color: var(--brand-cobalt);
+        }
 
+        /* ---------- KPI Cards ---------- */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -340,84 +405,81 @@
             margin-bottom: 32px;
         }
         .kpi-card {
-            background: linear-gradient(135deg, var(--brand-cobalt), var(--brand-cobalt-dark));
-            color: white;
+            background: var(--bg-card);
             border-radius: var(--radius-sm);
-            padding: 28px 30px;
+            padding: 22px 24px;
             box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
             transition: all 0.3s ease;
-            min-height: 148px;
             position: relative;
             overflow: hidden;
-            border: none;
         }
-        .kpi-card::after {
+        .kpi-card::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -20%;
-            width: 120px;
-            height: 120px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 50%;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--brand-cobalt);
+            border-radius: 4px 0 0 4px;
         }
         .kpi-card:hover {
             transform: translateY(-6px);
             box-shadow: var(--shadow-lg);
+            border-color: var(--brand-cobalt);
         }
         .kpi-card .kpi-icon {
-            font-size: 22px;
+            font-size: 26px;
+            color: var(--brand-cobalt);
             opacity: 0.7;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
         .kpi-card .kpi-number {
-            font-size: 30px;
+            font-size: 32px;
             font-weight: 800;
-            letter-spacing: -1.2px;
-            font-family: var(--font);
+            letter-spacing: -1px;
+            color: var(--text-primary);
             line-height: 1.1;
         }
         .kpi-card .kpi-label {
-            font-size: 11.5px;
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            opacity: 0.85;
-            margin-top: 6px;
-            font-family: var(--font);
+            color: var(--text-muted);
+            margin-top: 4px;
         }
         .kpi-card .kpi-sub {
             font-size: 10px;
-            opacity: 0.6;
+            color: var(--text-muted);
             margin-top: 2px;
         }
-        .kpi-card.success {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-        .kpi-card.warning {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
-        .kpi-card.danger {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-        .kpi-card.info {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-        }
+        .kpi-card.success::before { background: var(--success); }
+        .kpi-card.success .kpi-icon { color: var(--success); }
+        .kpi-card.danger::before { background: var(--danger); }
+        .kpi-card.danger .kpi-icon { color: var(--danger); }
+        .kpi-card.warning::before { background: var(--warning); }
+        .kpi-card.warning .kpi-icon { color: var(--warning); }
+        .kpi-card.info::before { background: var(--info); }
+        .kpi-card.info .kpi-icon { color: var(--info); }
 
+        /* ---------- Table ---------- */
         .table-container {
             overflow-x: auto;
             overflow-y: auto;
-            max-height: 600px;
+            max-height: 650px;
             border-radius: var(--radius-sm);
-            border: 1px solid var(--grey-200);
+            border: 1px solid var(--border-color);
             margin-bottom: 20px;
+            background: var(--bg-card);
         }
         .table-report {
             width: 100%;
-            font-size: 13.2px;
+            font-size: 13px;
             border-collapse: separate;
             border-spacing: 0;
-            font-family: var(--font);
+            font-family: inherit;
         }
         .table-report thead {
             position: sticky;
@@ -426,54 +488,32 @@
         }
         .table-report thead th {
             background: var(--brand-cobalt);
-            color: white;
-            padding: 14px 12px;
+            color: #fff;
+            padding: 12px 14px;
             font-weight: 700;
             text-transform: uppercase;
-            font-size: 10.5px;
-            letter-spacing: 0.7px;
+            font-size: 10px;
+            letter-spacing: 0.5px;
             white-space: nowrap;
             position: sticky;
             top: 0;
-            border-bottom: 2px solid var(--brand-cobalt-dark);
             z-index: 11;
+            border-bottom: 2px solid var(--brand-cobalt-dark);
         }
-        .table-report .row-number,
         .table-report thead th:first-child {
-            position: sticky;
-            left: 0;
             z-index: 15;
-            background: var(--brand-cobalt);
-            color: white;
-            width: 50px;
+            left: 0;
+        }
+        .table-report .row-number {
+            background: var(--bg-card);
+            color: var(--text-muted);
+            border-right: 1px solid var(--border-color);
             text-align: center;
             font-weight: 600;
-        }
-        .table-report tbody .row-number {
-            background: var(--white);
-            color: var(--text-muted);
-            border-right: 1px solid var(--grey-200);
+            width: 50px;
+            position: sticky;
+            left: 0;
             z-index: 5;
-        }
-        .table-report tbody tr:hover .row-number {
-            background: #f1f5f9;
-        }
-        .table-report tbody tr:nth-child(even) .row-number {
-            background: var(--brand-cobalt-bg);
-        }
-        .table-report tbody tr:nth-child(even):hover .row-number {
-            background: #f1f5f9;
-        }
-        .table-report tbody td {
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--grey-200);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            vertical-align: middle;
-            color: var(--text-primary);
-            background: var(--white);
-            max-width: 200px;
         }
         .table-report tbody tr:nth-child(even) td {
             background: var(--brand-cobalt-bg);
@@ -481,10 +521,20 @@
         .table-report tbody tr:hover td {
             background: #f1f5f9;
         }
-        .table-report tbody tr:last-child td {
-            border-bottom: none;
+        .table-report tbody tr:hover .row-number {
+            background: #f1f5f9;
         }
-
+        .table-report tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle;
+            color: var(--text-primary);
+            background: var(--bg-card);
+            max-width: 220px;
+        }
         .table-report tfoot {
             border-top: 3px solid var(--brand-cobalt);
             position: sticky;
@@ -492,11 +542,10 @@
             z-index: 10;
         }
         .table-report tfoot td {
-            padding: 10px 12px;
+            padding: 10px 14px;
             font-weight: 700;
             background: var(--brand-cobalt-bg);
             color: var(--text-secondary);
-            font-family: var(--font);
             border-top: 2px solid var(--brand-cobalt);
         }
         .table-report tfoot .total-amount {
@@ -504,51 +553,40 @@
             font-size: 14px;
         }
 
+        /* ---------- Status Badges ---------- */
         .badge-status {
-            padding: 2px 10px;
+            padding: 2px 12px;
             border-radius: 100px;
             font-size: 9px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-family: var(--font);
+            letter-spacing: 0.4px;
             display: inline-block;
         }
-        .badge-status.active {
-            background: rgba(16,185,129,0.12);
-            color: #10b981;
-        }
-        .badge-status.pending {
-            background: rgba(245,158,11,0.12);
-            color: #f59e0b;
-        }
-        .badge-status.overdue {
-            background: rgba(239,68,68,0.12);
-            color: #ef4444;
-        }
-        .badge-status.completed {
-            background: rgba(59,130,246,0.12);
-            color: #3b82f6;
-        }
-        .badge-status.cancelled {
-            background: rgba(100,116,139,0.12);
-            color: #64748b;
-        }
+        .badge-status.active { background: rgba(16,185,129,0.12); color: #10b981; }
+        .badge-status.pending { background: rgba(245,158,11,0.12); color: #f59e0b; }
+        .badge-status.overdue { background: rgba(239,68,68,0.12); color: #ef4444; }
+        .badge-status.completed { background: rgba(59,130,246,0.12); color: #3b82f6; }
+        .badge-status.cancelled { background: rgba(100,116,139,0.12); color: #64748b; }
+        .badge-status.watch { background: rgba(245,158,11,0.12); color: #f59e0b; }
+        .badge-status.substandard { background: rgba(239,68,68,0.12); color: #ef4444; }
+        .badge-status.doubtful { background: rgba(239,68,68,0.2); color: #b91c1c; }
+        .badge-status.loss { background: rgba(239,68,68,0.3); color: #991b1b; }
 
+        /* ---------- Summary Totals ---------- */
         .summary-totals {
             background: var(--brand-cobalt-bg);
             border-radius: var(--radius-sm);
-            padding: 12px 20px;
+            padding: 14px 24px;
             border-left: 4px solid var(--brand-cobalt);
             margin-bottom: 20px;
             overflow-x: auto;
         }
         .summary-totals .summary-inner {
             display: flex;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
             align-items: center;
             gap: 2rem;
-            min-width: fit-content;
         }
         .summary-totals .summary-item {
             flex: 0 0 auto;
@@ -560,30 +598,99 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-muted);
-            font-family: var(--font);
-            white-space: nowrap;
         }
         .summary-totals .summary-value {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 700;
             color: var(--brand-cobalt);
-            font-family: var(--font);
-            white-space: nowrap;
         }
+        .summary-totals .summary-value.text-success { color: var(--success); }
+        .summary-totals .summary-value.text-danger { color: var(--danger); }
+        .summary-totals .summary-value.text-warning { color: var(--warning); }
         .summary-totals .summary-divider {
             width: 1px;
             height: 30px;
-            background: var(--grey-300);
+            background: var(--border-color);
             flex-shrink: 0;
             opacity: 0.4;
         }
 
+        /* ---------- Aging Summary ---------- */
+        .aging-summary {
+            background: var(--brand-cobalt-bg);
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--brand-cobalt);
+        }
+        .aging-summary .aging-title {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .aging-bar {
+            display: flex;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--border-color);
+            margin-top: 4px;
+        }
+        .aging-bar .segment {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        .aging-bar .segment-1 { background: #10b981; }
+        .aging-bar .segment-2 { background: #3b82f6; }
+        .aging-bar .segment-3 { background: #f59e0b; }
+        .aging-bar .segment-4 { background: #ef4444; }
+        .aging-bar .segment-5 { background: #991b1b; }
+        .aging-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 1.2rem;
+            margin-top: 6px;
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+        .aging-legend .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        /* ---------- Report Footer ---------- */
+        .report-footer {
+            border-top: 2px solid var(--border-color);
+            padding-top: 16px;
+            margin-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+        .report-footer .confidential {
+            color: var(--danger);
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* ---------- Empty state ---------- */
         .empty-report {
             text-align: center;
             padding: 60px 20px;
-            background: var(--white);
+            background: var(--bg-card);
             border-radius: var(--radius);
-            border: 2px dashed var(--grey-200);
+            border: 2px dashed var(--border-color);
         }
         .empty-report .empty-icon {
             font-size: 4rem;
@@ -595,38 +702,17 @@
             font-weight: 700;
             color: var(--text-secondary);
             margin-bottom: 0.5rem;
-            font-family: var(--font);
         }
         .empty-report p {
             color: var(--text-muted);
             font-size: 0.95rem;
-            font-family: var(--font);
         }
 
-        .report-footer {
-            border-top: 2px solid var(--grey-200);
-            padding-top: 15px;
-            margin-top: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            font-size: 10px;
-            color: var(--text-muted);
-            font-family: var(--font);
-        }
-        .report-footer .confidential {
-            color: var(--danger);
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
+        /* ---------- Preloader ---------- */
         .report-preloader {
             position: fixed;
             inset: 0;
-            background: var(--white);
+            background: var(--bg-card);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -640,8 +726,8 @@
             pointer-events: none;
         }
         .report-preloader .preloader-spinner {
-            width: 42px;
-            height: 42px;
+            width: 44px;
+            height: 44px;
             border: 4px solid var(--brand-cobalt-bg);
             border-top: 4px solid var(--brand-cobalt);
             border-radius: 50%;
@@ -654,13 +740,13 @@
             letter-spacing: 1px;
             text-transform: uppercase;
             color: var(--text-muted);
-            font-family: var(--font);
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
 
+        /* ---------- Print ---------- */
         @media print {
             #sidebar, .top-navbar, .btn-toggle, .navbar-brand-mobile,
             .no-print, .filter-toggle-wrapper, .filter-form-wrapper,
@@ -668,29 +754,72 @@
                 display: none !important;
             }
             #main { margin-left: 0 !important; padding: 0 !important; }
-            body { background: white !important; padding: 0.5in !important; }
-            .report-container { padding: 0 !important; box-shadow: none !important; background: white !important; max-width: 100% !important; border: none !important; }
-            .watermark { opacity: 0.06 !important; font-size: 80px !important; }
-            .kpi-card { break-inside: avoid !important; }
-            .table-report thead th { background: var(--brand-cobalt) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .table-report tbody tr:nth-child(even) td { background: var(--brand-cobalt-bg) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .table-report tfoot td { background: var(--brand-cobalt-bg) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body { background: #fff !important; padding: 0.5in !important; }
+            .report-container {
+                padding: 0 !important;
+                box-shadow: none !important;
+                background: #fff !important;
+                max-width: 100% !important;
+                border: none !important;
+            }
+            .watermark { opacity: 0.05 !important; font-size: 70px !important; }
+            .kpi-card { break-inside: avoid; border: 1px solid #ddd; }
+            .table-report thead th {
+                background: var(--brand-cobalt) !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .table-report tbody tr:nth-child(even) td {
+                background: var(--brand-cobalt-bg) !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .table-report tfoot td {
+                background: var(--brand-cobalt-bg) !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
             @page { size: A4 landscape; margin: 0.5in; }
         }
 
-        @media (max-width: 768px) {
-            .report-container { padding: 15px; }
-            .filter-form { padding: 16px; }
+        /* ---------- Responsive ---------- */
+        @media (max-width: 992px) {
+            .report-container { padding: 24px; }
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-            .kpi-card { padding: 18px 20px; min-height: auto; }
-            .kpi-card .kpi-number { font-size: 22px; }
+            .kpi-card .kpi-number { font-size: 28px; }
+        }
+        @media (max-width: 768px) {
+            .report-container { padding: 16px; }
+            .filter-form { padding: 20px; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            .kpi-card { padding: 18px 20px; }
+            .kpi-card .kpi-number { font-size: 24px; }
             .table-report { font-size: 11px; }
             .report-footer { flex-direction: column; text-align: center; }
-            .filter-info .d-flex { flex-direction: column; align-items: flex-start !important; }
+            .filter-info .d-flex { flex-direction: column; align-items: flex-start !important; gap: 0.4rem; }
             .filter-badge { white-space: normal; font-size: 0.65rem; }
             .quick-date-buttons { justify-content: center; }
-            .summary-totals .summary-inner { gap: 1rem; }
+            .summary-totals .summary-inner { gap: 1.2rem; flex-wrap: wrap; justify-content: center; }
         }
+        @media (max-width: 576px) {
+            .report-header .row { flex-direction: column; text-align: center; }
+            .report-header .contact-info { text-align: center; }
+            .filter-actions-row { flex-direction: column; align-items: stretch; }
+            .filter-actions-row .d-flex { justify-content: center; }
+        }
+
+        /* ---------- Animations ---------- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .kpi-card, .report-card, .summary-totals, .aging-summary {
+            animation: fadeIn 0.4s ease forwards;
+        }
+        .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+        .kpi-card:nth-child(2) { animation-delay: 0.10s; }
+        .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+        .kpi-card:nth-child(4) { animation-delay: 0.20s; }
     </style>
 {% endblock %}
 
@@ -720,7 +849,7 @@
                 {% if company.logo %}
                     <img src="{{ company.logo.url }}" alt="{{ company.name }}" style="max-height: 72px; width: auto;">
                 {% else %}
-                    <div style="font-size: 36px; font-weight: 900; color: var(--brand-cobalt); font-family: var(--font);">
+                    <div style="font-size: 36px; font-weight: 900; color: var(--brand-cobalt);">
                         {{ company.name|slice:":2"|upper }}
                     </div>
                 {% endif %}
@@ -736,7 +865,7 @@
                 <div class="report-meta">
                     <strong>Generated By:</strong> {{ generated_by|default:"System" }}
                 </div>
-                <div class="header-divider"></div>
+                <div class="header-divider mx-auto"></div>
             </div>
             <div class="col-md-3">
                 <div class="contact-info">
@@ -752,14 +881,21 @@
     </div>
 
     <!-- ============================================================
-    FILTER TOGGLE
+    FILTER TOGGLE + COLUMN SELECTOR
     ============================================================ -->
     <div class="filter-toggle-wrapper">
-        <button class="filter-toggle-btn" id="filterToggleBtn" type="button">
-            <i class="bi bi-sliders2"></i> Filters
-            <span class="badge-count" id="filterCount">0</span>
-            <span class="arrow" id="filterArrow">▼</span>
-        </button>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <button class="filter-toggle-btn" id="filterToggleBtn" type="button">
+                <i class="bi bi-sliders2"></i> Filters
+                <span class="badge-count" id="filterCount">0</span>
+                <span class="arrow" id="filterArrow">▼</span>
+            </button>
+            <!-- Column selector button -->
+            <button class="filter-toggle-btn" id="columnSelectorBtn" type="button" data-bs-toggle="modal" data-bs-target="#columnModal">
+                <i class="bi bi-layout-three-columns"></i> Columns
+                <span class="badge-count" id="columnCount">{{ selected_column_keys|length|default:columns|length }}</span>
+            </button>
+        </div>
         <div></div>
     </div>
 
@@ -779,8 +915,8 @@
                     </div>
                     <div class="row g-3">
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase"><i class="bi bi-calendar-start me-1"></i> From</label>
-                            <input type="text" name="date_from" class="form-control flatpickr-date" 
+                            <label class="form-label"><i class="bi bi-calendar-start me-1"></i> From</label>
+                            <input type="text" name="date_from" class="form-control flatpickr-date"
                                    value="{{ date_from|default:'' }}" placeholder="Select date">
                             <div class="quick-date-buttons mt-1">
                                 <button type="button" class="btn-quick" data-quick="today">Today</button>
@@ -790,13 +926,13 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase"><i class="bi bi-calendar-end me-1"></i> To</label>
-                            <input type="text" name="date_to" class="form-control flatpickr-date" 
+                            <label class="form-label"><i class="bi bi-calendar-end me-1"></i> To</label>
+                            <input type="text" name="date_to" class="form-control flatpickr-date"
                                    value="{{ date_to|default:'' }}" placeholder="Select date">
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase"><i class="bi bi-person me-1"></i> Officer</label>
+                            <label class="form-label"><i class="bi bi-person me-1"></i> Officer</label>
                             <div class="officer-filter">
                                 <select name="officer" class="form-select officer-select" id="officerSelect">
                                     <option value="">All Officers</option>
@@ -806,14 +942,14 @@
                                     </option>
                                     {% endfor %}
                                 </select>
-                                <input type="text" class="form-control officer-search" id="officerSearch" 
+                                <input type="text" class="form-control officer-search" id="officerSearch"
                                        placeholder="Search officer..." autocomplete="off">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <hr class="my-3">
+                <hr>
 
                 <!-- Accounting & Status -->
                 <div class="filter-section">
@@ -822,7 +958,7 @@
                     </div>
                     <div class="row g-3">
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase"><i class="bi bi-journal me-1"></i> Account</label>
+                            <label class="form-label"><i class="bi bi-journal me-1"></i> Account</label>
                             <select name="account" class="form-select" id="accountSelect">
                                 <option value="">All Accounts</option>
                                 {% for account in account_list %}
@@ -834,7 +970,7 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase"><i class="bi bi-tags me-1"></i> Account Type</label>
+                            <label class="form-label"><i class="bi bi-tags me-1"></i> Account Type</label>
                             <select name="account_type" class="form-select" id="accountTypeSelect">
                                 <option value="">All Types</option>
                                 {% for type_code, type_label in account_type_choices %}
@@ -846,7 +982,7 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase"><i class="bi bi-info-circle me-1"></i> Status</label>
+                            <label class="form-label"><i class="bi bi-info-circle me-1"></i> Status</label>
                             <select name="status" class="form-select">
                                 <option value="">All Status</option>
                                 <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
@@ -875,7 +1011,7 @@
                         </button>
                     </div>
                     <div class="d-flex gap-1 no-print">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()" style="border-color: var(--grey-300);">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()" style="border-color: var(--border-color);">
                             <i class="bi bi-printer"></i>
                         </button>
                         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="exportCSV()" style="border-color: #10b981; color: #10b981;">
@@ -1021,22 +1157,22 @@
             <div class="summary-divider"></div>
             <div class="summary-item">
                 <div class="summary-label">Paid</div>
-                <div class="summary-value" style="color: var(--success);">UGX {{ summary_totals.total_paid|default:"0"|floatformat:0|intcomma }}</div>
+                <div class="summary-value text-success">UGX {{ summary_totals.total_paid|default:"0"|floatformat:0|intcomma }}</div>
             </div>
             <div class="summary-divider"></div>
             <div class="summary-item">
                 <div class="summary-label">Outstanding</div>
-                <div class="summary-value" style="color: var(--danger);">UGX {{ summary_totals.outstanding|default:"0"|floatformat:0|intcomma }}</div>
+                <div class="summary-value text-danger">UGX {{ summary_totals.outstanding|default:"0"|floatformat:0|intcomma }}</div>
             </div>
             <div class="summary-divider"></div>
             <div class="summary-item">
                 <div class="summary-label">Recovery</div>
-                <div class="summary-value" style="color: var(--brand-cobalt-light);">{{ summary_totals.recovery_rate|default:"0" }}%</div>
+                <div class="summary-value">{{ summary_totals.recovery_rate|default:"0" }}%</div>
             </div>
             <div class="summary-divider"></div>
             <div class="summary-item">
                 <div class="summary-label">PAR 30</div>
-                <div class="summary-value" style="color: var(--warning);">{{ summary_totals.par_30|default:"0" }}%</div>
+                <div class="summary-value text-warning">{{ summary_totals.par_30|default:"0" }}%</div>
             </div>
         </div>
     </div>
@@ -1044,26 +1180,71 @@
 
     <!-- Aging Summary (optional) -->
     {% if aging_summary %}
-    <div class="row g-2 mb-3">
-        <div class="col-12">
-            <div class="p-3" style="background: var(--brand-cobalt-bg); border-radius: var(--radius-sm); border-left: 4px solid var(--brand-cobalt);">
-                <div class="row g-2">
-                    <div class="col-12">
-                        <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 8px;">
-                            <i class="bi bi-pie-chart"></i> Aging Summary
-                        </div>
-                    </div>
+    <div class="aging-summary">
+        <div class="aging-title"><i class="bi bi-pie-chart me-1"></i> Aging Summary</div>
+        <div class="row g-2">
+            <div class="col-12">
+                <div class="aging-bar">
                     {% for item in aging_summary %}
-                    <div class="col-md-2 col-4">
-                        <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">{{ item.bucket }}</div>
-                        <div style="font-weight: 700; font-size: 14px; color: var(--brand-cobalt);">UGX {{ item.amount|floatformat:0|intcomma }}</div>
-                    </div>
+                    {% widthratio item.amount summary_totals.total_amount 100 as percent %}
+                    <div class="segment segment-{{ forloop.counter }}" style="width: {% if percent > 0 %}{{ percent }}{% else %}0{% endif %}%;"></div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="aging-legend">
+                    {% for item in aging_summary %}
+                    <span><span class="dot" style="background: var(--segment-color{{ forloop.counter }}, #ccc);"></span> {{ item.bucket }} (UGX {{ item.amount|floatformat:0|intcomma }})</span>
                     {% endfor %}
                 </div>
             </div>
         </div>
     </div>
     {% endif %}
+
+    <!-- ============================================================
+    COLUMN SELECTOR MODAL
+    ============================================================ -->
+    <div class="modal fade" id="columnModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" action="." id="columnForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="save_columns" value="1">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-layout-three-columns me-2"></i> Customize Columns</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small">Select the columns you want to display in the report. Uncheck to hide.</p>
+                        <div class="row row-cols-2 row-cols-md-3 g-3">
+                            {% for col in all_columns %}
+                            <div class="col">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="columns" value="{{ col.key }}"
+                                           id="col_{{ col.key }}"
+                                           {% if col.key in selected_column_keys %}checked{% endif %}>
+                                    <label class="form-check-label" for="col_{{ col.key }}">
+                                        {{ col.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" name="reset_columns" value="1" class="btn btn-outline-secondary" onclick="return confirm('Reset to default columns?')">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset to Default
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background: var(--brand-cobalt); border-color: var(--brand-cobalt);">
+                            <i class="bi bi-check-lg"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- ============================================================
     FOOTER
@@ -1104,11 +1285,11 @@ ACTION BUTTONS (secondary)
 ============================================================ -->
 <div class="no-print text-center mt-3">
     {% if has_data %}
-    <button class="btn" onclick="window.print()" style="background: var(--brand-cobalt); color: #ffffff; border: none; padding: 12px 32px; border-radius: 12px; font-weight: 700; box-shadow: 0 4px 15px rgba(22, 50, 175, 0.25);">
+    <button class="btn" onclick="window.print()" style="background: var(--brand-cobalt); color: #ffffff; border: none; padding: 12px 32px; border-radius: 12px; font-weight: 700; box-shadow: 0 4px 15px var(--brand-cobalt-glow);">
         <i class="bi bi-printer me-2"></i> Print Report
     </button>
     {% endif %}
-    <button class="btn btn-outline-secondary ms-2" onclick="window.history.back()" style="border: 1px solid var(--grey-300); color: var(--text-secondary); padding: 12px 28px; border-radius: 12px; font-weight: 600;">
+    <button class="btn btn-outline-secondary ms-2" onclick="window.history.back()" style="border: 1px solid var(--border-color); color: var(--text-secondary); padding: 12px 28px; border-radius: 12px; font-weight: 600;">
         <i class="bi bi-arrow-left me-2"></i> Back
     </button>
 </div>
@@ -1130,6 +1311,7 @@ ACTION BUTTONS (secondary)
         const filterWrapper = document.getElementById('filterFormWrapper');
         const filterArrow = document.getElementById('filterArrow');
         const filterCount = document.getElementById('filterCount');
+        const columnModal = document.getElementById('columnModal');
 
         // ============================================================
         // COUNT ACTIVE FILTERS
@@ -1153,19 +1335,16 @@ ACTION BUTTONS (secondary)
         updateFilterBadge();
 
         // ============================================================
-        // START COLLAPSED
+        // TOGGLE FILTERS
         // ============================================================
         let filtersOpen = false;
         filterWrapper.style.maxHeight = '0';
         filterWrapper.style.opacity = '0';
 
-        // ============================================================
-        // TOGGLE FILTERS
-        // ============================================================
         toggleBtn.addEventListener('click', function() {
             filtersOpen = !filtersOpen;
             if (filtersOpen) {
-                filterWrapper.style.maxHeight = '2000px';
+                filterWrapper.style.maxHeight = '1500px';
                 filterWrapper.style.opacity = '1';
                 filterArrow.textContent = '▲';
             } else {
@@ -1177,7 +1356,17 @@ ACTION BUTTONS (secondary)
         });
 
         // ============================================================
-        // HIDE PRELOADER
+        // COLUMN COUNT BADGE (update on modal open)
+        // ============================================================
+        if (columnModal) {
+            columnModal.addEventListener('show.bs.modal', function () {
+                const checked = document.querySelectorAll('#columnModal input[name="columns"]:checked').length;
+                document.getElementById('columnCount').textContent = checked;
+            });
+        }
+
+        // ============================================================
+        // PRELOADER
         // ============================================================
         function hidePreloader() {
             if (!preloader) return;
@@ -1198,7 +1387,6 @@ ACTION BUTTONS (secondary)
         // SUBMIT – collapse filters, show loading
         // ============================================================
         form?.addEventListener('submit', function() {
-            // Collapse filters
             if (filtersOpen) toggleBtn.click();
             if (preloader) preloader.style.display = 'flex';
             if (runBtn) {
@@ -1368,7 +1556,7 @@ ACTION BUTTONS (secondary)
             });
         };
 
-        console.log('✅ Banking Report Template loaded successfully.');
+        console.log('✅ Professional Report UI loaded.');
     })();
 </script>
 {% endblock %}

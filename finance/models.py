@@ -28,6 +28,10 @@ class Company(models.Model):
     class Meta:
         verbose_name = "Company"
         verbose_name_plural = "Company"
+        permissions = [
+            ('can_access_settings', 'Can access system settings'),
+            
+        ]
 
     def __str__(self):
         return self.name
@@ -285,6 +289,7 @@ class Loan(models.Model):
             ('can_apply_manual_penalty', 'Can manually apply penalty'),
             ('can_waive_penalty', 'Can waive penalties'),
             ('can_send_sms', 'Can send SMS reminders'),
+            ("can_access_settings", "Can access system settings"),
         ]
 
     # ==============================
@@ -429,6 +434,14 @@ from django.conf import settings
 from django.utils import timezone
 from decimal import Decimal
 from members.models import Member  # Import from members app
+# finance/models.py – full updated
+
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+from decimal import Decimal
+from members.models import Member  # Import from members app
+
 
 class Transaction(models.Model):
     T_TYPES = (
@@ -440,18 +453,27 @@ class Transaction(models.Model):
         ('reversal', 'Reversal'),
         ('journal', 'Journal Entry'),
     )
+
     STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
         ('reversed', 'Reversed'),
+        ('cancelled', 'Cancelled'),
+    )
+
+    PAYMENT_METHOD_CHOICES = (
+        ('CASH', 'Cash'),
+        ('MOBILE_MONEY', 'Mobile Money'),
+        ('BANK_TRANSFER', 'Bank Transfer'),
+        ('CHEQUE', 'Cheque'),
     )
 
     member = models.ForeignKey(
         'members.Member',
         on_delete=models.CASCADE,
         related_name='transactions',
-        null=True,          # Allow journal entries without a member
+        null=True,
         blank=True,
     )
     loan = models.ForeignKey(
@@ -461,10 +483,48 @@ class Transaction(models.Model):
         blank=True,
         related_name='transactions'
     )
+
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     type = models.CharField(max_length=20, choices=T_TYPES, db_index=True)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
     reference = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+
+    # ============================================================
+    # NEW FIELDS for mobile money & payment tracking
+    # ============================================================
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='completed',
+        db_index=True,
+        help_text="Transaction lifecycle status"
+    )
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        default='CASH',
+        help_text="Payment method used"
+    )
+    phone_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Phone number for mobile money"
+    )
+    payment_reference = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="External payment gateway reference (e.g., MarzPay transaction ID)"
+    )
+    marzpay_response = models.JSONField(
+        blank=True,
+        null=True,
+        help_text="Full raw response from MarzPay"
+    )
+
+    # Reversal fields (already existed)
     is_reversed = models.BooleanField(default=False)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -492,6 +552,7 @@ class Transaction(models.Model):
             models.Index(fields=['member', 'type']),
             models.Index(fields=['reference']),
             models.Index(fields=['timestamp']),
+            models.Index(fields=['status']),   # for faster filtering
         ]
 
 class TransactionReversal(models.Model):

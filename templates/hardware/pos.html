@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load humanize %}
 
 {% block title %}Point of Sale | MAC Technologies{% endblock %}
@@ -37,7 +38,6 @@
                      onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';"
                      onclick="addToCart('{{ product.id|stringformat:"s" }}', '{{ product.name }}', {{ product.selling_price }}, '{{ product.current_stock|default:0 }}')">
 
-                    <!-- Product Icon/Image placeholder -->
                     <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--brand-cobalt); margin: 0 auto 0.75rem; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem;">
                         <i class="bi bi-box"></i>
                     </div>
@@ -90,7 +90,7 @@
             <hr style="border-color: var(--border-color); opacity: 0.5;">
 
             <!-- Cart Items -->
-            <div id="cartItems" class="mb-3" style="max-height: 400px; overflow-y: auto;">
+            <div id="cartItems" class="mb-3" style="max-height: 300px; overflow-y: auto;">
                 <div class="text-center text-muted py-5" style="font-size: 0.875rem;">
                     <i class="bi bi-cart-plus" style="font-size: 2rem; display: block; margin-bottom: 0.5rem; opacity: 0.3;"></i>
                     No items in cart
@@ -105,16 +105,77 @@
                 <span id="cartSubtotal" style="font-weight: 600; color: var(--text-primary);">UGX 0</span>
             </div>
 
-            <!-- Tax (optional) -->
             <div class="d-flex justify-content-between align-items-center mb-3" style="font-size: 0.8rem; color: var(--text-muted);">
                 <span>Tax (0%)</span>
                 <span>UGX 0</span>
             </div>
 
-            <!-- Total -->
             <div class="d-flex justify-content-between align-items-center" style="border-top: 2px solid var(--border-color); padding-top: 1rem; margin-bottom: 1.25rem;">
                 <span class="fw-bold" style="font-size: 1.1rem; color: var(--text-primary);">Total</span>
                 <span id="cartTotal" class="fw-bold" style="font-size: 1.25rem; color: var(--brand-cobalt);">UGX 0</span>
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- PAYMENT METHOD SELECTOR                                     -->
+            <!-- ========================================================== -->
+            <div class="mb-3">
+                <label class="fw-semibold" style="font-size: 0.85rem; color: var(--text-secondary);">
+                    <i class="bi bi-credit-card me-1"></i> Payment Method
+                </label>
+                <div class="d-flex gap-2 mt-1">
+                    <button class="btn btn-outline-secondary flex-fill rounded-pill py-2 px-3 payment-method-btn active" 
+                            data-method="CASH" onclick="selectPaymentMethod('CASH')" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
+                        <i class="bi bi-cash me-1"></i> Cash
+                    </button>
+                    <button class="btn btn-outline-secondary flex-fill rounded-pill py-2 px-3 payment-method-btn" 
+                            data-method="MOBILE_MONEY" onclick="selectPaymentMethod('MOBILE_MONEY')" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
+                        <i class="bi bi-phone me-1"></i> Mobile Money
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Money Fields (hidden by default) -->
+            <div id="mobileMoneyFields" style="display: none;">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" style="font-size: 0.85rem; color: var(--text-secondary);">
+                        <i class="bi bi-phone me-1"></i> Phone Number
+                    </label>
+                    <input type="text" id="phoneNumber" class="form-control" placeholder="e.g., 0700123456" style="border-radius: 12px; border: 2px solid var(--border-color); padding: 0.6rem 1rem;">
+                    <div class="form-text text-muted" style="font-size: 0.7rem;">Enter MTN or Airtel number.</div>
+                </div>
+
+                <!-- Provider selection (MTN / Airtel cards) -->
+                <div class="mb-3">
+                    <label class="fw-semibold" style="font-size: 0.85rem; color: var(--text-secondary);">
+                        <i class="bi bi-wallet2 me-1"></i> Network Provider
+                    </label>
+                    <div class="row g-2 mt-1">
+                        <div class="col-6">
+                            <div class="provider-card border rounded-4 p-2 text-center h-100 d-flex flex-column align-items-center justify-content-center selected" 
+                                 data-provider="mtn" onclick="selectProvider('mtn')" style="cursor:pointer; border-width: 2px; transition: all 0.2s;">
+                                <input type="radio" name="provider" value="mtn" id="mtn" class="d-none" checked>
+                                <!-- Using inline SVG for MTN logo as fallback -->
+                                <svg width="40" height="30" viewBox="0 0 400 300" style="margin-bottom: 4px;">
+                                    <rect width="400" height="300" fill="#FFC000" rx="10"/>
+                                    <text x="50%" y="55%" font-family="Arial" font-size="60" font-weight="bold" fill="#000" text-anchor="middle">MTN</text>
+                                </svg>
+                                <label for="mtn" style="font-size: 0.7rem; font-weight: 600; cursor: pointer;">MTN</label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="provider-card border rounded-4 p-2 text-center h-100 d-flex flex-column align-items-center justify-content-center" 
+                                 data-provider="airtel" onclick="selectProvider('airtel')" style="cursor:pointer; border-width: 2px; transition: all 0.2s;">
+                                <input type="radio" name="provider" value="airtel" id="airtel" class="d-none">
+                                <!-- Using inline SVG for Airtel logo as fallback -->
+                                <svg width="40" height="30" viewBox="0 0 400 300" style="margin-bottom: 4px;">
+                                    <rect width="400" height="300" fill="#E30613" rx="10"/>
+                                    <text x="50%" y="55%" font-family="Arial" font-size="60" font-weight="bold" fill="#fff" text-anchor="middle">AIRTEL</text>
+                                </svg>
+                                <label for="airtel" style="font-size: 0.7rem; font-weight: 600; cursor: pointer;">Airtel</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Checkout Button -->
@@ -241,7 +302,6 @@
         transform: scale(1.1);
     }
 
-    /* Empty state */
     .empty-cart {
         text-align: center;
         padding: 2rem 0;
@@ -260,6 +320,46 @@
         margin: 0;
     }
 
+    /* Payment method buttons */
+    .payment-method-btn {
+        transition: all 0.2s ease;
+    }
+    .payment-method-btn.active {
+        background: var(--brand-cobalt);
+        color: white;
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 4px 12px rgba(22,50,175,0.2);
+    }
+    .payment-method-btn:not(.active):hover {
+        background: var(--brand-cobalt-bg);
+        border-color: var(--brand-cobalt);
+    }
+
+    /* Provider cards */
+    .provider-card {
+        border-color: var(--border-color) !important;
+        background: var(--card-bg);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        border-width: 2px !important;
+    }
+    .provider-card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .provider-card.selected {
+        border-color: var(--brand-cobalt) !important;
+        background: var(--brand-cobalt-bg);
+        box-shadow: 0 0 0 3px rgba(22,50,175,0.15);
+    }
+    .provider-card img {
+        filter: grayscale(0%);
+        transition: filter 0.2s;
+    }
+    .provider-card.selected img {
+        filter: none;
+    }
+
     /* Animations */
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
@@ -276,12 +376,32 @@
 
 let cart = [];
 let isProcessing = false;
+let selectedPaymentMethod = 'CASH';
+let pollingInterval = null;
 
-// Product Search
+// ---- Payment Method Selection ----
+function selectPaymentMethod(method) {
+    selectedPaymentMethod = method;
+    document.querySelectorAll('.payment-method-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.method === method);
+    });
+    const mmFields = document.getElementById('mobileMoneyFields');
+    mmFields.style.display = (method === 'MOBILE_MONEY') ? 'block' : 'none';
+}
+
+// ---- Provider Selection ----
+function selectProvider(provider) {
+    document.querySelectorAll('.provider-card').forEach(card => card.classList.remove('selected'));
+    const card = document.querySelector(`.provider-card[data-provider="${provider}"]`);
+    if (card) card.classList.add('selected');
+    const radio = document.getElementById(provider);
+    if (radio) radio.checked = true;
+}
+
+// ---- Product Search ----
 document.getElementById('productSearch').addEventListener('keyup', function(e) {
     const query = this.value.toLowerCase().trim();
     const cards = document.querySelectorAll('.product-card');
-
     cards.forEach(card => {
         const name = card.querySelector('h6')?.textContent?.toLowerCase() || '';
         const shouldShow = name.includes(query);
@@ -289,8 +409,8 @@ document.getElementById('productSearch').addEventListener('keyup', function(e) {
     });
 });
 
+// ---- Cart Functions ----
 function addToCart(id, name, price, stock) {
-    // Check if product is already in cart
     const existing = cart.find(item => item.id === id);
     const currentQty = existing ? existing.qty : 0;
 
@@ -298,7 +418,7 @@ function addToCart(id, name, price, stock) {
         Swal.fire({
             icon: 'warning',
             title: 'Stock Limit Reached',
-            text: `Only ${stock} units of "${name}" available in stock.`,
+            text: `Only ${stock} units of "${name}" available.`,
             confirmButtonColor: '#1632af',
             timer: 3000,
             timerProgressBar: true
@@ -307,25 +427,16 @@ function addToCart(id, name, price, stock) {
     }
 
     let item = cart.find(item => item.id === id);
-
     if (item) {
         item.qty += 1;
     } else {
-        cart.push({
-            id: id,
-            name: name,
-            price: parseFloat(price),
-            qty: 1
-        });
+        cart.push({ id, name, price: parseFloat(price), qty: 1 });
     }
-
     updateCartUI();
-    
-    // SweetAlert notification
     Swal.fire({
         icon: 'success',
         title: 'Added to Cart',
-        text: `${name} added successfully`,
+        text: `${name} added`,
         timer: 1500,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -371,7 +482,7 @@ function updateCartUI() {
                         <button class="qty-btn" onclick="changeQty(${index}, -1)">−</button>
                         <span class="qty-display">${item.qty}</span>
                         <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
-                        <button class="remove-item" onclick="removeItem(${index})" title="Remove item">
+                        <button class="remove-item" onclick="removeItem(${index})" title="Remove">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
@@ -387,11 +498,7 @@ function updateCartUI() {
 
 function changeQty(index, change) {
     cart[index].qty += change;
-
-    if (cart[index].qty <= 0) {
-        cart.splice(index, 1);
-    }
-
+    if (cart[index].qty <= 0) cart.splice(index, 1);
     updateCartUI();
 }
 
@@ -399,11 +506,10 @@ function removeItem(index) {
     const item = cart[index];
     cart.splice(index, 1);
     updateCartUI();
-    
     Swal.fire({
         icon: 'info',
         title: 'Removed',
-        text: `${item.name} removed from cart`,
+        text: `${item.name} removed`,
         timer: 1500,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -414,10 +520,9 @@ function removeItem(index) {
 
 function clearCart() {
     if (cart.length === 0) return;
-    
     Swal.fire({
         title: 'Clear Cart?',
-        text: 'All items will be removed from the cart.',
+        text: 'All items will be removed.',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#1632af',
@@ -441,35 +546,51 @@ function clearCart() {
     });
 }
 
+// ---- Checkout ----
 function checkout() {
     if (isProcessing) return;
-    
     if (cart.length === 0) {
         Swal.fire({
             icon: 'warning',
             title: 'Empty Cart',
-            text: 'Add some products to the cart first.',
+            text: 'Add some products first.',
             confirmButtonColor: '#1632af'
         });
         return;
     }
 
-    // Show confirmation dialog
+    // Validate mobile money fields
+    if (selectedPaymentMethod === 'MOBILE_MONEY') {
+        const phone = document.getElementById('phoneNumber').value.trim();
+        if (!phone || phone.length < 10) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Phone Number Required',
+                text: 'Please enter a valid phone number for mobile money.',
+                confirmButtonColor: '#1632af'
+            });
+            return;
+        }
+    }
+
+    // Confirmation
     const total = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
-    
+    const methodLabel = selectedPaymentMethod === 'CASH' ? 'Cash' : 'Mobile Money';
     Swal.fire({
         title: 'Complete Sale?',
         html: `
             <div style="text-align: left;">
                 <p><strong>Items:</strong> ${cart.length} products</p>
                 <p><strong>Total:</strong> UGX ${total.toLocaleString()}</p>
+                <p><strong>Payment:</strong> ${methodLabel}</p>
+                ${selectedPaymentMethod === 'MOBILE_MONEY' ? `<p><strong>Phone:</strong> ${document.getElementById('phoneNumber').value.trim()}</p>` : ''}
             </div>
         `,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#1632af',
         cancelButtonColor: '#64748b',
-        confirmButtonText: 'Yes, Complete Sale',
+        confirmButtonText: 'Yes, Complete',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -480,46 +601,41 @@ function checkout() {
 
 function processSale() {
     isProcessing = true;
-    
-    // Disable button
     const checkoutBtn = document.getElementById('checkoutBtn');
     checkoutBtn.disabled = true;
     checkoutBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
 
-    // Show processing dialog
+    // Prepare data
+    const cartData = cart.map(item => ({ id: item.id, qty: item.qty }));
+    const payload = {
+        cart: cartData,
+        payment_method: selectedPaymentMethod
+    };
+
+    if (selectedPaymentMethod === 'MOBILE_MONEY') {
+        const phone = document.getElementById('phoneNumber').value.trim();
+        payload.phone_number = phone;
+        const providerRadio = document.querySelector('input[name="provider"]:checked');
+        if (providerRadio) payload.provider = providerRadio.value;
+    }
+
     Swal.fire({
-        title: 'Processing Sale...',
+        title: 'Processing...',
         allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
+        didOpen: () => Swal.showLoading()
     });
 
-    // Prepare cart data with proper UUID format
-    const cartData = cart.map(item => ({
-        id: item.id,
-        qty: item.qty
-    }));
-
-    console.log('Sending cart data:', cartData);
-
-    // Use the correct URL - pos_checkout
     fetch("{% url 'hardware:pos_checkout' %}", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "X-CSRFToken": "{{ csrf_token }}"
         },
-        body: JSON.stringify({ 
-            cart: cartData,
-            payment_method: 'CASH'
-        })
+        body: JSON.stringify(payload)
     })
     .then(response => {
         if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(err.message || err.error || 'Server error');
-            });
+            return response.json().then(err => { throw new Error(err.message || 'Server error'); });
         }
         return response.json();
     })
@@ -528,28 +644,104 @@ function processSale() {
             throw new Error(data.message || data.error || 'Sale failed');
         }
 
-        // Reset cart
-        cart = [];
-        updateCartUI();
+        if (selectedPaymentMethod === 'CASH') {
+            // Cash sale completed
+            Swal.close();
+            cart = [];
+            updateCartUI();
+            Swal.fire({
+                icon: 'success',
+                title: 'Sale Completed!',
+                timer: 2000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            }).then(() => {
+                window.location.href = `/hardware/receipt/${data.sale_id}/`;
+            });
+        } else {
+            // Mobile Money – pending, start polling
+            Swal.close();
+            const saleId = data.sale_id;
+            // Show waiting dialog
+            Swal.fire({
+                title: 'Payment Initiated',
+                html: `
+                    <p>Please check your phone and confirm the payment.</p>
+                    <div class="spinner-border text-brand mt-3" role="status">
+                        <span class="visually-hidden">Waiting...</span>
+                    </div>
+                    <p class="text-muted small mt-3">Waiting for confirmation...</p>
+                `,
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                timer: 60000  // timeout after 60s
+            });
 
-        // Close the loading dialog
-        Swal.close();
+            // Start polling
+            let attempts = 0;
+            const maxAttempts = 60; // 60 * 3s = 3 minutes
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(() => {
+                attempts++;
+                fetch(`/sale-status/${saleId}/`)
+                .then(res => res.json())
+                .then(statusData => {
+                    if (statusData.status === 'paid') {
+                        clearInterval(pollingInterval);
+                        pollingInterval = null;
+                        Swal.close();
+                        cart = [];
+                        updateCartUI();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Payment Confirmed!',
+                            timer: 2000,
+                            timerProgressBar: true,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.href = `/hardware/receipt/${saleId}/`;
+                        });
+                    } else if (statusData.status === 'failed' || statusData.status === 'cancelled') {
+                        clearInterval(pollingInterval);
+                        pollingInterval = null;
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Payment Failed',
+                            text: 'The mobile money transaction was not completed. Please try again.',
+                            confirmButtonColor: '#1632af'
+                        }).then(() => {
+                            // Allow retry
+                            checkoutBtn.disabled = false;
+                            checkoutBtn.innerHTML = '<i class="bi bi-bag-check me-2"></i> Complete Sale';
+                            isProcessing = false;
+                        });
+                    }
+                    // else still pending
+                })
+                .catch(err => {
+                    // Ignore network errors, keep polling
+                });
 
-        // Show success
-        Swal.fire({
-            icon: 'success',
-            title: 'Sale Completed!',
-            text: 'Transaction processed successfully.',
-            confirmButtonColor: '#1632af',
-            timer: 2000,
-            timerProgressBar: true
-        }).then(() => {
-            // Redirect to receipt
-            window.location.href = `/hardware/receipt/${data.sale_id}/`;
-        });
+                if (attempts >= maxAttempts) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Timeout',
+                        text: 'The payment is taking longer than expected. Please check your phone or contact support.',
+                        confirmButtonColor: '#1632af'
+                    }).then(() => {
+                        checkoutBtn.disabled = false;
+                        checkoutBtn.innerHTML = '<i class="bi bi-bag-check me-2"></i> Complete Sale';
+                        isProcessing = false;
+                    });
+                }
+            }, 3000);
+        }
     })
     .catch(err => {
-        console.error('Error:', err);
         Swal.close();
         Swal.fire({
             icon: 'error',
@@ -563,14 +755,12 @@ function processSale() {
     });
 }
 
-// Keyboard shortcuts
+// ---- Keyboard shortcuts ----
 document.addEventListener('keydown', function(e) {
-    // Ctrl+K or Cmd+K to focus search
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         document.getElementById('productSearch').focus();
     }
-    // Escape to clear search
     if (e.key === 'Escape') {
         const search = document.getElementById('productSearch');
         if (document.activeElement === search) {
@@ -579,14 +769,12 @@ document.addEventListener('keydown', function(e) {
             search.blur();
         }
     }
-    // Ctrl+Enter to checkout
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         checkout();
     }
 });
 
-// Show keyboard shortcuts on page load
 console.log('💡 Keyboard shortcuts: Ctrl+K (Search), Esc (Clear search), Ctrl+Enter (Checkout)');
 </script>
 

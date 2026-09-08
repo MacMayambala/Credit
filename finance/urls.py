@@ -18,10 +18,12 @@ urlpatterns = [
     path('withdraw/<int:member_id>/', views.withdraw_savings, name='withdraw_savings'),
     path('loans/all/', views.loan_list, name='loan_list'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('deposit-status/<int:tx_id>/', views.deposit_status, name='deposit_status'),
 
     # New Reports URLs
     # path('reports/', views.reports_dashboard, name='reports_dashboard'),
     # path('reports/loan-portfolio/', views.loan_portfolio_report, name='loan_portfolio_report'),
+    path('reports/savings-accounts/', views.savings_accounts_report, name='savings_accounts_report'),
     path('reports/savings/', views.savings_report, name='savings_report'),
     path('reports/cash-flow/', views.cash_flow_statement, name='cash_flow_statement'),
     path('reports/chart-of-accounts/', views.chart_of_accounts, name='chart_of_accounts'),
@@ -85,6 +87,22 @@ urlpatterns = [
     path('export/excel/', export_report_excel, name='export_report_excel'),
     path('reports/general-ledger/', views.general_ledger_report, name='general_ledger_report'),
     path('reports/loan-portfolio/', views.loan_portfolio_report, name='loan_portfolio_report'),
+
+    path('reports/outstanding-loans/', views.outstanding_loans_report, name='outstanding_loans_report'),
+    path('reports/loans-in-arrears/', views.loans_in_arrears_report, name='loans_in_arrears_report'),
+    path('reports/due-loans/', views.due_loans_report, name='due_loans_report'),
+    path('reports/cleared-loans/', views.cleared_loans_report, name='cleared_loans_report'),
+    path('reports/written-off-loans/', views.written_off_loans_report, name='written_off_loans_report'),
+    path('reports/rescheduled-loans/', views.rescheduled_loans_report, name='rescheduled_loans_report'),
+    path('reports/transferred-loans/', views.transferred_loans_report, name='transferred_loans_report'),
+    path('reports/maturity/', views.maturity_report, name='maturity_report'),
+    path('reports/forecast/', views.forecast_report, name='forecast_report'),
+    path('reports/portfolio-at-risk-ageing/', views.portfolio_at_risk_ageing_report, name='portfolio_at_risk_ageing_report'),
+    path('reports/arrears-vs-savings/', views.arrears_vs_savings_report, name='arrears_vs_savings_report'),
+    path('reports/loan-ageing/', views.loan_ageing_report, name='loan_ageing_report'),
+    path('reports/income-statement/', views.income_statement_report, name='income_statement_report'),
+    path('reports/balance-sheet/', views.statement_of_financial_position, name='statement_of_financial_position'),
+    path('settings/', views.settings_view, name='settings'),
     
 
     

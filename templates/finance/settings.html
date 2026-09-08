@@ -1,0 +1,787 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}System Settings | MAC Technologies{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ==========================================================
+       SETTINGS PAGE – DEDICATED STYLES
+       ========================================================== */
+
+    /* Override some base card styles for settings */
+    .settings-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* ----- Tabs (matches base nav-pills style) ----- */
+    .settings-tabs {
+        border-bottom: 1px solid var(--border-color);
+        padding: 0 0.25rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    .settings-tabs .nav-link {
+        color: var(--text-secondary);
+        border: none;
+        border-radius: 50px;
+        padding: 0.5rem 1.2rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: transparent;
+        margin-bottom: -1px;
+        position: relative;
+        cursor: pointer;
+    }
+
+    .settings-tabs .nav-link i {
+        font-size: 1.1rem;
+        opacity: 0.7;
+    }
+
+    .settings-tabs .nav-link:hover {
+        background: var(--brand-cobalt-bg);
+        color: var(--brand-cobalt);
+    }
+
+    .settings-tabs .nav-link.active {
+        background: transparent;
+        color: var(--brand-cobalt);
+        font-weight: 600;
+    }
+
+    .settings-tabs .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 1rem;
+        right: 1rem;
+        height: 3px;
+        background: var(--brand-cobalt);
+        border-radius: 3px 3px 0 0;
+    }
+
+    .settings-tabs .nav-link.active i {
+        opacity: 1;
+        color: var(--brand-cobalt);
+    }
+
+    @media (max-width: 768px) {
+        .settings-tabs .nav-link {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+        }
+        .settings-tabs .nav-link span {
+            display: none;
+        }
+        .settings-tabs .nav-link i {
+            font-size: 1.2rem;
+        }
+        .settings-tabs .nav-link.active::after {
+            left: 0.5rem;
+            right: 0.5rem;
+        }
+    }
+
+    /* ----- Settings Card (uses base .content-card) ----- */
+    .settings-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .settings-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .settings-card .card-header {
+        background: transparent;
+        border-bottom: 1px solid var(--border-color);
+        padding: 0.75rem 1.5rem 0;
+    }
+
+    .settings-card .card-body {
+        padding: 2rem 1.5rem 1.5rem;
+    }
+
+    /* ----- Tab content animation ----- */
+    .tab-pane {
+        animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ----- Section headers inside tabs ----- */
+    .settings-section {
+        margin-bottom: 2rem;
+    }
+
+    .settings-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .settings-section .section-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        letter-spacing: -0.02em;
+    }
+
+    .settings-section .section-title i {
+        color: var(--brand-cobalt);
+        font-size: 1.2rem;
+    }
+
+    .settings-section .section-desc {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 1.25rem;
+    }
+
+    /* ----- Form groups (consistent with base) ----- */
+    .settings-form .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .settings-form .form-label {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.35rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .settings-form .form-label i {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        width: 1.2rem;
+    }
+
+    /* ----- Universal input styling (overrides base if needed) ----- */
+    .settings-form input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    .settings-form select,
+    .settings-form textarea {
+        background: var(--bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        border-radius: var(--radius-sm);
+        padding: 0.65rem 1rem;
+        font-size: 0.9rem;
+        width: 100%;
+        transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        font-family: var(--font);
+    }
+
+    .settings-form input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+    .settings-form select:focus,
+    .settings-form textarea:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-bg);
+        outline: none;
+        background: var(--card-bg);
+    }
+
+    /* File input */
+    .settings-form input[type="file"] {
+        padding: 0.5rem;
+        background: var(--bg);
+        border-radius: var(--radius-sm);
+        border: 1px dashed var(--border-color);
+        cursor: pointer;
+        width: 100%;
+        transition: border-color 0.15s, background 0.15s;
+    }
+
+    .settings-form input[type="file"]:hover {
+        border-color: var(--brand-cobalt);
+        background: var(--brand-cobalt-bg);
+    }
+
+    /* Time input */
+    .settings-form input[type="time"] {
+        appearance: none;
+        -webkit-appearance: none;
+        padding: 0.65rem 1rem;
+    }
+
+    /* Textarea */
+    .settings-form textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    /* Select dropdown */
+    .settings-form select {
+        appearance: auto;
+        cursor: pointer;
+        padding-right: 2.5rem;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 12px;
+    }
+
+    /* ----- Custom switch (matches base styling) ----- */
+    .form-switch-custom {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+    }
+
+    .form-switch-custom .form-check-input {
+        width: 48px;
+        height: 26px;
+        background-color: var(--border-color);
+        border: none;
+        cursor: pointer;
+        border-radius: 50px;
+        transition: background-color 0.2s;
+        position: relative;
+        flex-shrink: 0;
+        margin: 0;
+        appearance: none;
+        -webkit-appearance: none;
+    }
+
+    .form-switch-custom .form-check-input:checked {
+        background-color: var(--brand-cobalt);
+    }
+
+    .form-switch-custom .form-check-input:focus {
+        box-shadow: 0 0 0 4px var(--brand-cobalt-bg);
+    }
+
+    .form-switch-custom .form-check-input::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform 0.2s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+
+    .form-switch-custom .form-check-input:checked::after {
+        transform: translateX(22px);
+    }
+
+    .form-switch-custom .form-check-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    .form-switch-custom .form-check-label small {
+        display: block;
+        font-weight: 400;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    /* ----- Logo preview ----- */
+    .logo-preview-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.25rem;
+    }
+
+    .logo-preview {
+        max-width: 120px;
+        max-height: 70px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-color);
+        padding: 0.25rem;
+        background: var(--bg);
+        object-fit: contain;
+    }
+
+    .logo-upload-area {
+        flex: 1;
+    }
+
+    /* ----- Buttons (using base button styles) ----- */
+    .settings-form .btn-primary {
+        background: var(--brand-cobalt);
+        border: none;
+        border-radius: 50px;
+        padding: 0.6rem 2.2rem;
+        font-weight: 500;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #fff;
+    }
+
+    .settings-form .btn-primary:hover {
+        background: var(--brand-cobalt-dark);
+        box-shadow: 0 4px 15px var(--brand-cobalt-glow);
+        transform: translateY(-1px);
+        color: #fff;
+    }
+
+    .settings-form .btn-secondary {
+        border-radius: 50px;
+        border-color: var(--border-color);
+        color: var(--text-secondary);
+        padding: 0.6rem 1.5rem;
+        background: transparent;
+    }
+
+    .settings-form .btn-secondary:hover {
+        background: var(--hover-bg);
+        border-color: var(--text-muted);
+    }
+
+    /* ----- Action bar ----- */
+    .form-actions {
+        border-top: 1px solid var(--border-color);
+        padding-top: 1.5rem;
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+
+    /* ==========================================================
+       RESPONSIVE
+       ========================================================== */
+    @media (max-width: 576px) {
+        .settings-card .card-body {
+            padding: 1.25rem;
+        }
+
+        .settings-tabs .nav-link {
+            padding: 0.3rem 0.6rem;
+        }
+
+        .settings-form .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .logo-preview-wrapper {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .form-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    /* ==========================================================
+       DARK MODE OVERRIDES
+       ========================================================== */
+    [data-theme="dark"] .settings-form input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    [data-theme="dark"] .settings-form select,
+    [data-theme="dark"] .settings-form textarea {
+        background: var(--card-bg);
+    }
+
+    [data-theme="dark"] .settings-form input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+    [data-theme="dark"] .settings-form select:focus,
+    [data-theme="dark"] .settings-form textarea:focus {
+        background: var(--card-bg);
+    }
+
+    [data-theme="dark"] .settings-tabs .nav-link.active {
+        color: var(--brand-cobalt);
+    }
+
+    [data-theme="dark"] .settings-tabs .nav-link.active::after {
+        background: var(--brand-cobalt);
+    }
+
+    [data-theme="dark"] .settings-form input[type="file"] {
+        background: var(--card-bg);
+    }
+
+    [data-theme="dark"] .settings-form select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-wrapper">
+    <!-- Page Header (matches base style) -->
+    <header class="page-header d-flex flex-wrap flex-sm-nowrap align-items-center justify-content-between gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small" style="font-size: 0.8rem;">
+                    <li class="breadcrumb-item"><a href="{% url 'hardware:dashboard' %}" class="text-decoration-none" style="color: var(--text-secondary);">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page" style="color: var(--text-primary); font-weight: 500;">Settings</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-gear" style="color: var(--brand-cobalt);"></i>
+                System Settings
+            </h4>
+            <p class="text-muted small mb-0 mt-1">Configure company details, security, auto‑repayments, and more.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'hardware:dashboard' %}" class="btn btn-outline-secondary rounded-pill px-3 d-flex align-items-center gap-2">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Settings Card -->
+    <div class="settings-card mt-3">
+        <!-- Tabs -->
+        <div class="card-header">
+            <ul class="nav settings-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'company' %}active{% endif %}" id="company-tab" data-bs-toggle="tab" data-bs-target="#company" type="button" role="tab" aria-controls="company" aria-selected="true">
+                        <i class="bi bi-building"></i> <span>Company</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'system' %}active{% endif %}" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab" aria-controls="system" aria-selected="false">
+                        <i class="bi bi-sliders2"></i> <span>System</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'global' %}active{% endif %}" id="global-tab" data-bs-toggle="tab" data-bs-target="#global" type="button" role="tab" aria-controls="global" aria-selected="false">
+                        <i class="bi bi-shield-lock"></i> <span>Security</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'autorepay' %}active{% endif %}" id="autorepay-tab" data-bs-toggle="tab" data-bs-target="#autorepay" type="button" role="tab" aria-controls="autorepay" aria-selected="false">
+                        <i class="bi bi-arrow-repeat"></i> <span>Auto‑Repay</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'sms' %}active{% endif %}" id="sms-tab" data-bs-toggle="tab" data-bs-target="#sms" type="button" role="tab" aria-controls="sms" aria-selected="false">
+                        <i class="bi bi-chat-dots"></i> <span>SMS</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body">
+            <!-- Messages (uses base toast styling) -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="tab-content settings-form">
+                <!-- ===================== COMPANY TAB ===================== -->
+                <div class="tab-pane fade {% if active_tab == 'company' %}show active{% endif %}" id="company" role="tabpanel" aria-labelledby="company-tab">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="company">
+
+                        <div class="settings-section">
+                            <div class="section-title"><i class="bi bi-info-circle"></i> Basic Information</div>
+                            <div class="section-desc">Update your company's core details displayed across the system.</div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="id_name" class="form-label"><i class="bi bi-tag"></i> Company Name</label>
+                                        {{ company_form.name }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="id_tagline" class="form-label"><i class="bi bi-quote"></i> Tagline</label>
+                                        {{ company_form.tagline }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <div class="section-title"><i class="bi bi-image"></i> Branding</div>
+                            <div class="section-desc">Upload your company logo (square image recommended).</div>
+                            <div class="form-group">
+                                <label for="id_logo" class="form-label"><i class="bi bi-upload"></i> Logo</label>
+                                <div class="logo-preview-wrapper">
+                                    {% if company_form.instance.logo %}
+                                        <img src="{{ company_form.instance.logo.url }}" class="logo-preview" alt="Logo">
+                                    {% endif %}
+                                    <div class="logo-upload-area">
+                                        {{ company_form.logo }}
+                                        <div class="form-text">Accepted formats: PNG, JPG, SVG. Max size 2MB.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <div class="section-title"><i class="bi bi-phone"></i> Contact Details</div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="id_phone" class="form-label"><i class="bi bi-telephone"></i> Phone</label>
+                                        {{ company_form.phone }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="id_email" class="form-label"><i class="bi bi-envelope"></i> Email</label>
+                                        {{ company_form.email }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="id_website" class="form-label"><i class="bi bi-globe"></i> Website</label>
+                                        {{ company_form.website }}
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-group">
+                                        <label for="id_address" class="form-label"><i class="bi bi-geo-alt"></i> Physical Address</label>
+                                        {{ company_form.address }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check2"></i> Save Company Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ===================== SYSTEM TAB ===================== -->
+                <div class="tab-pane fade {% if active_tab == 'system' %}show active{% endif %}" id="system" role="tabpanel" aria-labelledby="system-tab">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="system">
+
+                        <div class="settings-section">
+                            <div class="section-title"><i class="bi bi-hash"></i> Member Numbering</div>
+                            <div class="section-desc">Configure how member numbers are generated.</div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="id_member_prefix" class="form-label"><i class="bi bi-prefix"></i> Prefix</label>
+                                        {{ system_form.member_prefix }}
+                                        <div class="form-text">e.g., KAL, ABC – used as the starting letters for all member numbers.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <div class="section-title"><i class="bi bi-calendar-event"></i> Back‑dating</div>
+                            <div class="section-desc">Allow manual date entry for deposits and repayments.</div>
+                            <div class="form-group">
+                                <div class="form-switch-custom">
+                                    {{ system_form.enable_back_dating }}
+                                    <label class="form-check-label" for="id_enable_back_dating">
+                                        Enable back‑dating
+                                        <small>If enabled, users can set custom transaction dates.</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check2"></i> Save System Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ===================== SECURITY TAB ===================== -->
+                <div class="tab-pane fade {% if active_tab == 'global' %}show active{% endif %}" id="global" role="tabpanel" aria-labelledby="global-tab">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="global">
+
+                        <div class="settings-section">
+                            <div class="section-title"><i class="bi bi-shield-check"></i> Two‑Factor Authentication</div>
+                            <div class="section-desc">Force all users to enable 2FA for enhanced security.</div>
+                            <div class="form-group">
+                                <div class="form-switch-custom">
+                                    {{ global_form.enable_global_2fa }}
+                                    <label class="form-check-label" for="id_enable_global_2fa">
+                                        Force 2FA for all users
+                                        <small>When enabled, every user must set up two‑factor authentication before accessing the system.</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check2"></i> Save Security Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ===================== AUTO-REPAYMENT TAB ===================== -->
+                <div class="tab-pane fade {% if active_tab == 'autorepay' %}show active{% endif %}" id="autorepay" role="tabpanel" aria-labelledby="autorepay-tab">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="autorepay">
+
+                        <div class="settings-section">
+                            <div class="section-title"><i class="bi bi-clock"></i> Automatic Repayment Engine</div>
+                            <div class="section-desc">Configure the scheduler that automatically deducts overdue amounts from member savings.</div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <div class="form-switch-custom">
+                                            {{ auto_form.is_enabled }}
+                                            <label class="form-check-label" for="id_is_enabled">
+                                                Enable Auto Repayments
+                                                <small>If enabled, the system will automatically attempt to recover overdue installments.</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="id_execution_time" class="form-label"><i class="bi bi-clock"></i> Execution Time</label>
+                                        {{ auto_form.execution_time }}
+                                        <div class="form-text">Time of day when the auto‑repayment job runs.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="id_frequency" class="form-label"><i class="bi bi-arrow-repeat"></i> Frequency</label>
+                                        {{ auto_form.frequency }}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="id_grace_period_days" class="form-label"><i class="bi bi-calendar-day"></i> Grace Period (days)</label>
+                                        {{ auto_form.grace_period_days }}
+                                        <div class="form-text">Days after due date before the system attempts deduction.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check2"></i> Save Auto‑Repayment Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ===================== SMS TAB ===================== -->
+                <div class="tab-pane fade {% if active_tab == 'sms' %}show active{% endif %}" id="sms" role="tabpanel" aria-labelledby="sms-tab">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="sms">
+
+                        <div class="settings-section">
+                            <div class="section-title"><i class="bi bi-chat-dots"></i> SMS Gateway Configuration</div>
+                            <div class="section-desc">Manage your SMS credit balance and per‑message cost.</div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="id_balance" class="form-label"><i class="bi bi-wallet"></i> SMS Balance (UGX)</label>
+                                        {{ sms_form.balance }}
+                                        <div class="form-text">Current credit balance in Uganda Shillings.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="id_cost_per_sms" class="form-label"><i class="bi bi-coin"></i> Cost per SMS (UGX)</label>
+                                        {{ sms_form.cost_per_sms }}
+                                        <div class="form-text">
+                                            Estimated remaining messages:
+                                            <strong>
+                                                {% with balance=sms_form.instance.balance|default:0 cost=sms_form.instance.cost_per_sms|default:100 %}
+                                                    {% if cost > 0 %}
+                                                        {{ balance|floatformat:0|add:"0"|divisibleby:cost }}
+                                                    {% else %}
+                                                        0
+                                                    {% endif %}
+                                                {% endwith %}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check2"></i> Save SMS Configuration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        'use strict';
+
+        // Tab activation – preserve active tab via URL parameter
+        const activeTab = '{{ active_tab }}';
+        if (activeTab) {
+            const trigger = document.querySelector(`#${activeTab}-tab`);
+            if (trigger) {
+                const tab = new bootstrap.Tab(trigger);
+                tab.show();
+            }
+        }
+
+        // Auto‑dismiss alerts after 5 seconds (uses base toast system)
+        setTimeout(function() {
+            document.querySelectorAll('.alert').forEach(function(el) {
+                const close = new bootstrap.Alert(el);
+                close.close();
+            });
+        }, 5000);
+
+        // Optional: sync theme toggle with base (already handled globally)
+        console.log('⚙️ Settings page initialised.');
+    })();
+</script>
+{% endblock %}

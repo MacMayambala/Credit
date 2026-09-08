@@ -199,10 +199,16 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 
-def generate_excel_report(columns, data, report_title="Report", company_name="Company"):
+# finance/utils.py
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side, numbers
+from openpyxl.utils import get_column_letter
+
+def generate_excel_report(columns, data, report_title="Report", company_name="Company", totals=None):
     """
     Generate an Excel workbook from report columns and data.
-    Returns a BytesIO object containing the .xlsx file.
+    If totals is provided, a totals row is added.
     """
     wb = Workbook()
     ws = wb.active
@@ -221,12 +227,12 @@ def generate_excel_report(columns, data, report_title="Report", company_name="Co
         bottom=Side(style='thin')
     )
 
-    # Optional title row
     row = 1
+    # Title row
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=len(columns))
-    ws.cell(row=row, column=1).value = f"{company_name} - {report_title}"
-    ws.cell(row=row, column=1).font = Font(bold=True, size=14)
-    ws.cell(row=row, column=1).alignment = Alignment(horizontal="center")
+    title_cell = ws.cell(row=row, column=1, value=f"{company_name} - {report_title}")
+    title_cell.font = Font(bold=True, size=14)
+    title_cell.alignment = Alignment(horizontal="center")
     row += 1
 
     # Headers
@@ -266,16 +272,48 @@ def generate_excel_report(columns, data, report_title="Report", company_name="Co
                 cell.alignment = cell_alignment
         row += 1
 
-    # Auto-size columns
+    # Totals row (if provided)
+    if totals:
+        # First cell: "TOTALS"
+        cell = ws.cell(row=row, column=1, value="TOTALS")
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
+        cell.border = border
+
+        for col_idx, col in enumerate(columns, start=1):
+            if col.get('total') and col.get('key') in totals:
+                total_val = totals[col['key']]
+                if col.get('type') == 'currency':
+                    try:
+                        total_val = f"{float(total_val):,.0f}"
+                    except (ValueError, TypeError):
+                        pass
+                else:
+                    total_val = str(total_val)
+                cell = ws.cell(row=row, column=col_idx, value=total_val)
+                cell.font = Font(bold=True)
+                cell.border = border
+                if col.get('align') == 'right' or col.get('type') == 'currency':
+                    cell.alignment = number_alignment
+                else:
+                    cell.alignment = cell_alignment
+        row += 1
+
+    # Auto‑size columns (based on header and data length)
     for col_idx in range(1, len(columns) + 1):
         col_letter = get_column_letter(col_idx)
-        ws.column_dimensions[col_letter].width = 18
+        max_len = 0
+        for r in range(1, row + 1):
+            cell_value = ws.cell(row=r, column=col_idx).value
+            if cell_value:
+                max_len = max(max_len, len(str(cell_value)))
+        # Cap at 40 chars, set minimum 12
+        ws.column_dimensions[col_letter].width = min(max(max_len + 2, 12), 40)
 
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
     return output
-
 # finance/views.py
 import random
 from decimal import Decimal
@@ -606,3 +644,32 @@ def generate_excel_report(columns, data, report_title="Report", company_name="Co
     wb.save(output)
     output.seek(0)
     return output
+
+
+
+
+# finance/views.py (add at top with other imports)
+from django.shortcuts import redirect
+from django.urls import reverse
+
+def get_selected_columns(request, report_type, all_columns):
+    """Retrieve selected column keys from session."""
+    session_key = f'report_columns_{report_type}'
+    selected_keys = request.session.get(session_key, [])
+    if not selected_keys:
+        return [col['key'] for col in all_columns]
+    valid_keys = [col['key'] for col in all_columns]
+    return [key for key in selected_keys if key in valid_keys]
+
+def save_column_selection(request, report_type, selected_keys):
+    """Save selected column keys to session."""
+    session_key = f'report_columns_{report_type}'
+    request.session[session_key] = selected_keys
+    request.session.modified = True
+
+def reset_column_selection(request, report_type):
+    """Remove saved column selection (reset to default)."""
+    session_key = f'report_columns_{report_type}'
+    if session_key in request.session:
+        del request.session[session_key]
+        request.session.modified = True

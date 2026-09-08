@@ -1,36 +1,27 @@
-from .models import Product, StockTransaction
-
-from django.db.models import Sum, F, ExpressionWrapper, DecimalField
-from .models import Product, StockTransaction
-
-from django.db.models import Sum, F, Case, When, Value, DecimalField, IntegerField
-from .models import Product
-
-from django.db.models import Sum, F, Case, When, Value, DecimalField, IntegerField
-from django.db.models.functions import Coalesce
-from .models import Product
-
-from django.db.models import Sum, F, Case, When, Value, DecimalField, IntegerField, ExpressionWrapper
-from django.db.models.functions import Coalesce
-from .models import Product
-
+# hardware/services.py
 from decimal import Decimal
+from django.db import transaction
 from django.db.models import Sum, Count, Q, F, Value, Case, When, IntegerField, DecimalField, ExpressionWrapper
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-from .models import Product, Sale, StockTransaction
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
-from decimal import Decimal
-from django.db.models import Sum, Count, Q, F, Value, Case, When, IntegerField, DecimalField, ExpressionWrapper
-from django.db.models.functions import Coalesce
-from django.utils import timezone
-from .models import Product, Sale, StockTransaction, Purchase
+from .models import (
+    Product, Sale, SaleItem, StockTransaction,
+    Purchase, PurchaseItem, Category, Supplier, Customer
+)
 
+
+# ============================================================
+# DASHBOARD STATS
+# ============================================================
 def get_dashboard_stats():
     today = timezone.now().date()
     start_of_month = today.replace(day=1)
 
-    # ---------- Stock Calculation (using ledger) ----------
+    # Stock calculation using ledger
     products = Product.objects.annotate(
         inflow=Coalesce(
             Sum('ledger__quantity',
@@ -64,14 +55,14 @@ def get_dashboard_stats():
         )
     )
 
-    # ---------- Today's Sales ----------
+    # Today's sales
     todays_sales = Sale.objects.filter(
         date__date=today
     ).aggregate(
         total=Coalesce(Sum('total_amount'), Decimal('0.00'))
     )['total']
 
-    # ---------- Monthly Revenue ----------
+    # Monthly revenue
     monthly_revenue = Sale.objects.filter(
         date__date__gte=start_of_month,
         date__date__lte=today
@@ -79,33 +70,29 @@ def get_dashboard_stats():
         total=Coalesce(Sum('total_amount'), Decimal('0.00'))
     )['total']
 
-    # ---------- Total Sales Count ----------
     total_sales_count = Sale.objects.count()
 
-    # ---------- Recent Transactions ----------
-    # If you have StockTransaction records, use them. Otherwise, use Sale/Purchase.
+    # Recent transactions (using StockTransaction, fallback to SaleItem)
     recent_transactions = StockTransaction.objects.select_related('product').order_by('-created_at')[:10]
-
-    # If StockTransaction is empty, fallback to SaleItems or PurchaseItems
     if not recent_transactions:
-        # Fallback: Use SaleItem (recent sales)
         from .models import SaleItem
         recent_transactions = SaleItem.objects.select_related('product', 'sale').order_by('-sale__date')[:10]
-        # You'll need to adjust the template to handle different objects.
 
     return {
         'total_products': Product.objects.count(),
         'inventory_value': stats['total_value'] or Decimal('0.00'),
         'low_stock_count': stats['low_stock_count'] or 0,
         'todays_sales': todays_sales,
-        'todays_revenue': todays_sales,   # same as todays_sales
+        'todays_revenue': todays_sales,
         'monthly_revenue': monthly_revenue,
         'total_sales_count': total_sales_count,
         'recent_transactions': recent_transactions,
     }
-# hardware/services.py
-from .models import Product, StockTransaction
 
+
+# ============================================================
+# PRODUCT WITH OPENING STOCK
+# ============================================================
 def create_product_with_opening_stock(data, opening_qty, user):
     """
     Creates a product and initializes its stock via a ledger transaction.
@@ -116,133 +103,132 @@ def create_product_with_opening_stock(data, opening_qty, user):
             product=product,
             quantity=opening_qty,
             transaction_type='ADJUSTMENT',
-            user=user
+            reference_id='INITIAL',
+            created_by=user,
+            remarks='Opening stock'
         )
     return product
 
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from .models import StockTransaction
-
-
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from .models import StockTransaction
-
-
-@receiver(post_save, sender=StockTransaction)
-def update_product_stock(sender, instance, created, **kwargs):
-    if created:
-        product = instance.product
-        # Deduct stock for Sales; add stock for Purchases
-        if instance.transaction_type == 'SALE':
-            product.current_stock -= instance.quantity
-        elif instance.transaction_type == 'PURCHASE':
-            product.current_stock += instance.quantity
-        elif instance.transaction_type == 'ADJUSTMENT':
-            # For adjustments, you might want to handle this differently
-            product.current_stock += instance.quantity
-        elif instance.transaction_type == 'RETURN':
-            product.current_stock += instance.quantity
-        product.save()
-
-from django.contrib.auth.models import User
-from django.db import transaction
-from .models import StockTransaction, Purchase, PurchaseItem
-
+# ============================================================
+# PURCHASE CREATION (with stock update)
+# ============================================================
 def create_purchase(supplier, items_data, invoice_number, user):
     """
     items_data: list of dicts like {'product': ProductObj, 'qty': 5, 'cost': 100}
     """
     with transaction.atomic():
-        # 1. Create the Purchase Header
         total = sum(i['qty'] * i['cost'] for i in items_data)
         purchase = Purchase.objects.create(
-            invoice_number=invoice_number, 
-            supplier=supplier, 
+            invoice_number=invoice_number,
+            supplier=supplier,
             total_amount=total
         )
-        
-        # 2. Create Items and trigger the Ledger
+
         for item in items_data:
             PurchaseItem.objects.create(
-                purchase=purchase, 
-                product=item['product'], 
-                quantity=item['qty'], 
+                purchase=purchase,
+                product=item['product'],
+                quantity=item['qty'],
                 cost=item['cost']
             )
-            
-            # This triggers the StockTransaction which updates product stock via signals
+
             StockTransaction.objects.create(
                 product=item['product'],
                 quantity=item['qty'],
                 transaction_type='PURCHASE',
                 reference_id=invoice_number,
-                created_by=user
+                created_by=user,
+                remarks=f"Purchase {invoice_number}"
             )
 
-from django.db import transaction
-from .models import Sale, SaleItem, StockTransaction
+        return purchase
 
-def process_pos_sale(cart_items, customer, payment_method, user):
+
+# ============================================================
+# POINT‑OF‑SALE SALE (IMMEDIATE, CASH)
+# ============================================================
+def secure_process_sale(cart_items, customer, payment_method, cashier, status='paid'):
     """
-    cart_items: list of {'product': obj, 'qty': int, 'price': decimal}
+    Process a sale: create sale, sale items, update stock, and record stock transactions.
+    If status is 'paid' (default), stock is deducted immediately.
+    If status is 'pending', stock is NOT deducted – must be done later via webhook.
     """
     with transaction.atomic():
-        # 1. Create Sale Header
-        total_amount = sum(item['qty'] * item['price'] for item in cart_items)
-        sale = Sale.objects.create(
-            customer=customer, 
-            total_amount=total_amount, 
-            payment_method=payment_method,
-            cashier=user
-        )
-        
-        # 2. Process Items and Inventory
+        total = Decimal('0')
         for item in cart_items:
-            # Check for stock availability
-            if item['product'].current_stock < item['qty']:
-                raise ValueError(f"Not enough stock for {item['product'].name}")
-                
-            SaleItem.objects.create(sale=sale, product=item['product'], quantity=item['qty'], price=item['price'])
-            
-            # Record in Ledger (Triggers stock deduction signal)
-            StockTransaction.objects.create(
+            total += item['price'] * item['qty']
+
+        sale = Sale.objects.create(
+            customer=customer,
+            total_amount=total,
+            payment_method=payment_method,
+            cashier=cashier,
+            status=status,
+            phone_number=cart_items[0].get('phone_number') if cart_items else None,
+        )
+
+        for item in cart_items:
+            SaleItem.objects.create(
+                sale=sale,
                 product=item['product'],
                 quantity=item['qty'],
-                transaction_type='SALE',
-                reference_id=sale.id,
-                created_by=user
+                price=item['price']
             )
+
+            # Only deduct stock if status is 'paid'
+            if status == 'paid':
+                product = item['product']
+                # Lock row to prevent race conditions
+                product = Product.objects.select_for_update().get(id=product.id)
+                if product.current_stock < item['qty']:
+                    raise ValueError(f"Insufficient stock for {product.name}. Available: {product.current_stock}")
+                product.current_stock -= item['qty']
+                product.save()
+
+                StockTransaction.objects.create(
+                    product=product,
+                    quantity=-item['qty'],  # negative for sales
+                    transaction_type='SALE',
+                    reference_id=str(sale.id),
+                    created_by=cashier,
+                    remarks=f"Sale #{sale.id}"
+                )
+
         return sale
-    
 
 
-from django.db import transaction
-# Assuming your finance app has a model like 'Transaction' or 'LedgerEntry'
-from finance.models import Transaction 
-
-def finalize_sale_and_finance(sale, payment_method):
+# ============================================================
+# CREATE PENDING SALE (for mobile money, no stock deduction)
+# ============================================================
+def create_pending_sale(cart_items, cashier, phone_number, total_amount):
+    """
+    Create a sale with status 'pending' – no stock deduction.
+    Used for mobile money payments before confirmation.
+    """
     with transaction.atomic():
-        # 1. Update the sale status
-        sale.status = 'COMPLETED'
-        sale.save()
-        
-        # 2. Record in Finance App (Double-entry logic)
-        Transaction.objects.create(
-            amount=sale.total_amount,
-            account_type='REVENUE',
-            description=f"Sale Receipt #{sale.id}",
-            payment_method=payment_method,
-            date=sale.date
+        sale = Sale.objects.create(
+            customer=None,
+            total_amount=total_amount,
+            payment_method='MOBILE_MONEY',
+            cashier=cashier,
+            status='pending',
+            phone_number=phone_number,
         )
+        for item in cart_items:
+            SaleItem.objects.create(
+                sale=sale,
+                product=item['product'],
+                quantity=item['qty'],
+                price=item['price']
+            )
+        # Stock NOT deducted – will be done in webhook when payment confirmed
+        return sale
 
 
-
-from django.db.models import Sum, F
-from .models import SaleItem
-
+# ============================================================
+# PROFIT REPORT
+# ============================================================
 def get_profit_report(start_date, end_date):
     """
     Calculates total Sales, COGS, and Gross Profit for a period.
@@ -253,11 +239,11 @@ def get_profit_report(start_date, end_date):
         total_revenue=Sum(F('quantity') * F('price')),
         total_cogs=Sum(F('quantity') * F('product__cost_price'))
     )
-    
-    revenue = data['total_revenue'] or 0
-    cogs = data['total_cogs'] or 0
+
+    revenue = data['total_revenue'] or Decimal('0')
+    cogs = data['total_cogs'] or Decimal('0')
     gross_profit = revenue - cogs
-    
+
     return {
         'revenue': revenue,
         'cogs': cogs,
@@ -266,67 +252,25 @@ def get_profit_report(start_date, end_date):
     }
 
 
-
-from django.db import transaction
-from .models import Product, Sale, SaleItem, StockTransaction
-
-def secure_process_sale(cart_items, customer, payment_method, user):
-    """
-    cart_items: list of dicts like {'product': ProductObj, 'qty': Decimal, 'price': Decimal}
-    """
-    with transaction.atomic():
-        # 1. Calculate total amount
-        total_amount = sum(item['qty'] * item['price'] for item in cart_items)
-        
-        # 2. Create Sale Header
-        sale = Sale.objects.create(
-            customer=customer,
-            total_amount=total_amount,
-            payment_method=payment_method,
-            cashier=user
-        )
-        
-        # 3. Process each item with row-level locking
-        for item in cart_items:
-            # Lock the product row to prevent race conditions during stock deduction
-            product = Product.objects.select_for_update().get(id=item['product'].id)
-            
-            if product.current_stock < item['qty']:
-                raise ValueError(f"Insufficient stock for {product.name}. Available: {product.current_stock}")
-            
-            # Create Sale Item
-            SaleItem.objects.create(
-                sale=sale,
-                product=product,
-                quantity=item['qty'],
-                price=item['price']
-            )
-            
-            # Create Ledger Entry (This will trigger the signal to update current_stock)
-            StockTransaction.objects.create(
-                product=product,
-                quantity=item['qty'],
-                transaction_type='SALE',
-                reference_id=str(sale.id),
-                created_by=user,
-                remarks=f"Sale transaction for invoice {sale.id}"
-            )
-            
-        return sale
-
-
-
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from .models import StockTransaction
-
+# ============================================================
+# SIGNAL: UPDATE PRODUCT STOCK ON STOCK TRANSACTION
+# ============================================================
 @receiver(post_save, sender=StockTransaction)
 def update_product_stock(sender, instance, created, **kwargs):
+    """
+    Whenever a StockTransaction is created, update the product's current_stock.
+    """
     if created:
         product = instance.product
-        # Deduct stock for Sales; add stock for Purchases
-        if instance.transaction_type == 'SALE':
-            product.current_stock -= instance.quantity
-        elif instance.transaction_type == 'PURCHASE':
+        # For SALE transactions, quantity is already negative (if we stored negative)
+        # but to be safe, we'll add/subtract based on transaction type.
+        if instance.transaction_type == 'PURCHASE':
             product.current_stock += instance.quantity
+        elif instance.transaction_type == 'SALE':
+            # We store negative quantity in sale transactions, so add it (which subtracts)
+            product.current_stock += instance.quantity  # instance.quantity is negative
+        elif instance.transaction_type in ('ADJUSTMENT', 'RETURN'):
+            # Adjustments and returns: add quantity (positive)
+            product.current_stock += instance.quantity
+        # If you use positive quantities for sales, change accordingly.
         product.save()

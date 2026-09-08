@@ -236,6 +236,11 @@
         color: var(--warning);
     }
 
+    .report-card .icon-box.primary {
+        background: rgba(22, 50, 175, 0.1);
+        color: var(--brand-cobalt);
+    }
+
     .report-card h5 {
         font-weight: 700;
         font-size: 1rem;
@@ -357,6 +362,31 @@
         box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
     }
 
+    .btn-success-custom {
+        background: var(--success);
+        color: white;
+        border: none;
+        font-weight: 700;
+        font-size: 0.8rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        width: 100%;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-success-custom:hover {
+        background: #059669;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+    }
+
     /* ============================================
        RESPONSIVE
        ============================================ */
@@ -417,7 +447,8 @@
         .btn-cobalt,
         .btn-outline-cobalt,
         .btn-danger-custom,
-        .btn-warning-custom {
+        .btn-warning-custom,
+        .btn-success-custom {
             font-size: 0.7rem;
             padding: 0.4rem 1rem;
         }
@@ -484,6 +515,7 @@
         animation: fadeInUp 0.4s ease forwards;
     }
 
+    /* delays for up to 28 cards */
     .report-card:nth-child(1) { animation-delay: 0.10s; }
     .report-card:nth-child(2) { animation-delay: 0.15s; }
     .report-card:nth-child(3) { animation-delay: 0.20s; }
@@ -498,6 +530,20 @@
     .report-card:nth-child(12) { animation-delay: 0.65s; }
     .report-card:nth-child(13) { animation-delay: 0.70s; }
     .report-card:nth-child(14) { animation-delay: 0.75s; }
+    .report-card:nth-child(15) { animation-delay: 0.80s; }
+    .report-card:nth-child(16) { animation-delay: 0.85s; }
+    .report-card:nth-child(17) { animation-delay: 0.90s; }
+    .report-card:nth-child(18) { animation-delay: 0.95s; }
+    .report-card:nth-child(19) { animation-delay: 1.00s; }
+    .report-card:nth-child(20) { animation-delay: 1.05s; }
+    .report-card:nth-child(21) { animation-delay: 1.10s; }
+    .report-card:nth-child(22) { animation-delay: 1.15s; }
+    .report-card:nth-child(23) { animation-delay: 1.20s; }
+    .report-card:nth-child(24) { animation-delay: 1.25s; }
+    .report-card:nth-child(25) { animation-delay: 1.30s; }
+    .report-card:nth-child(26) { animation-delay: 1.35s; }
+    .report-card:nth-child(27) { animation-delay: 1.40s; }
+    .report-card:nth-child(28) { animation-delay: 1.45s; }
 </style>
 
 <div class="container-fluid py-4 px-3 px-lg-4">
@@ -650,6 +696,205 @@
             </div>
         </div>
 
+        <!-- === DETAILED LOAN REPORTS === -->
+        <div class="col-12 mt-4">
+            <h5 class="fw-bold text-muted text-uppercase small tracking-wider mb-3" style="letter-spacing: 0.06em;">
+                <i class="bi bi-list-ul me-2" style="color: var(--brand-cobalt);"></i> Detailed Loan Reports
+            </h5>
+        </div>
+
+        <!-- 5. Outstanding Loans -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box info">
+                        <i class="bi bi-coin"></i>
+                    </div>
+                    <h5>Outstanding Loans</h5>
+                    <p>List of all loans with a positive outstanding balance.</p>
+                    <a href="{% url 'outstanding_loans_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Loans In Arrears -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <h5>Loans In Arrears</h5>
+                    <p>Loans that have any overdue installments.</p>
+                    <a href="{% url 'loans_in_arrears_report' %}" class="btn-danger-custom">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Due Loans -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box warning">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <h5>Due Loans</h5>
+                    <p>Loans with installments due within a selected period.</p>
+                    <a href="{% url 'due_loans_report' %}" class="btn-warning-custom">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Cleared Loans -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box success">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                    <h5>Cleared Loans</h5>
+                    <p>List of loans fully repaid within a given period.</p>
+                    <a href="{% url 'cleared_loans_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. Written Off Loans -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box danger">
+                        <i class="bi bi-x-octagon-fill"></i>
+                    </div>
+                    <h5>Written Off Loans</h5>
+                    <p>Loans written off during a selected period.</p>
+                    <a href="{% url 'written_off_loans_report' %}" class="btn-danger-custom">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10. Rescheduled Loans -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box info">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <h5>Rescheduled Loans</h5>
+                    <p>Loans that have been restructured or rescheduled.</p>
+                    <a href="{% url 'rescheduled_loans_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 11. Transferred Loans -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box warning">
+                        <i class="bi bi-arrow-right-circle-fill"></i>
+                    </div>
+                    <h5>Transferred Loans</h5>
+                    <p>Loans transferred between officers or branches.</p>
+                    <a href="{% url 'transferred_loans_report' %}" class="btn-warning-custom">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 12. Maturity Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box cobalt">
+                        <i class="bi bi-calendar-range-fill"></i>
+                    </div>
+                    <h5>Maturity Report</h5>
+                    <p>Loans expiring within a given period, including future dates.</p>
+                    <a href="{% url 'maturity_report' %}" class="btn-cobalt">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 13. Forecast Report -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box info">
+                        <i class="bi bi-binoculars-fill"></i>
+                    </div>
+                    <h5>Forecast Report</h5>
+                    <p>Future due loans in a selected period.</p>
+                    <a href="{% url 'forecast_report' %}" class="btn-outline-cobalt">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 14. Portfolio at Risk By Ageing -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box danger">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <h5>Portfolio at Risk By Ageing</h5>
+                    <p>Loans classified by ageing buckets (1-30, 31-60, etc.).</p>
+                    <a href="{% url 'portfolio_at_risk_ageing_report' %}" class="btn-danger-custom">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 15. Arrears Vs Savings -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box warning">
+                        <i class="bi bi-pie-chart"></i>
+                    </div>
+                    <h5>Arrears Vs Savings</h5>
+                    <p>Compare arrears against member savings balances.</p>
+                    <a href="{% url 'arrears_vs_savings_report' %}" class="btn-warning-custom">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 16. Loan Ageing -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box cobalt">
+                        <i class="bi bi-bar-chart-steps"></i>
+                    </div>
+                    <h5>Loan Ageing</h5>
+                    <p>Detailed breakdown of how each loan’s arrears are ageing.</p>
+                    <a href="{% url 'loan_ageing_report' %}" class="btn-cobalt">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- === ACCOUNTING & FINANCIALS === -->
         <div class="col-12 mt-4">
             <h5 class="fw-bold text-muted text-uppercase small tracking-wider mb-3" style="letter-spacing: 0.06em;">
@@ -657,7 +902,7 @@
             </h5>
         </div>
 
-        <!-- 5. General Ledger -->
+        <!-- 17. General Ledger -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
@@ -673,7 +918,7 @@
             </div>
         </div>
 
-        <!-- 6. Financial Report -->
+        <!-- 18. Financial Report -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
@@ -689,7 +934,7 @@
             </div>
         </div>
 
-        <!-- 7. Interest Report -->
+        <!-- 19. Interest Report -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
@@ -705,7 +950,7 @@
             </div>
         </div>
 
-        <!-- 8. Accounting Report -->
+        <!-- 20. Accounting Report -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
@@ -721,6 +966,38 @@
             </div>
         </div>
 
+        <!-- 21. Statement of Comprehensive Income (NEW) -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box primary">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <h5>Income Statement</h5>
+                    <p>Profitability over a period – shows total income, expenses, and net surplus/loss.</p>
+                    <a href="{% url 'income_statement_report' %}" class="btn-success-custom">
+                        <i class="bi bi-file-earmark-text"></i> View Income Statement
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 22. Statement of Financial Position (NEW) -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box primary">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <h5>Balance Sheet</h5>
+                    <p>Snapshot of assets, liabilities, and equity at a point in time.</p>
+                    <a href="{% url 'statement_of_financial_position' %}" class="btn-cobalt">
+                        <i class="bi bi-file-earmark-text"></i> View Balance Sheet
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- === MEMBERS & OFFICERS === -->
         <div class="col-12 mt-4">
             <h5 class="fw-bold text-muted text-uppercase small tracking-wider mb-3" style="letter-spacing: 0.06em;">
@@ -728,7 +1005,7 @@
             </h5>
         </div>
 
-        <!-- 9. Member Report -->
+        <!-- 23. Member Report -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
@@ -744,7 +1021,7 @@
             </div>
         </div>
 
-        <!-- 10. Officer Report -->
+        <!-- 24. Officer Report -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
@@ -760,7 +1037,7 @@
             </div>
         </div>
 
-        <!-- 11. Savings Analytics -->
+        <!-- 25. Savings Analytics -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
@@ -776,6 +1053,29 @@
             </div>
         </div>
 
+        <!-- === SAVINGS & DEPOSITS (NEW) === -->
+        <div class="col-12 mt-4">
+            <h5 class="fw-bold text-muted text-uppercase small tracking-wider mb-3" style="letter-spacing: 0.06em;">
+                <i class="bi bi-wallet2 me-2" style="color: var(--brand-cobalt);"></i> Savings &amp; Deposits
+            </h5>
+        </div>
+
+        <!-- 26. Savings Accounts Report (NEW) -->
+        <div class="col-lg-3 col-md-6">
+            <div class="report-card card border-0">
+                <div class="card-body p-4">
+                    <div class="icon-box success">
+                        <i class="bi bi-list-ul"></i>
+                    </div>
+                    <h5>Savings Accounts</h5>
+                    <p>List of all savings accounts with balances, member details, and officer assignment.</p>
+                    <a href="{% url 'savings_accounts_report' %}" class="btn-success-custom">
+                        <i class="bi bi-eye"></i> View Accounts
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- === AUDIT & INVENTORY === -->
         <div class="col-12 mt-4">
             <h5 class="fw-bold text-muted text-uppercase small tracking-wider mb-3" style="letter-spacing: 0.06em;">
@@ -783,7 +1083,7 @@
             </h5>
         </div>
 
-        <!-- 12. Audit Report -->
+        <!-- 27. Audit Report -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">
@@ -799,7 +1099,7 @@
             </div>
         </div>
 
-        <!-- 13. Inventory Report -->
+        <!-- 28. Inventory Report -->
         <div class="col-lg-3 col-md-6">
             <div class="report-card card border-0">
                 <div class="card-body p-4">

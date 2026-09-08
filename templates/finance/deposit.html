@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block title %}Cash Deposit | {{ company.name|default:"MAC Technologies" }}{% endblock %}
+{% block title %}Deposit | {{ company.name|default:"MAC Technologies" }}{% endblock %}
 
-{% block page_title %}Cash Deposit{% endblock %}
+{% block page_title %}Deposit{% endblock %}
 {% block page_subtitle %}
     <i class="bi bi-shield-check me-1"></i>
     Securely credit funds to member savings account
@@ -25,7 +25,7 @@
 {% block extra_css %}
 <style>
     /* ==========================================================
-       CASH DEPOSIT – ENHANCED STYLES
+       DEPOSIT – ENHANCED STYLES
        ========================================================== */
     .deposit-wrapper {
         max-width: 640px;
@@ -205,6 +205,39 @@
         outline: none;
     }
 
+    /* Payment method buttons */
+    .payment-method-btn {
+        transition: all 0.2s ease;
+        border-width: 2px !important;
+        border-color: var(--border-color);
+        background: var(--card-bg);
+        color: var(--text-secondary);
+    }
+    .payment-method-btn.active {
+        background: var(--brand-cobalt);
+        color: white;
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 4px 12px rgba(22,50,175,0.2);
+    }
+    .payment-method-btn:not(.active):hover {
+        background: var(--brand-cobalt-bg);
+        border-color: var(--brand-cobalt);
+    }
+
+    /* Phone input */
+    #mobileMoneyFields .form-control {
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 0.6rem 1rem;
+        font-size: 0.95rem;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    #mobileMoneyFields .form-control:focus {
+        border-color: var(--brand-cobalt);
+        box-shadow: 0 0 0 4px var(--brand-cobalt-glow);
+        outline: none;
+    }
+
     /* Info alert */
     .info-alert {
         background: var(--brand-cobalt-bg);
@@ -299,8 +332,7 @@
     }
 
     /* ------------------------------------------------
-       RECEIPT MODAL – Standalone receipt styles
-       (unchanged, but kept for consistency)
+       RECEIPT MODAL (unchanged)
     ------------------------------------------------ */
     .receipt-modal-overlay {
         display: none;
@@ -657,7 +689,7 @@
             <div class="icon-circle">
                 <i class="bi bi-cash-stack"></i>
             </div>
-            <h4>Secure Cash Deposit</h4>
+            <h4>Secure Deposit</h4>
             <p>
                 {{ company.name|default:"MAC Technologies" }}
                 &middot; Member ID: <strong>{{ member.member_number|default:member.id }}</strong>
@@ -685,6 +717,30 @@
                         </div>
                     </div>
                     <input type="hidden" name="member" value="{{ member.id }}">
+                </div>
+
+                <!-- Payment Method -->
+                <div class="mb-4">
+                    <label class="form-label"><i class="bi bi-credit-card"></i> Payment Method</label>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn payment-method-btn flex-fill rounded-pill py-2 px-3 active"
+                                data-method="CASH" onclick="selectPaymentMethod('CASH')" style="font-size:0.8rem; font-weight:600;">
+                            <i class="bi bi-cash me-1"></i> Cash
+                        </button>
+                        <button type="button" class="btn payment-method-btn flex-fill rounded-pill py-2 px-3"
+                                data-method="MOBILE_MONEY" onclick="selectPaymentMethod('MOBILE_MONEY')" style="font-size:0.8rem; font-weight:600;">
+                            <i class="bi bi-phone me-1"></i> Mobile Money
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mobile Money Fields (hidden by default) -->
+                <div id="mobileMoneyFields" style="display: none;">
+                    <div class="mb-4">
+                        <label class="form-label"><i class="bi bi-phone me-1"></i> Phone Number</label>
+                        <input type="text" id="phoneNumber" name="phone_number" class="form-control" placeholder="e.g., 0700123456">
+                        <div class="input-hint">Enter MTN or Airtel number (without spaces).</div>
+                    </div>
                 </div>
 
                 <!-- Amount -->
@@ -759,7 +815,7 @@
 </div>
 
 <!-- ==========================================================
-RECEIPT MODAL (unchanged)
+RECEIPT MODAL
 ========================================================== -->
 <div class="receipt-modal-overlay" id="receiptModal">
     <div class="receipt-modal">
@@ -858,7 +914,130 @@ RECEIPT MODAL (unchanged)
 </div>
 
 <script>
-    // Show receipt modal with data
+    // ---- Payment method selection ----
+    let selectedPaymentMethod = 'CASH';
+
+    function selectPaymentMethod(method) {
+        selectedPaymentMethod = method;
+        document.querySelectorAll('.payment-method-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.method === method);
+        });
+        const mmFields = document.getElementById('mobileMoneyFields');
+        mmFields.style.display = (method === 'MOBILE_MONEY') ? 'block' : 'none';
+    }
+
+    // ---- Form submission override for mobile money ----
+    document.getElementById('depositForm').addEventListener('submit', function(e) {
+        if (selectedPaymentMethod === 'MOBILE_MONEY') {
+            e.preventDefault();
+
+            const amount = document.getElementById('depositAmount').value;
+            const phone = document.getElementById('phoneNumber').value.trim();
+            if (!amount || amount < 1000) {
+                alert('Please enter a valid amount (min 1,000).');
+                return;
+            }
+            if (!phone || phone.length < 10) {
+                alert('Please enter a valid phone number.');
+                return;
+            }
+
+            const btn = this.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Initiating...';
+
+            const formData = new FormData(this);
+            formData.set('payment_method', 'MOBILE_MONEY');
+            formData.set('phone_number', phone);
+
+            fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'pending') {
+                    // Show waiting dialog and start polling
+                    Swal.fire({
+                        title: 'Payment Initiated',
+                        html: `
+                            <p>Please check your phone and confirm the payment.</p>
+                            <div class="spinner-border text-brand mt-3" role="status">
+                                <span class="visually-hidden">Waiting...</span>
+                            </div>
+                            <p class="text-muted small mt-3">Waiting for confirmation...</p>
+                        `,
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        timer: 60000
+                    });
+
+                    const txId = data.transaction_id;
+                    let attempts = 0;
+                    const maxAttempts = 60;
+                    const interval = setInterval(() => {
+                        attempts++;
+                        fetch(`/deposit-status/${txId}/`)
+                        .then(res => res.json())
+                        .then(statusData => {
+                            if (statusData.status === 'completed') {
+                                clearInterval(interval);
+                                Swal.close();
+                                // Redirect to receipt page
+                                window.location.href = '/view-receipt/';
+                            } else if (statusData.status === 'failed' || statusData.status === 'cancelled') {
+                                clearInterval(interval);
+                                Swal.close();
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Payment Failed',
+                                    text: 'The mobile money transaction was not completed. Please try again.',
+                                    confirmButtonColor: '#1632af'
+                                }).then(() => {
+                                    btn.disabled = false;
+                                    btn.innerHTML = '<i class="bi bi-check-circle"></i> Confirm & Record Deposit';
+                                });
+                            }
+                        })
+                        .catch(() => { /* ignore network errors */ });
+
+                        if (attempts >= maxAttempts) {
+                            clearInterval(interval);
+                            Swal.close();
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Timeout',
+                                text: 'The payment is taking longer than expected. Please contact support.',
+                                confirmButtonColor: '#1632af'
+                            }).then(() => {
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="bi bi-check-circle"></i> Confirm & Record Deposit';
+                            });
+                        }
+                    }, 3000);
+
+                } else {
+                    alert('Error: ' + (data.message || 'Unknown error'));
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-check-circle"></i> Confirm & Record Deposit';
+                }
+            })
+            .catch(err => {
+                alert('Error: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle"></i> Confirm & Record Deposit';
+            });
+        }
+        // For Cash, the form submits normally (full page reload)
+    });
+
+    // ============================================================
+    // RECEIPT MODAL FUNCTIONS (unchanged)
+    // ============================================================
     function showReceipt(data) {
         document.getElementById('receiptId').textContent = data.receipt_id || '—';
         document.getElementById('receiptDate').textContent = data.date || '—';
@@ -890,7 +1069,7 @@ RECEIPT MODAL (unchanged)
                     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
                     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
                     <style>
-                        /* Inline styles for print (simplified) */
+                        /* Inline print styles */
                         body { padding: 2rem; font-family: 'Inter', sans-serif; }
                         .receipt-modal { max-width: 520px; margin: 0 auto; padding: 2rem; border: 1px solid #e2e8f0; border-radius: 24px; }
                         .receipt-modal-header { text-align: center; padding-bottom: 1.25rem; border-bottom: 2px solid #1632af; margin-bottom: 1.25rem; }

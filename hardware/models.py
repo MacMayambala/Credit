@@ -1,3 +1,4 @@
+# hardware/models.py
 import uuid
 from django.db import models
 from django.conf import settings
@@ -8,7 +9,7 @@ class Customer(models.Model):
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
-    
+
     def __str__(self):
         return self.name
 
@@ -18,7 +19,7 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
 
-    def __str__(self): 
+    def __str__(self):
         return self.name
 
 
@@ -30,11 +31,11 @@ class Product(models.Model):
     cost_price = models.DecimalField(max_digits=12, decimal_places=2)
     selling_price = models.DecimalField(max_digits=12, decimal_places=2)
     reorder_level = models.IntegerField(default=5)
-    current_stock = models.DecimalField(max_digits=12, decimal_places=2, default=0)  # Add this field
+    current_stock = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self): 
+    def __str__(self):
         return f"{self.product_code} - {self.name}"
 
 
@@ -45,7 +46,7 @@ class Supplier(models.Model):
     email = models.EmailField(blank=True)
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
-    def __str__(self): 
+    def __str__(self):
         return self.name
 
 
@@ -56,7 +57,7 @@ class StockTransaction(models.Model):
         ('ADJUSTMENT', 'Adjustment'),
         ('RETURN', 'Return'),
     ]
-    
+
     product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='ledger')
     quantity = models.DecimalField(max_digits=12, decimal_places=2)
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
@@ -84,11 +85,27 @@ class PurchaseItem(models.Model):
 
 
 class Sale(models.Model):
-    customer = models.ForeignKey('Customer', on_delete=models.SET_NULL, null=True)
+    STATUS_CHOICES = [
+        ('pending', 'Pending Payment'),
+        ('paid', 'Paid'),
+        ('failed', 'Payment Failed'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    customer = models.ForeignKey('Customer', on_delete=models.SET_NULL, null=True, blank=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)
-    payment_method = models.CharField(max_length=20)
+    payment_method = models.CharField(max_length=20)  # 'CASH' or 'MOBILE_MONEY'
     cashier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     date = models.DateTimeField(auto_now_add=True)
+
+    # NEW fields for mobile money
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='paid')  # keep 'paid' for old records
+    payment_reference = models.CharField(max_length=100, blank=True, null=True)       # MarzPay transaction ID
+    phone_number = models.CharField(max_length=20, blank=True, null=True)             # customer phone used
+    marzpay_response = models.JSONField(blank=True, null=True)                       # raw response from MarzPay
+
+    def __str__(self):
+        return f"Sale #{self.id} - {self.payment_method} - {self.status}"
 
 
 class SaleItem(models.Model):

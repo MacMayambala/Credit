@@ -10,8 +10,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ company.name|default:"MAC Technologies" }} - Core Banking{% endblock %}</title>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{% static 'images/mac.png' %}">
+    <!-- Favicon – using favicon.png as requested -->
+    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
 
     <!-- Bootstrap 5.3 & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -33,7 +33,7 @@
 
     <style>
         /* ==========================================================
-           ROOT VARIABLES & THEME
+           ROOT VARIABLES & THEME (unchanged)
            ========================================================== */
         :root {
             --brand-cobalt: #1632af;
@@ -101,6 +101,36 @@
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             transition: background 0.3s, color 0.3s;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* ==========================================================
+           LARGE BACKGROUND LOGO (watermark) – uses maclog.jpg
+           ========================================================== */
+        .bg-logo-watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+            opacity: 0.04;
+            width: 60vw;
+            max-width: 600px;
+            text-align: center;
+        }
+        .bg-logo-watermark img {
+            width: 100%;
+            height: auto;
+            max-height: 60vh;
+            object-fit: contain;
+            filter: grayscale(1);
+        }
+
+        [data-theme="dark"] .bg-logo-watermark {
+            opacity: 0.03;
         }
 
         h1, h2, h3, h4, h5, h6,
@@ -116,7 +146,7 @@
             color: var(--brand-cobalt-dark);
         }
 
-        /* Scrollbar (minimal) */
+        /* Scrollbar */
         ::-webkit-scrollbar {
             width: 4px;
             height: 4px;
@@ -130,7 +160,7 @@
         }
 
         /* ==========================================================
-           SIDEBAR (compact, no search)
+           SIDEBAR (unchanged)
            ========================================================== */
         #sidebar {
             width: 260px;
@@ -199,7 +229,7 @@
             border: 1px solid rgba(22, 50, 175, 0.1);
         }
 
-        /* Sidebar Navigation (compact) */
+        /* Sidebar Navigation */
         .sidebar-nav {
             flex: 1;
             overflow-y: auto;
@@ -269,7 +299,7 @@
             margin: 2px 10px;
         }
 
-        /* Sidebar Footer (compact) */
+        /* Sidebar Footer */
         .sidebar-footer {
             padding: 0.6rem 1.5rem;
             border-top: 1px solid var(--border-color);
@@ -316,10 +346,12 @@
             margin-left: 260px;
             min-height: 100vh;
             transition: margin-left 0.35s var(--transition);
+            position: relative;
+            z-index: 1;
         }
 
         /* ==========================================================
-           TOP NAVBAR (compact)
+           TOP NAVBAR (unchanged)
            ========================================================== */
         .top-navbar {
             background: var(--sidebar-bg);
@@ -458,11 +490,11 @@
         }
 
         /* ==========================================================
-           STATISTICS BAR (sticky, fixed position)
+           STATISTICS BAR (unchanged)
            ========================================================== */
         .stat-command-bar {
             position: sticky;
-            top: 60px; /* adjust based on navbar height */
+            top: 60px;
             z-index: 1030;
             padding: 0.4rem 2rem 0.2rem;
             background: var(--bg);
@@ -534,19 +566,27 @@
         }
 
         /* ==========================================================
-           CONTENT CARD
+           CONTENT CARD – GLASS EFFECT (matches login page)
            ========================================================== */
         .content-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
             border-radius: var(--radius);
             padding: 1.5rem 2rem;
             margin: 1rem 2rem 2rem;
             box-shadow: var(--shadow-sm);
-            transition: box-shadow 0.3s ease, background 0.3s;
+            transition: box-shadow 0.3s ease, background 0.3s, transform 0.2s;
         }
         .content-card:hover {
             box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        [data-theme="dark"] .content-card {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: rgba(255, 255, 255, 0.08);
         }
 
         .card-header-actions {
@@ -580,7 +620,7 @@
         }
 
         /* ==========================================================
-           DASHBOARD HEADER
+           DASHBOARD HEADER (unchanged)
            ========================================================== */
         .page-header {
             padding: 0.8rem 2rem 0.3rem;
@@ -654,7 +694,7 @@
         }
 
         /* ==========================================================
-           RESPONSIVE
+           RESPONSIVE (unchanged)
            ========================================================== */
         @media (max-width: 992px) {
             #sidebar {
@@ -697,6 +737,11 @@
                 padding: 0.2rem 1rem;
                 top: 56px;
             }
+            .bg-logo-watermark {
+                width: 70vw;
+                max-width: 400px;
+                opacity: 0.05;
+            }
         }
 
         @media (max-width: 576px) {
@@ -719,6 +764,11 @@
             .top-navbar .branch-selector {
                 max-width: 100px;
             }
+            .bg-logo-watermark {
+                width: 80vw;
+                max-width: 300px;
+                opacity: 0.06;
+            }
         }
 
         /* ==========================================================
@@ -734,7 +784,7 @@
         .gap-4 { gap: 1.5rem; }
 
         /* ==========================================================
-           THEME TOGGLE – GLASS PILL (added)
+           THEME TOGGLE – GLASS PILL
            ========================================================== */
         .theme-toggle {
             display: flex;
@@ -783,13 +833,25 @@
             .no-print { display: none !important; }
             #sidebar { display: none !important; }
             #main { margin-left: 0 !important; }
-            .content-card { border: none; box-shadow: none; }
+            .content-card { border: none; box-shadow: none; background: white !important; backdrop-filter: none; }
             .stat-command-bar { display: none !important; }
+            .bg-logo-watermark { display: none !important; }
         }
     </style>
 </head>
 
 <body>
+
+    <!-- ==========================================================
+    LARGE BACKGROUND LOGO (maclog.jpg as default)
+    ========================================================== -->
+    <div class="bg-logo-watermark">
+        {% if company.logo %}
+            <img src="{{ company.logo.url }}" alt="{{ company.name|default:'MAC Innovations Technologies' }}">
+        {% else %}
+            <img src="{% static 'images/maclog.jpg' %}" alt="MAC Innovations Technologies">
+        {% endif %}
+    </div>
 
     <!-- ==========================================================
     TOAST CONTAINER
@@ -809,7 +871,7 @@
     </div>
 
     <!-- ==========================================================
-    SIDEBAR
+    SIDEBAR (unchanged)
     ========================================================== -->
     {% if user.is_authenticated and request.session.2fa_verified %}
     <aside id="sidebar">
@@ -909,18 +971,21 @@
             </a>
             {% endif %}
 
+            {% if user.is_superuser or perms.finance.can_access_settings %}
             <div class="nav-section">System</div>
-            <a href="#" class="nav-link">
-                <i class="bi bi-gear"></i> Settings
-            </a>
-            {% if 'Administration' in allowed_modules and user.is_superuser %}
-            <a href="{% url 'admin:index' %}" class="nav-link">
-                <i class="bi bi-tools"></i> Administration
-            </a>
+                <a href="{% url 'settings' %}" class="nav-link {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
+                    <i class="bi bi-gear"></i> Settings
+                </a>
+                {% if user.is_superuser %}
+                <a href="{% url 'admin:index' %}" class="nav-link">
+                    <i class="bi bi-tools"></i> Administration
+                </a>
+                {% endif %}
             {% endif %}
+
         </nav>
 
-        <!-- Sidebar Footer (compact) -->
+        <!-- Sidebar Footer -->
         <div class="sidebar-footer">
             <div class="user-info">
                 <img src="https://ui-avatars.com/api/?name={{ request.user.username }}&background=1632af&color=fff" 
@@ -947,9 +1012,7 @@
     ========================================================== -->
     <div id="main" {% if not user.is_authenticated or not request.session.2fa_verified %}style="margin-left:0"{% endif %}>
 
-        <!-- ==========================================================
-        TOP NAVBAR
-        ========================================================== -->
+        <!-- TOP NAVBAR -->
         {% if user.is_authenticated and request.session.2fa_verified %}
         <nav class="top-navbar d-flex justify-content-between align-items-center no-print">
             <div class="d-flex align-items-center gap-3">
@@ -957,7 +1020,7 @@
                     <i class="bi bi-list"></i>
                 </button>
                 <a href="/" class="navbar-brand d-lg-none">
-                    <img src="{% static 'images/mac.png' %}" alt="Logo" height="28">
+                    <img src="{% static 'images/favicon.png' %}" alt="Logo" height="28">
                     {{ company.short_name|default:"MAC" }}
                 </a>
             </div>
@@ -981,14 +1044,12 @@
                 <!-- Date/Time -->
                 <div class="datetime d-none d-lg-block" id="liveDatetime"></div>
 
-                <!-- Theme Toggle (now styled as a glass pill) -->
+                <!-- Theme Toggle -->
                 <button class="theme-toggle" id="themeToggle" title="Toggle theme">
                     <i class="bi bi-moon-fill" id="themeIcon"></i>
                 </button>
 
-                <!-- ==========================================================
-                REAL NOTIFICATION BELL
-                ========================================================== -->
+                <!-- Notification Bell -->
                 <div class="notification-bell" role="button" id="notificationBell" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-bell"></i>
                     {% if unread_count > 0 %}
@@ -1051,9 +1112,7 @@
         </nav>
         {% endif %}
 
-        <!-- ==========================================================
-        STATISTICS BAR (sticky)
-        ========================================================== -->
+        <!-- STATISTICS BAR -->
         {% if show_stat_bar %}
         <div class="stat-command-bar no-print">
             <div class="glass-stats">
@@ -1096,9 +1155,7 @@
         </div>
         {% endif %}
 
-        <!-- ==========================================================
-        MAIN CONTENT
-        ========================================================== -->
+        <!-- MAIN CONTENT (glass card) -->
         <main class="py-3">
             <div class="{% if user.is_authenticated and request.session.2fa_verified %}content-card{% else %}container{% endif %}">
                 {% block content %}
@@ -1277,25 +1334,21 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Remove the unread badge and update count
                             const badge = element.querySelector('.badge');
                             if (badge) badge.remove();
                             element.classList.remove('bg-light');
-                            // Decrease badge count
                             const bellBadge = document.getElementById('notificationBadge');
                             if (bellBadge) {
                                 let count = parseInt(bellBadge.textContent) - 1;
                                 if (count > 0) bellBadge.textContent = count;
                                 else bellBadge.remove();
                             }
-                            // Navigate to the link
                             window.location.href = element.href;
                         }
                     });
                 }
             };
 
-            // Mark all as read
             document.getElementById('markAllReadBtn')?.addEventListener('click', function() {
                 fetch('/notifications/mark-all-read/', {
                     method: 'POST',
@@ -1307,7 +1360,6 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Remove all unread badges
                         document.querySelectorAll('.dropdown-item .badge').forEach(el => el.remove());
                         document.querySelectorAll('.dropdown-item.bg-light').forEach(el => el.classList.remove('bg-light'));
                         const bellBadge = document.getElementById('notificationBadge');
@@ -1315,14 +1367,6 @@
                         this.remove();
                     }
                 });
-            });
-
-            // Refresh Button
-            document.getElementById('refreshBtn')?.addEventListener('click', () => location.reload());
-
-            // Export Button (stub)
-            document.getElementById('exportBtn')?.addEventListener('click', function() {
-                showToast('info', 'Export functionality will be implemented in child templates.');
             });
 
             // Floating Action Button

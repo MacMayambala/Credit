@@ -47,4 +47,8 @@ urlpatterns = [
     path('reports/export/', views.export_report_csv, name='export_report'),
     path('transactions/', views.TransactionListView.as_view(), name='transactions_report'),
     path('transactions/<int:pk>/', views.TransactionDetailView.as_view(), name='transaction_detail'),
+
+    path('pos/checkout/', views.pos_checkout_view, name='pos_checkout'),
+    path('webhook/marzpay/', views.marzpay_webhook, name='marzpay_webhook'),
+    path('sale-status/<str:sale_id>/', views.sale_status, name='sale_status'),
 ]

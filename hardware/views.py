@@ -901,3 +901,289 @@ def export_report_csv(request):
             ])
     
     return response
+
+
+
+## hardware/views.py – full corrected sections
+# hardware/views.py – full corrected code
+
+import json
+import re
+import uuid
+import hmac
+import hashlib
+from decimal import Decimal
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from django.db import transaction
+from django.conf import settings
+
+from .models import Product, Sale, StockTransaction
+from .services import secure_process_sale, create_pending_sale
+from .marzpay import initiate_collection
+
+
+# ============================================================
+# PHONE NUMBER NORMALISATION
+# ============================================================
+def normalize_phone(phone):
+    """
+    Convert a local Ugandan phone number to international format.
+    Examples:
+        '0700123456'  -> '+256700123456'
+        '700123456'   -> '+256700123456'
+        '256700123456' -> '+256700123456'
+        '+256700123456' -> '+256700123456'
+    """
+    if not phone:
+        return ''
+    # Remove spaces, dashes, parentheses, dots
+    phone = re.sub(r'[\s\-\(\)\.]', '', phone)
+    # If it starts with '0', replace with +256
+    if phone.startswith('0'):
+        phone = '+256' + phone[1:]
+    # If it starts with '256' (without +), add +
+    elif phone.startswith('256') and not phone.startswith('+'):
+        phone = '+' + phone
+    # If no '+' at all, assume Uganda
+    elif not phone.startswith('+'):
+        phone = '+256' + phone
+    return phone
+
+
+# ============================================================
+# CHECKOUT (CASH / MOBILE MONEY) – FIXED UUID REFERENCE
+# ============================================================
+@login_required
+@require_POST
+def pos_checkout_view(request):
+    """
+    Handles checkout: cash or mobile money.
+    """
+    try:
+        data = json.loads(request.body)
+        cart_data = data.get("cart", [])
+        payment_method = data.get("payment_method", "CASH")
+        phone_number = data.get("phone_number", "").strip()
+
+        if not cart_data:
+            return JsonResponse({"status": "error", "message": "Cart is empty"}, status=400)
+
+        # Build cart items and validate stock
+        cart_items = []
+        for item in cart_data:
+            product_id = item.get("id")
+            qty = Decimal(str(item.get("qty", 1)))
+            try:
+                product = Product.objects.get(id=product_id)
+            except Product.DoesNotExist:
+                return JsonResponse({"status": "error", "message": f"Product not found: {product_id}"}, status=400)
+
+            if qty <= 0:
+                return JsonResponse({"status": "error", "message": "Invalid quantity"}, status=400)
+
+            if payment_method == 'CASH' and product.current_stock < qty:
+                return JsonResponse({"status": "error", "message": f"Insufficient stock for {product.name}"}, status=400)
+
+            cart_items.append({
+                "product": product,
+                "qty": qty,
+                "price": Decimal(str(product.selling_price))
+            })
+
+        total_amount = sum(item['price'] * item['qty'] for item in cart_items)
+
+        if payment_method == 'CASH':
+            sale = secure_process_sale(cart_items, None, 'CASH', request.user, status='paid')
+            return JsonResponse({"status": "success", "sale_id": str(sale.id)})
+
+        elif payment_method == 'MOBILE_MONEY':
+            if not phone_number:
+                return JsonResponse({"status": "error", "message": "Phone number is required for mobile money"}, status=400)
+
+            # Normalise the phone number
+            phone_number = normalize_phone(phone_number)
+
+            # Create pending sale (stock reserved but not deducted)
+            sale = create_pending_sale(cart_items, request.user, phone_number, total_amount)
+
+            # Ensure the sale.id is a valid UUID string
+            reference = str(sale.id)
+            # Validate that reference is a valid UUID (optional but safe)
+            try:
+                uuid.UUID(reference)
+            except ValueError:
+                # If not valid, generate a new one and store it in sale.payment_reference
+                reference = str(uuid.uuid4())
+                sale.payment_reference = reference
+                sale.save()
+
+            # Debug: log the reference and phone number
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"MarzPay initiate: reference={reference}, phone={phone_number}, amount={total_amount}")
+
+            description = f"Payment for sale #{sale.id}"
+            metadata = {"sale_id": str(sale.id), "cashier": request.user.username}
+
+            try:
+                response = initiate_collection(
+                    phone_number=phone_number,
+                    amount=total_amount,
+                    reference=reference,
+                    description=description,
+                    metadata=metadata
+                )
+                marzpay_txn_id = response.get('transaction_id') or response.get('id')
+                sale.payment_reference = marzpay_txn_id
+                sale.marzpay_response = response
+                sale.save()
+
+                return JsonResponse({
+                    "status": "pending",
+                    "sale_id": str(sale.id),
+                    "message": "Payment initiated. Please confirm on your phone.",
+                    "marzpay_response": response
+                })
+
+            except Exception as e:
+                # If MarzPay fails, delete the pending sale
+                sale.delete()
+                return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+        else:
+            return JsonResponse({"status": "error", "message": "Invalid payment method"}, status=400)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+# ============================================================
+# MARZPAY WEBHOOK
+# ============================================================
+# hardware/views.py – add these imports at the top
+import json
+import hmac
+import hashlib
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.db import transaction
+from django.conf import settings
+
+from .models import Sale, StockTransaction, Product
+from finance.models import Transaction as FinanceTransaction, SavingsAccount   # <-- import finance models
+
+
+@csrf_exempt
+def marzpay_webhook(request):
+    """
+    MarzPay callback endpoint – handles both:
+        - Hardware sales (reference = sale ID)
+        - Finance deposits (reference = transaction reference starting with 'DEP')
+    """
+    # ---- 1. Verify webhook signature ----
+    secret = getattr(settings, 'MARZPAY_WEBHOOK_SECRET', '')
+    if secret:
+        signature = request.headers.get('X-Signature')
+        if not signature:
+            return HttpResponse("Missing signature", status=401)
+        body = request.body
+        expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, signature):
+            return HttpResponse("Invalid signature", status=401)
+
+    try:
+        data = json.loads(request.body)
+        transaction_id = data.get('transaction_id') or data.get('id')
+        status = data.get('status')  # 'success', 'failed', 'cancelled'
+        reference = data.get('reference')  # Our reference (sale ID or deposit ref)
+
+        if not transaction_id or not reference:
+            return HttpResponse("Missing transaction_id or reference", status=400)
+
+        # ---- 2. Determine which type of transaction ----
+        if reference.startswith('DEP'):
+            # ---------- FINANCE DEPOSIT ----------
+            try:
+                tx = FinanceTransaction.objects.get(reference=reference)
+            except FinanceTransaction.DoesNotExist:
+                return HttpResponse("Deposit transaction not found", status=404)
+
+            if status == 'success':
+                tx.status = 'completed'
+                # Credit the member's savings
+                with transaction.atomic():
+                    savings, _ = SavingsAccount.objects.get_or_create(member=tx.member)
+                    savings.balance += tx.amount
+                    savings.save()
+                    # Optionally create a ledger entry here (if you have a signal, it's already done)
+                    tx.save()
+            elif status in ('failed', 'cancelled'):
+                tx.status = 'failed'
+                tx.save()
+            else:
+                tx.status = 'pending'   # keep pending for unknown statuses
+
+            return JsonResponse({"status": "ok"})
+
+        else:
+            # ---------- HARDWARE SALE (original logic) ----------
+            try:
+                # Try to parse as UUID or integer
+                sale = Sale.objects.get(id=reference)
+            except Sale.DoesNotExist:
+                return HttpResponse("Sale not found", status=404)
+
+            if status == 'success':
+                sale.status = 'paid'
+                with transaction.atomic():
+                    for item in sale.items.all():
+                        product = item.product
+                        if product.current_stock < item.quantity:
+                            sale.status = 'failed'
+                            sale.save()
+                            return HttpResponse("Stock insufficient for sale", status=400)
+                        product.current_stock -= item.quantity
+                        product.save()
+                        StockTransaction.objects.create(
+                            product=product,
+                            quantity=-item.quantity,
+                            transaction_type='SALE',
+                            reference_id=str(sale.id),
+                            created_by=sale.cashier,
+                            remarks=f"Sale #{sale.id} (confirmed via mobile money)"
+                        )
+            elif status in ('failed', 'cancelled'):
+                sale.status = 'failed'
+            else:
+                sale.status = 'pending'
+
+            sale.marzpay_response = data
+            sale.save()
+            return JsonResponse({"status": "ok"})
+
+    except json.JSONDecodeError:
+        return HttpResponse("Invalid JSON", status=400)
+    except Exception as e:
+        return HttpResponse(str(e), status=500)
+
+# ============================================================
+# SALE STATUS POLLING
+# ============================================================
+@login_required
+def sale_status(request, sale_id):
+    """
+    Polling endpoint to check sale status.
+    """
+    sale = get_object_or_404(Sale, id=sale_id)
+    return JsonResponse({
+        'status': sale.status,
+        'sale_id': str(sale.id)
+    })

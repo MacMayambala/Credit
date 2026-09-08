@@ -158,3 +158,61 @@ class JournalEntryForm(forms.Form):
         # Remove inline style attributes; we rely on the CSS theme.
         # Add any additional customisation if needed.
         pass
+
+
+    
+from django import forms
+from .models import Company, SystemSetting, GlobalSettings, AutoRepaymentSetting, SMSConfig
+
+class BaseModelForm(forms.ModelForm):
+    """Base form that applies Bootstrap 5 classes to all widgets."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            widget = field.widget
+
+            # Checkbox inputs (including switches)
+            if isinstance(widget, (forms.CheckboxInput, forms.RadioSelect)):
+                widget.attrs.update({'class': 'form-check-input'})
+            # Select dropdowns
+            elif isinstance(widget, forms.Select):
+                widget.attrs.update({'class': 'form-select'})
+            # File inputs
+            elif isinstance(widget, forms.ClearableFileInput):
+                widget.attrs.update({'class': 'form-control'})
+            # All other inputs (text, email, number, password, time, textarea, etc.)
+            else:
+                widget.attrs.update({'class': 'form-control'})
+
+            # Additional tweaks for specific widgets
+            if isinstance(widget, forms.Textarea):
+                widget.attrs.update({'rows': 3})
+
+            # For time inputs, ensure type="time" is set
+            if isinstance(widget, forms.TimeInput):
+                widget.attrs.update({'type': 'time'})
+
+class CompanyForm(BaseModelForm):
+    class Meta:
+        model = Company
+        fields = ['name', 'tagline', 'logo', 'phone', 'email', 'website', 'address']
+
+class SystemSettingForm(BaseModelForm):
+    class Meta:
+        model = SystemSetting
+        fields = ['enable_back_dating', 'member_prefix']
+
+class GlobalSettingsForm(BaseModelForm):
+    class Meta:
+        model = GlobalSettings
+        fields = ['enable_global_2fa']
+
+class AutoRepaymentSettingForm(BaseModelForm):
+    class Meta:
+        model = AutoRepaymentSetting
+        fields = ['is_enabled', 'execution_time', 'frequency', 'grace_period_days']
+
+class SMSConfigForm(BaseModelForm):
+    class Meta:
+        model = SMSConfig
+        fields = ['balance', 'cost_per_sms']
