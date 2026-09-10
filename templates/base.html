@@ -33,7 +33,7 @@
 
     <style>
         /* ==========================================================
-           ROOT VARIABLES & THEME (unchanged)
+           ROOT VARIABLES & THEME
            ========================================================== */
         :root {
             --brand-cobalt: #1632af;
@@ -160,7 +160,7 @@
         }
 
         /* ==========================================================
-           SIDEBAR (unchanged)
+           SIDEBAR
            ========================================================== */
         #sidebar {
             width: 260px;
@@ -236,36 +236,55 @@
             padding: 0.25rem 0 0.5rem;
         }
 
+        /* ---- Section headers ---- */
         .nav-section {
-            padding: 0.8rem 1.5rem 0.2rem;
+            padding: 1rem 1.5rem 0.35rem;
             font-size: 0.6rem;
-            font-weight: 700;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.1em;
             color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-section::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+            opacity: 0.7;
+        }
+        .nav-section:first-of-type {
+            padding-top: 0.5rem;
         }
 
+        /* ---- Top-level nav link ---- */
         .nav-link {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 7px 1.5rem;
+            padding: 9px 1.5rem;
             margin: 2px 10px;
             border-radius: var(--radius-sm);
-            font-weight: 500;
+            font-weight: 600;
             font-size: 0.85rem;
             color: var(--text-secondary);
-            transition: all 0.2s ease;
+            transition: background-color .18s ease, color .18s ease;
             text-decoration: none;
             position: relative;
             cursor: pointer;
         }
 
         .nav-link i {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             width: 22px;
-            transition: transform 0.2s ease;
+            color: var(--text-muted);
+            transition: color .18s ease, transform .18s ease;
             flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .nav-link:hover {
@@ -273,30 +292,132 @@
             color: var(--brand-cobalt);
         }
         .nav-link:hover i {
-            transform: translateX(3px);
+            color: var(--brand-cobalt);
+            transform: translateX(2px);
         }
 
+        /* ---- Active top-level link ---- */
         .nav-link.active {
-            background: var(--brand-cobalt);
+            background: linear-gradient(135deg, var(--brand-cobalt) 0%, var(--brand-cobalt-dark) 100%);
             color: #fff !important;
-            box-shadow: 0 4px 12px rgba(22, 50, 175, 0.25);
+            box-shadow: 0 8px 20px -8px rgba(22, 50, 175, 0.55);
         }
         .nav-link.active i {
+            color: #ffffff;
             transform: none !important;
         }
+        .nav-link.active::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 8px;
+            bottom: 8px;
+            width: 3px;
+            border-radius: 0 3px 3px 0;
+            background: #d71920;
+        }
 
+        /* ---- Chevron ---- */
         .nav-link .chevron {
             margin-left: auto;
-            transition: transform 0.25s ease;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            transition: transform .25s cubic-bezier(.4,0,.2,1), color .18s ease;
+        }
+
+        .nav-link[aria-expanded="true"] {
+            background: var(--hover-bg);
+            color: var(--brand-cobalt);
+        }
+        .nav-link[aria-expanded="true"] i {
+            color: var(--brand-cobalt);
         }
         .nav-link[aria-expanded="true"] .chevron {
             transform: rotate(180deg);
+            color: var(--brand-cobalt);
+        }
+
+        /* ---- SUBMENU (collapse) ---- */
+        .collapse {
+            position: relative;
+            padding: 4px 0 6px 0;
+        }
+
+        /* vertical rail */
+        .collapse::before {
+            content: "";
+            position: absolute;
+            left: 34px;
+            top: 10px;
+            bottom: 14px;
+            width: 1.5px;
+            background: var(--border-color);
+            border-radius: 2px;
         }
 
         .collapse .nav-link {
-            padding: 5px 1.5rem 5px 3rem;
+            padding: 8px 1.5rem 8px 48px;
             font-size: 0.8rem;
-            margin: 2px 10px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 1px 10px;
+            background: transparent;
+            box-shadow: none;
+            position: relative;
+        }
+
+        .collapse .nav-link i {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-right: 6px;
+            width: 16px;
+            transform: none;
+        }
+
+        /* dot marker on the rail */
+        .collapse .nav-link::before {
+            content: "";
+            position: absolute;
+            left: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border-color);
+            border: 2px solid var(--sidebar-bg);
+            transition: background .18s ease, transform .18s ease;
+            z-index: 1;
+        }
+
+        .collapse .nav-link:hover {
+            background: var(--hover-bg);
+            color: var(--brand-cobalt);
+        }
+        .collapse .nav-link:hover i {
+            color: var(--brand-cobalt);
+            transform: none;
+        }
+        .collapse .nav-link:hover::before {
+            background: var(--brand-cobalt);
+            transform: translateY(-50%) scale(1.15);
+        }
+
+        /* Active submenu item */
+        .collapse .nav-link.active {
+            background: var(--brand-cobalt-bg) !important;
+            color: var(--brand-cobalt) !important;
+            box-shadow: none;
+        }
+        .collapse .nav-link.active i {
+            color: var(--brand-cobalt);
+        }
+        .collapse .nav-link.active::before {
+            background: var(--brand-cobalt);
+            transform: translateY(-50%) scale(1.2);
+        }
+        .collapse .nav-link.active::after {
+            display: none;
         }
 
         /* Sidebar Footer */
@@ -351,7 +472,7 @@
         }
 
         /* ==========================================================
-           TOP NAVBAR (unchanged)
+           TOP NAVBAR
            ========================================================== */
         .top-navbar {
             background: var(--sidebar-bg);
@@ -490,7 +611,7 @@
         }
 
         /* ==========================================================
-           STATISTICS BAR (unchanged)
+           STATISTICS BAR
            ========================================================== */
         .stat-command-bar {
             position: sticky;
@@ -566,7 +687,7 @@
         }
 
         /* ==========================================================
-           CONTENT CARD – GLASS EFFECT (matches login page)
+           CONTENT CARD – GLASS EFFECT
            ========================================================== */
         .content-card {
             background: rgba(255, 255, 255, 0.75);
@@ -620,7 +741,7 @@
         }
 
         /* ==========================================================
-           DASHBOARD HEADER (unchanged)
+           DASHBOARD HEADER
            ========================================================== */
         .page-header {
             padding: 0.8rem 2rem 0.3rem;
@@ -694,7 +815,7 @@
         }
 
         /* ==========================================================
-           RESPONSIVE (unchanged)
+           RESPONSIVE
            ========================================================== */
         @media (max-width: 992px) {
             #sidebar {
@@ -871,7 +992,7 @@
     </div>
 
     <!-- ==========================================================
-    SIDEBAR (unchanged)
+    SIDEBAR
     ========================================================== -->
     {% if user.is_authenticated and request.session.2fa_verified %}
     <aside id="sidebar">
@@ -908,15 +1029,26 @@
             {% endif %}
 
             {% if 'Accounting' in allowed_modules %}
-            <a class="nav-link justify-content-between" data-bs-toggle="collapse" href="#ledgerMenu" role="button" aria-expanded="false">
+            <a class="nav-link justify-content-between"
+               data-bs-toggle="collapse"
+               href="#ledgerMenu"
+               role="button"
+               aria-expanded="{% if 'ledger' in request.path or 'chart' in request.path or 'account' in request.path %}true{% else %}false{% endif %}"
+               aria-controls="ledgerMenu">
                 <span class="d-flex align-items-center gap-3">
                     <i class="bi bi-journal-text"></i> Accounting
                 </span>
                 <i class="bi bi-chevron-down chevron"></i>
             </a>
-            <div class="collapse ms-4 border-start ps-3" id="ledgerMenu">
-                <a href="{% url 'general_ledger' %}" class="nav-link py-2 small">General Ledger</a>
-                <a href="{% url 'chart_of_accounts' %}" class="nav-link py-2 small">Chart of Accounts</a>
+            <div class="collapse {% if 'ledger' in request.path or 'chart' in request.path or 'account' in request.path %}show{% endif %}" id="ledgerMenu">
+                <a href="{% url 'general_ledger' %}"
+                   class="nav-link {% if request.resolver_match.url_name == 'general_ledger' %}active{% endif %}">
+                    <i class="bi bi-journal-bookmark"></i> General Ledger
+                </a>
+                <a href="{% url 'chart_of_accounts' %}"
+                   class="nav-link {% if request.resolver_match.url_name == 'chart_of_accounts' %}active{% endif %}">
+                    <i class="bi bi-diagram-3"></i> Chart of Accounts
+                </a>
             </div>
             {% endif %}
 
@@ -929,30 +1061,41 @@
             <div class="nav-section">Hardware & Retail</div>
 
             {% if 'Hardware' in allowed_modules %}
-            <a class="nav-link justify-content-between" data-bs-toggle="collapse" href="#hardwareMenu" role="button" aria-expanded="false">
+            <a class="nav-link justify-content-between"
+               data-bs-toggle="collapse"
+               href="#hardwareMenu"
+               role="button"
+               aria-expanded="{% if 'hardware' in request.path %}true{% else %}false{% endif %}"
+               aria-controls="hardwareMenu">
                 <span class="d-flex align-items-center gap-3">
                     <i class="bi bi-shop"></i> Electronic Retail
                 </span>
                 <i class="bi bi-chevron-down chevron"></i>
             </a>
-            <div class="collapse ms-4 border-start ps-3 {% if 'hardware' in request.path %}show{% endif %}" id="hardwareMenu">
-                <a href="{% url 'hardware:dashboard' %}" class="nav-link py-2 small">
-                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+            <div class="collapse {% if 'hardware' in request.path %}show{% endif %}" id="hardwareMenu">
+                <a href="{% url 'hardware:dashboard' %}"
+                   class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
-                <a href="{% url 'hardware:pos' %}" class="nav-link py-2 small">
-                    <i class="bi bi-cart-plus me-2"></i> Point of Sale
+                <a href="{% url 'hardware:pos' %}"
+                   class="nav-link {% if request.resolver_match.url_name == 'pos' %}active{% endif %}">
+                    <i class="bi bi-cart-plus"></i> Point of Sale
                 </a>
-                <a href="{% url 'hardware:sales_list' %}" class="nav-link py-2 small">
-                    <i class="bi bi-clock-history me-2"></i> Sales History
+                <a href="{% url 'hardware:sales_list' %}"
+                   class="nav-link {% if 'sales' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-clock-history"></i> Sales History
                 </a>
-                <a href="{% url 'hardware:product_list' %}" class="nav-link py-2 small">
-                    <i class="bi bi-box-seam me-2"></i> Products
+                <a href="{% url 'hardware:product_list' %}"
+                   class="nav-link {% if 'product' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-box-seam"></i> Products
                 </a>
-                <a href="{% url 'hardware:category_list' %}" class="nav-link py-2 small">
-                    <i class="bi bi-folder me-2"></i> Categories
+                <a href="{% url 'hardware:category_list' %}"
+                   class="nav-link {% if 'category' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-folder"></i> Categories
                 </a>
-                <a href="{% url 'hardware:supplier_list' %}" class="nav-link py-2 small">
-                    <i class="bi bi-truck me-2"></i> Suppliers
+                <a href="{% url 'hardware:supplier_list' %}"
+                   class="nav-link {% if 'supplier' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-truck"></i> Suppliers
                 </a>
             </div>
             {% endif %}
@@ -960,28 +1103,27 @@
             <div class="nav-section">Management</div>
 
             {% if 'Staff' in allowed_modules %}
-            
             <a href="{% url 'user_list' %}" class="nav-link {% if 'staff' in request.path %}active{% endif %}">
                 <i class="bi bi-shield-lock"></i> Staff
             </a>
             {% endif %}
 
             {% if 'Reports' in allowed_modules and user.is_superuser %}
-            <a href="{% url 'reports_dashboard' %}" class="nav-link">
+            <a href="{% url 'reports_dashboard' %}" class="nav-link {% if 'reports' in request.path %}active{% endif %}">
                 <i class="bi bi-graph-up"></i> Reports
             </a>
             {% endif %}
 
             {% if user.is_superuser or perms.finance.can_access_settings %}
             <div class="nav-section">System</div>
-                <a href="{% url 'settings' %}" class="nav-link {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
-                    <i class="bi bi-gear"></i> Settings
-                </a>
-                {% if user.is_superuser %}
-                <a href="{% url 'admin:index' %}" class="nav-link">
-                    <i class="bi bi-tools"></i> Administration
-                </a>
-                {% endif %}
+            <a href="{% url 'settings' %}" class="nav-link {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
+                <i class="bi bi-gear"></i> Settings
+            </a>
+            {% if user.is_superuser %}
+            <a href="{% url 'admin:index' %}" class="nav-link">
+                <i class="bi bi-tools"></i> Administration
+            </a>
+            {% endif %}
             {% endif %}
 
         </nav>
