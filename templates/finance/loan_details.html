@@ -802,13 +802,53 @@
                                 </div>
                                 <div>
                                     <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">
-                                        Disbursement Date
+                                        Start Date
                                     </span>
                                     <span class="fw-bold text-success">
-                                        {{ loan.disbursed_date|date:"d M, Y"|default:"Awaiting Approval" }}
+                                        {{ loan.start_date|date:"d M, Y"|default:"—" }}
                                     </span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Dates row: Start / Maturity -->
+                    <div class="row g-4 mt-1">
+                        <div class="col-md-6">
+                            <div class="d-flex gap-3">
+                                <div class="info-icon" style="background: rgba(16,185,129,0.1); color: var(--success);">
+                                    <i class="bi bi-calendar-event"></i>
+                                </div>
+                                <div>
+                                    <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                        Start Date
+                                    </span>
+                                    <span class="fw-bold text-success">
+                                        {{ loan.start_date|date:"d M, Y"|default:"—" }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            {% with last_installment=schedule_data|last %}
+                            <div class="d-flex gap-3">
+                                <div class="info-icon" style="background: rgba(22,50,175,0.1); color: var(--brand-cobalt);">
+                                    <i class="bi bi-flag-fill"></i>
+                                </div>
+                                <div>
+                                    <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 0.06em;">
+                                        Maturity Date
+                                    </span>
+                                    <span class="fw-bold" style="color: var(--brand-cobalt);">
+                                        {% if last_installment %}
+                                            {{ last_installment.due_date|date:"d M, Y" }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            {% endwith %}
                         </div>
                     </div>
 
