@@ -7,7 +7,7 @@
 {% block page_subtitle %}
     Borrower: {{ loan.member.get_full_name }} &nbsp;·&nbsp; 
     Status: {{ loan.get_status_display|upper }} &nbsp;·&nbsp;
-    Disbursement Date: {{ loan.start_date|date:"d M, Y"|default:"—" }}
+    Start Date: {{ loan.start_date|date:"d M, Y"|default:"—" }}
 {% endblock %}
 
 {% block breadcrumb %}
@@ -914,7 +914,7 @@
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="stat-card">
-                <div class="stat-label"><i class="bi bi-calendar-check me-1"></i> Disbursement Date</div>
+                <div class="stat-label"><i class="bi bi-calendar-check me-1"></i> Start Date</div>
                 <div class="stat-value">
                     <i class="bi bi-calendar-event"></i>
                     {{ loan.start_date|date:"d M, Y"|default:"—" }}
@@ -935,7 +935,13 @@
                 <div class="stat-label"><i class="bi bi-calendar-x me-1"></i> Maturity Date</div>
                 <div class="stat-value">
                     <i class="bi bi-calendar-range"></i>
-                    {{ end_date|date:"d M, Y"|default:"—" }}
+                    {% with last_inst=schedule_data|last %}
+                        {% if last_inst %}
+                            {{ last_inst.due_date|date:"d M, Y" }}
+                        {% else %}
+                            {{ end_date|date:"d M, Y"|default:"—" }}
+                        {% endif %}
+                    {% endwith %}
                 </div>
             </div>
         </div>
