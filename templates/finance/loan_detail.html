@@ -7,7 +7,7 @@
 {% block page_subtitle %}
     Borrower: {{ loan.member.get_full_name }} &nbsp;·&nbsp; 
     Status: {{ loan.get_status_display|upper }} &nbsp;·&nbsp;
-    Disbursed: {{ disbursement_date|date:"d M, Y"|default:"Not Disbursed" }}
+    Disbursement Date: {{ loan.start_date|date:"d M, Y"|default:"—" }}
 {% endblock %}
 
 {% block breadcrumb %}
@@ -917,7 +917,7 @@
                 <div class="stat-label"><i class="bi bi-calendar-check me-1"></i> Disbursement Date</div>
                 <div class="stat-value">
                     <i class="bi bi-calendar-event"></i>
-                    {{ disbursement_date|date:"d M, Y"|default:"Not Disbursed" }}
+                    {{ loan.start_date|date:"d M, Y"|default:"—" }}
                 </div>
             </div>
         </div>
